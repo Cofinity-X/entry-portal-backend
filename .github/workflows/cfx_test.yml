@@ -1,0 +1,46 @@
+name: CFX Pre Checks dotnet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - '.github/workflows/cfx_test.yml'
+  workflow_dispatch:
+
+concurrency:
+  # cancel older running jobs on the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dotnet-build:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: ['8.0']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install dotnet-format
+        run: dotnet tool install -g dotnet-format
+      - name: Install dependencies
+        run: dotnet restore src
+      - name: Build
+        run: dotnet build src --configuration Release --no-restore
+      - name: Check Format
+        run: dotnet format src --verify-no-changes --no-restore
+      - name: Test
+        run: dotnet test src --filter FullyQualifiedName\!~Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests --no-restore --verbosity normal
