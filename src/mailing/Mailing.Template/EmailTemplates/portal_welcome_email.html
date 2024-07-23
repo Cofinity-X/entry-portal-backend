@@ -180,7 +180,9 @@
                   color: #000;
                 ">
               Dear <span>{userName} </span><br /> Your registration for <span>{companyName}</span> has been approved and
-              we are happy to have you on board!
+              we are happy to have you on board! This is your companies Business Partner Number (BPN) - your unique identifier within the Catena-X dataspace:
+              <h1 style="color: #D31184;">{bpn}</h1>
+           
             </p>
             <p style="
                   font-family: 'Karbon', helvetica, sans-serif;
@@ -232,12 +234,13 @@
               Or copy & paste this URL into your browser:
               <br />
               <span style="color: #2484C6;">{homeUrl}</span>
+              <br/>
             </p>
           </td>
         </tr>
       </table>
 
-      <table cellpadding="0" cellspacing="0" width="100%" style="padding: 40px 45px 5px 45px;
+      <table cellpadding="0" cellspacing="0" width="100%" style="padding: 40px 45px 30px 45px;
             background-repeat: no-repeat;
             background-position: top right;
             background-size: 90px;
