@@ -23,6 +23,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine-amd64 AS publish
 WORKDIR /
 COPY LICENSE NOTICE.md DEPENDENCIES /
 COPY /src/portalbackend /src/portalbackend
+COPY /src/portalbackend/PortalBackend.Migrations/Seeder/DataOverwrite/*.json /src/portalbackend/PortalBackend.Migrations/Seeder/Data
 COPY /src/framework/Framework.DBAccess /src/framework/Framework.DBAccess
 COPY /src/framework/Framework.Logging /src/framework/Framework.Logging
 COPY /src/framework/Framework.Models /src/framework/Framework.Models
