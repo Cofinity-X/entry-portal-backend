@@ -343,7 +343,7 @@ public sealed class RegistrationBusinessLogic : IRegistrationBusinessLogic
     /// <inheritdoc />
     public async Task ProcessDimResponseAsync(string bpn, DimWalletData data, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Process Dim called with the following data {Data}", data);
+        _logger.LogInformation("Process Dim called with the following data {Data}", data.DidDocument.RootElement.GetRawText().Replace(Environment.NewLine, string.Empty));
 
         await _dimBusinessLogic.ProcessDimResponse(bpn, data, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
         await _portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
