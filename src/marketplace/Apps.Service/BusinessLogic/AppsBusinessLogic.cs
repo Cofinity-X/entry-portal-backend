@@ -18,10 +18,10 @@
  ********************************************************************************/
 
 using Microsoft.Extensions.Options;
-using Offers.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Service;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
@@ -44,7 +44,6 @@ public class AppsBusinessLogic : IAppsBusinessLogic
     private readonly IOfferService _offerService;
     private readonly IOfferSetupService _offerSetupService;
     private readonly IIdentityData _identityData;
-    private readonly ILogger<AppsBusinessLogic> _logger;
 
     /// <summary>
     /// Constructor.
@@ -55,22 +54,19 @@ public class AppsBusinessLogic : IAppsBusinessLogic
     /// <param name="offerSetupService">Offer Setup Service</param>
     /// <param name="settings">Settings</param>
     /// <param name="identityService">Identity </param>
-    /// <param name="logger">The logger</param>
     public AppsBusinessLogic(
         IPortalRepositories portalRepositories,
         IOfferSubscriptionService offerSubscriptionService,
         IOfferService offerService,
         IOfferSetupService offerSetupService,
         IOptions<AppsSettings> settings,
-        IIdentityService identityService,
-        ILogger<AppsBusinessLogic> logger)
+        IIdentityService identityService)
     {
         _portalRepositories = portalRepositories;
         _offerSubscriptionService = offerSubscriptionService;
         _offerService = offerService;
         _offerSetupService = offerSetupService;
         _identityData = identityService.IdentityData;
-        _logger = logger;
         _settings = settings.Value;
     }
 
@@ -154,11 +150,11 @@ public class AppsBusinessLogic : IAppsBusinessLogic
     }
 
     /// <inheritdoc />
-    public Task<Pagination.Response<OfferSubscriptionStatusDetailData>> GetCompanySubscribedAppSubscriptionStatusesForUserAsync(int page, int size) =>
-        _offerService.GetCompanySubscribedOfferSubscriptionStatusesForUserAsync(page, size, OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE);
+    public Task<Pagination.Response<OfferSubscriptionStatusDetailData>> GetCompanySubscribedAppSubscriptionStatusesForUserAsync(int page, int size, OfferSubscriptionStatusId? statusId, string? name) =>
+        _offerService.GetCompanySubscribedOfferSubscriptionStatusesForUserAsync(page, size, OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE, statusId, name);
 
     /// <inheritdoc/>
-    public async Task<Pagination.Response<OfferCompanySubscriptionStatusResponse>> GetCompanyProvidedAppSubscriptionStatusesForUserAsync(int page, int size, SubscriptionStatusSorting? sorting, OfferSubscriptionStatusId? statusId, Guid? offerId, string? companyName = null)
+    public async Task<Pagination.Response<OfferCompanySubscriptionStatusResponse>> GetCompanyProvidedAppSubscriptionStatusesForUserAsync(int page, int size, SubscriptionStatusSorting? sorting, OfferSubscriptionStatusId? statusId, Guid? offerId, string? companyName)
     {
         if (companyName != null && !companyName.IsValidCompanyName())
         {
@@ -178,7 +174,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
                         new OfferCompanySubscriptionStatusResponse(
                             item.OfferId,
                             item.ServiceName,
-                            item.CompanySubscriptionStatuses.Select(x => x.GetCompanySubscriptionStatus(item.OfferId, _logger)),
+                            item.CompanySubscriptionStatuses.Select(x => x.GetCompanySubscriptionStatus(item.OfferId)),
                             item.Image == Guid.Empty ? null : item.Image)));
         }
         return await Pagination.CreateResponseAsync(page, size, _settings.ApplicationsMaxPageSize, GetCompanyProvidedAppSubscriptionStatusData).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -232,7 +228,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
 
     /// <inheritdoc />
     public Task<AppProviderSubscriptionDetailData> GetSubscriptionDetailForProvider(Guid appId, Guid subscriptionId) =>
-        _offerService.GetAppSubscriptionDetailsForProviderAsync(appId, subscriptionId, OfferTypeId.APP, _settings.CompanyAdminRoles);
+        _offerService.GetAppSubscriptionDetailsForProviderAsync(appId, subscriptionId, OfferTypeId.APP, _settings.CompanyAdminRoles, new WalletConfigData(_settings.IssuerDid, _settings.BpnDidResolverUrl, _settings.DecentralIdentityManagementAuthUrl));
 
     /// <inheritdoc />
     public Task<SubscriberSubscriptionDetailData> GetSubscriptionDetailForSubscriber(Guid appId, Guid subscriptionId) =>

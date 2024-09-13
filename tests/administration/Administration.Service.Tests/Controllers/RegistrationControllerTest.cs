@@ -35,7 +35,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Tests.Contr
 public class RegistrationControllerTest
 {
     private static readonly string AccessToken = "THISISTHEACCESSTOKEN";
-    private readonly IIdentityData _identity;
     private readonly IRegistrationBusinessLogic _logic;
     private readonly RegistrationController _controller;
     private readonly IFixture _fixture;
@@ -45,13 +44,13 @@ public class RegistrationControllerTest
         _fixture = new Fixture().Customize(new AutoFakeItEasyCustomization { ConfigureMembers = true });
         _fixture.ConfigureFixture();
 
-        _identity = A.Fake<IIdentityData>();
-        A.CallTo(() => _identity.IdentityId).Returns(Guid.NewGuid());
-        A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_USER);
-        A.CallTo(() => _identity.CompanyId).Returns(Guid.NewGuid());
+        var identity = A.Fake<IIdentityData>();
+        A.CallTo(() => identity.IdentityId).Returns(Guid.NewGuid());
+        A.CallTo(() => identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_USER);
+        A.CallTo(() => identity.CompanyId).Returns(Guid.NewGuid());
         _logic = A.Fake<IRegistrationBusinessLogic>();
         _controller = new RegistrationController(_logic);
-        _controller.AddControllerContextWithClaimAndBearer(AccessToken, _identity);
+        _controller.AddControllerContextWithClaimAndBearer(AccessToken, identity);
     }
 
     [Fact]
@@ -68,6 +67,30 @@ public class RegistrationControllerTest
         //Assert
         A.CallTo(() => _logic.GetCompanyApplicationDetailsAsync(0, 15, null, null)).MustHaveHappenedOnceExactly();
         Assert.IsType<Pagination.Response<CompanyApplicationDetails>>(result);
+        result.Content.Should().HaveCount(5);
+    }
+
+    [Fact]
+    public async Task GetOspCompanyApplicationDetailsAsync_ReturnsCompanyApplicationDetails()
+    {
+        //Arrange
+        var page = _fixture.Create<int>();
+        var size = _fixture.Create<int>();
+        var companyApplicationStatusFilter = _fixture.Create<CompanyApplicationStatusFilter>();
+        var companyName = _fixture.Create<string>();
+        var externalId = _fixture.Create<string>();
+        var dateCreatedOrderFilter = _fixture.Create<DateCreatedOrderFilter>();
+
+        var paginationResponse = new Pagination.Response<CompanyDetailsOspOnboarding>(new Pagination.Metadata(15, 1, 1, 15), _fixture.CreateMany<CompanyDetailsOspOnboarding>(5));
+        A.CallTo(() => _logic.GetOspCompanyDetailsAsync(A<int>._, A<int>._, A<CompanyApplicationStatusFilter>._, A<string>._, A<string>._, A<DateCreatedOrderFilter>._))
+                  .Returns(paginationResponse);
+
+        //Act
+        var result = await _controller.GetOspCompanyDetailsAsync(page, size, companyApplicationStatusFilter, companyName, externalId, dateCreatedOrderFilter);
+
+        //Assert
+        A.CallTo(() => _logic.GetOspCompanyDetailsAsync(page, size, companyApplicationStatusFilter, companyName, externalId, dateCreatedOrderFilter)).MustHaveHappenedOnceExactly();
+        Assert.IsType<Pagination.Response<CompanyDetailsOspOnboarding>>(result);
         result.Content.Should().HaveCount(5);
     }
 

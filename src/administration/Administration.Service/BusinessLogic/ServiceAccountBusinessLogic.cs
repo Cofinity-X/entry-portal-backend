@@ -24,7 +24,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Dim.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Linq;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
-using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Encryption;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
@@ -43,7 +43,8 @@ public class ServiceAccountBusinessLogic(
     IPortalRepositories portalRepositories,
     IOptions<ServiceAccountSettings> options,
     IServiceAccountCreation serviceAccountCreation,
-    IIdentityService identityService)
+    IIdentityService identityService,
+    IServiceAccountManagement serviceAccountManagement)
     : IServiceAccountBusinessLogic
 {
     private readonly IIdentityData _identityData = identityService.IdentityData;
@@ -98,13 +99,16 @@ public class ServiceAccountBusinessLogic(
     {
         var serviceAccountRepository = portalRepositories.GetInstance<IServiceAccountRepository>();
         var companyId = _identityData.CompanyId;
-        var result = await serviceAccountRepository.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(serviceAccountId, companyId).ConfigureAwait(ConfigureAwaitOptions.None);
-        if (result == default)
+        var technicalUserCreationSteps = new[]
         {
-            throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_CONFLICT, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
-        }
+            ProcessStepTypeId.CREATE_DIM_TECHNICAL_USER, ProcessStepTypeId.RETRIGGER_CREATE_DIM_TECHNICAL_USER,
+            ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE,
+            ProcessStepTypeId.RETRIGGER_AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE
+        };
+        var result = await serviceAccountRepository.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(serviceAccountId, companyId, technicalUserCreationSteps).ConfigureAwait(ConfigureAwaitOptions.None)
+                ?? throw NotFoundException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_FOUND, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
 
-        if (result.statusId == ConnectorStatusId.ACTIVE || result.statusId == ConnectorStatusId.PENDING)
+        if (result.StatusId is ConnectorStatusId.ACTIVE or ConnectorStatusId.PENDING)
         {
             throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_USERID_ACTIVATION_PENDING_CONFLICT);
         }
@@ -114,19 +118,15 @@ public class ServiceAccountBusinessLogic(
             throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_USERID_ACTIVATION_ACTIVE_CONFLICT);
         }
 
-        portalRepositories.GetInstance<IUserRepository>().AttachAndModifyIdentity(serviceAccountId, null, i =>
-        {
-            i.UserStatusId = UserStatusId.INACTIVE;
-        });
-
         // serviceAccount
-        if (!string.IsNullOrWhiteSpace(result.ClientClientId))
-        {
-            await provisioningManager.DeleteCentralClientAsync(result.ClientClientId).ConfigureAwait(ConfigureAwaitOptions.None);
-        }
+        await serviceAccountManagement.DeleteServiceAccount(serviceAccountId, new DeleteServiceAccountData(result.UserRoleIds, result.ClientClientId, result.IsDimServiceAccount, result.CreationProcessInProgress, result.ProcessId)).ConfigureAwait(ConfigureAwaitOptions.None);
+        ModifyConnectorForDeleteServiceAccount(serviceAccountId, result);
 
-        portalRepositories.GetInstance<IUserRolesRepository>().DeleteCompanyUserAssignedRoles(result.UserRoleIds.Select(userRoleId => (serviceAccountId, userRoleId)));
+        return await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
+    }
 
+    private void ModifyConnectorForDeleteServiceAccount(Guid serviceAccountId, OwnServiceAccountData result)
+    {
         if (result.ConnectorId != null)
         {
             portalRepositories.GetInstance<IConnectorsRepository>().AttachAndModifyConnector(result.ConnectorId.Value,
@@ -139,8 +139,6 @@ public class ServiceAccountBusinessLogic(
                     connector.CompanyServiceAccountId = null;
                 });
         }
-
-        return await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
     public async Task<ServiceAccountConnectorOfferData> GetOwnCompanyServiceAccountDetailsAsync(Guid serviceAccountId)
@@ -150,7 +148,7 @@ public class ServiceAccountBusinessLogic(
 
         if (result == null)
         {
-            throw NotFoundException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_CONFLICT, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
+            throw NotFoundException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_FOUND, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
         }
 
         IamClientAuthMethod? iamClientAuthMethod;
@@ -159,10 +157,10 @@ public class ServiceAccountBusinessLogic(
         if (result.DimServiceAccountData != null)
         {
             iamClientAuthMethod = IamClientAuthMethod.SECRET;
-            secret = Decrypt(
+            var cryptoHelper = _settings.EncryptionConfigs.GetCryptoHelper(_settings.EncryptionConfigIndex);
+            secret = cryptoHelper.Decrypt(
                 result.DimServiceAccountData.ClientSecret,
-                result.DimServiceAccountData.InitializationVector,
-                result.DimServiceAccountData.EncryptionMode);
+                result.DimServiceAccountData.InitializationVector);
         }
         else if (result.ClientClientId != null)
         {
@@ -194,30 +192,13 @@ public class ServiceAccountBusinessLogic(
             result.SubscriptionId);
     }
 
-    private string Decrypt(byte[]? clientSecret, byte[]? initializationVector, int? encryptionMode)
-    {
-        if (clientSecret == null)
-        {
-            throw new ConflictException("ClientSecret must not be null");
-        }
-
-        if (encryptionMode == null)
-        {
-            throw new ConflictException("EncryptionMode must not be null");
-        }
-
-        var cryptoConfig = _settings.EncryptionConfigs.SingleOrDefault(x => x.Index == encryptionMode) ?? throw new ConfigurationException($"EncryptionModeIndex {encryptionMode} is not configured");
-
-        return CryptoHelper.Decrypt(clientSecret, initializationVector, Convert.FromHexString(cryptoConfig.EncryptionKey), cryptoConfig.CipherMode, cryptoConfig.PaddingMode);
-    }
-
     public async Task<ServiceAccountDetails> ResetOwnCompanyServiceAccountSecretAsync(Guid serviceAccountId)
     {
         var companyId = _identityData.CompanyId;
         var result = await portalRepositories.GetInstance<IServiceAccountRepository>().GetOwnCompanyServiceAccountDetailedDataUntrackedAsync(serviceAccountId, companyId);
         if (result == null)
         {
-            throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_CONFLICT, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
+            throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_FOUND, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
         }
 
         if (result.ClientClientId == null)
@@ -256,7 +237,7 @@ public class ServiceAccountBusinessLogic(
         var result = await serviceAccountRepository.GetOwnCompanyServiceAccountWithIamClientIdAsync(serviceAccountId, companyId).ConfigureAwait(ConfigureAwaitOptions.None);
         if (result == null)
         {
-            throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_CONFLICT, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
+            throw ConflictException.Create(AdministrationServiceAccountErrors.SERVICE_ACCOUNT_NOT_FOUND, [new("serviceAccountId", serviceAccountId.ToString()), new(CompanyId, companyId.ToString())]);
         }
 
         if (result.UserStatusId == UserStatusId.INACTIVE)
@@ -288,6 +269,7 @@ public class ServiceAccountBusinessLogic(
 
         serviceAccountRepository.AttachAndModifyCompanyServiceAccount(
             serviceAccountId,
+            result.ServiceAccountVersion,
             sa =>
             {
                 sa.Name = result.Name;
@@ -302,7 +284,7 @@ public class ServiceAccountBusinessLogic(
         await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
 
         return new ServiceAccountDetails(
-            result.ServiceAccountId,
+            serviceAccountId,
             result.ClientClientId,
             serviceAccountDetails.Name,
             serviceAccountDetails.Description,
@@ -323,7 +305,7 @@ public class ServiceAccountBusinessLogic(
         }
         else
         {
-            filterUserStatusIds = filterForInactive ? [UserStatusId.INACTIVE] : [UserStatusId.ACTIVE, UserStatusId.PENDING];
+            filterUserStatusIds = filterForInactive ? [UserStatusId.INACTIVE] : [UserStatusId.ACTIVE, UserStatusId.PENDING, UserStatusId.PENDING_DELETION];
         }
 
         return Pagination.CreateResponseAsync(
@@ -347,42 +329,57 @@ public class ServiceAccountBusinessLogic(
         {
             throw new ConflictException($"ServiceAccountId must be set for process {processId}");
         }
-
-        switch (processData.ProcessTypeId)
+        if (processData.ServiceAccountVersion is null)
         {
-            case ProcessTypeId.OFFER_SUBSCRIPTION:
-                HandleOfferSubscriptionTechnicalUserCallback(processData.ServiceAccountId.Value, callbackData, context);
-                break;
-            case ProcessTypeId.DIM_TECHNICAL_USER:
-                CreateDimServiceAccount(callbackData, processData.ServiceAccountId.Value);
-                break;
-            default:
-                throw new ControllerArgumentException($"process {processId} has invalid processType {processData.ProcessTypeId}");
+            throw new UnexpectedConditionException("ServiceAccountVersion or IdentityVersion should never be null here");
         }
 
+        CreateDimServiceAccount(callbackData, processData.ServiceAccountId.Value, processData.ServiceAccountVersion.Value);
+
+        if (processData.ProcessTypeId == ProcessTypeId.OFFER_SUBSCRIPTION)
+        {
+            context.ScheduleProcessSteps([ProcessStepTypeId.TRIGGER_ACTIVATE_SUBSCRIPTION]);
+        }
         context.FinalizeProcessStep();
         await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
-    private void HandleOfferSubscriptionTechnicalUserCallback(Guid serviceAccountId, AuthenticationDetail callbackData, ManualProcessStepData context)
-    {
-        CreateDimServiceAccount(callbackData, serviceAccountId);
-        context.ScheduleProcessSteps([ProcessStepTypeId.TRIGGER_ACTIVATE_SUBSCRIPTION]);
-    }
-
-    private void CreateDimServiceAccount(AuthenticationDetail callbackData, Guid serviceAccountId)
+    private void CreateDimServiceAccount(AuthenticationDetail callbackData, Guid serviceAccountId, Guid serviceAccountVersion)
     {
         var serviceAccountRepository = portalRepositories.GetInstance<IServiceAccountRepository>();
         portalRepositories.GetInstance<IUserRepository>().AttachAndModifyIdentity(serviceAccountId,
             i => { i.UserStatusId = UserStatusId.PENDING; },
             i => { i.UserStatusId = UserStatusId.ACTIVE; });
-        serviceAccountRepository.AttachAndModifyCompanyServiceAccount(serviceAccountId,
+
+        serviceAccountRepository.AttachAndModifyCompanyServiceAccount(serviceAccountId, serviceAccountVersion,
             sa => { sa.ClientClientId = null; },
             sa => { sa.ClientClientId = callbackData.ClientId; });
 
-        var cryptoConfig = _settings.EncryptionConfigs.SingleOrDefault(x => x.Index == _settings.EncryptionConfigIndex) ?? throw new ConfigurationException($"EncryptionModeIndex {_settings.EncryptionConfigIndex} is not configured");
-        var (secret, initializationVector) = CryptoHelper.Encrypt(callbackData.ClientSecret, Convert.FromHexString(cryptoConfig.EncryptionKey), cryptoConfig.CipherMode, cryptoConfig.PaddingMode);
+        var cryptoHelper = _settings.EncryptionConfigs.GetCryptoHelper(_settings.EncryptionConfigIndex);
+        var (secret, initializationVector) = cryptoHelper.Encrypt(callbackData.ClientSecret);
 
         serviceAccountRepository.CreateDimCompanyServiceAccount(serviceAccountId, callbackData.AuthenticationServiceUrl, secret, initializationVector, _settings.EncryptionConfigIndex);
+    }
+
+    public async Task HandleServiceAccountDeletionCallback(Guid processId)
+    {
+        var processData = await portalRepositories.GetInstance<IProcessStepRepository>()
+            .GetProcessDataForServiceAccountDeletionCallback(processId,
+                [ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE])
+            .ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var context = processData.ProcessData.CreateManualProcessData(ProcessStepTypeId.AWAIT_DELETE_DIM_TECHNICAL_USER,
+            portalRepositories, () => $"externalId {processId}");
+
+        portalRepositories.GetInstance<IUserRepository>().AttachAndModifyIdentity(
+            processData.ServiceAccountId ?? throw new ConflictException($"ServiceAccountId must be set for process {processId}"),
+            null,
+            i =>
+            {
+                i.UserStatusId = UserStatusId.DELETED;
+            });
+
+        context.FinalizeProcessStep();
+        await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
 }

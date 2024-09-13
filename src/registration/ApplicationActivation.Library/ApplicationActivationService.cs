@@ -71,11 +71,13 @@ public class ApplicationActivationService : IApplicationActivationService
         {
             return Task.FromResult(new IApplicationChecklistService.WorkerChecklistProcessStepExecutionResult(ProcessStepStatusId.TODO, null, null, null, false, null));
         }
+
         var prerequisiteEntries = context.Checklist.Where(entry => entry.Key != ApplicationChecklistEntryTypeId.APPLICATION_ACTIVATION);
-        if (prerequisiteEntries.Any(entry => entry.Value != ApplicationChecklistEntryStatusId.DONE))
+        if (prerequisiteEntries.Any(entry => entry.Value != ApplicationChecklistEntryStatusId.DONE && entry is not { Key: ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP, Value: ApplicationChecklistEntryStatusId.SKIPPED }))
         {
             throw new ConflictException($"cannot activate application {context.ApplicationId}. Checklist entries that are not in status DONE: {string.Join(",", prerequisiteEntries)}");
         }
+
         return HandleApplicationActivationInternal(context, cancellationToken);
     }
 

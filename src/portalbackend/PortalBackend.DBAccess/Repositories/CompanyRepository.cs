@@ -19,6 +19,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -28,8 +29,7 @@ using System.Text.Json;
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 
 /// <inheritdoc/>
-public class CompanyRepository(PortalDbContext context)
-    : ICompanyRepository
+public class CompanyRepository(PortalDbContext context) : ICompanyRepository
 {
     /// <inheritdoc/>
     Company ICompanyRepository.CreateCompany(string companyName, Action<Company>? setOptionalParameters)
@@ -367,16 +367,15 @@ public class CompanyRepository(PortalDbContext context)
             .Select(x => new ValueTuple<bool, JsonDocument>(true, x.DidDocument))
             .SingleOrDefaultAsync();
 
-    public Task<(bool Exists, Guid CompanyId, IEnumerable<Guid> SubmittedCompanyApplicationId)> GetCompanyIdByBpn(string bpn) =>
+    public IAsyncEnumerable<(Guid CompanyId, IEnumerable<Guid> SubmittedApplicationIds)> GetCompanySubmittedApplicationIdsByBpn(string bpn) =>
         context.Companies
             .Where(x => x.BusinessPartnerNumber == bpn)
-            .Select(x => new ValueTuple<bool, Guid, IEnumerable<Guid>>(
-                true,
+            .Select(x => new ValueTuple<Guid, IEnumerable<Guid>>(
                 x.Id,
                 x.CompanyApplications
                     .Where(ca => ca.ApplicationStatusId == CompanyApplicationStatusId.SUBMITTED)
                     .Select(ca => ca.Id)))
-            .SingleOrDefaultAsync();
+            .ToAsyncEnumerable();
 
     public Task<(string? Bpn, string? Did, string? WalletUrl)> GetDimServiceUrls(Guid companyId) =>
         context.Companies.Where(x => x.Id == companyId)
@@ -412,4 +411,57 @@ public class CompanyRepository(PortalDbContext context)
     public void RemoveProviderCompanyDetails(Guid providerCompanyDetailId) =>
         context.ProviderCompanyDetails
             .Remove(new ProviderCompanyDetail(providerCompanyDetailId, Guid.Empty, null!, default));
+
+    public Func<int, int, Task<Pagination.Source<CompanyMissingSdDocumentData>?>> GetCompaniesWithMissingSdDocument() =>
+        (skip, take) => Pagination.CreateSourceQueryAsync(
+            skip,
+            take,
+            context.Companies.AsNoTracking()
+                .Where(c =>
+                    c.CompanyStatusId == CompanyStatusId.ACTIVE &&
+                    c.SelfDescriptionDocumentId == null &&
+                    c.CompanyApplications.Any(ca =>
+                        ca.ApplicationChecklistEntries.Any(a =>
+                            a.ApplicationChecklistEntryTypeId == ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP &&
+                            a.ApplicationChecklistEntryStatusId != ApplicationChecklistEntryStatusId.TO_DO &&
+                            a.ApplicationChecklistEntryStatusId != ApplicationChecklistEntryStatusId.IN_PROGRESS)))
+                .GroupBy(c => c.CompanyStatusId),
+            c => c.OrderByDescending(company => company.Name),
+            c => new CompanyMissingSdDocumentData(
+                c.Id,
+                c.Name)
+        ).SingleOrDefaultAsync();
+
+    public IAsyncEnumerable<Guid> GetCompanyIdsWithMissingSelfDescription() =>
+        context.Companies.Where(c =>
+                c.CompanyStatusId == CompanyStatusId.ACTIVE &&
+                c.SelfDescriptionDocumentId == null &&
+                c.SdCreationProcessId == null &&
+                c.CompanyApplications.Any(ca =>
+                    ca.ApplicationChecklistEntries.Any(a =>
+                        a.ApplicationChecklistEntryTypeId == ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP &&
+                        a.ApplicationChecklistEntryStatusId != ApplicationChecklistEntryStatusId.TO_DO &&
+                        a.ApplicationChecklistEntryStatusId != ApplicationChecklistEntryStatusId.IN_PROGRESS)))
+            .Select(c => c.Id)
+            .ToAsyncEnumerable();
+
+    public Task<(Guid Id, IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers, string? BusinessPartnerNumber, string CountryCode)> GetCompanyByProcessId(Guid processId) =>
+        context.Companies
+            .Where(c => c.SdCreationProcessId == processId)
+            .Select(c => new ValueTuple<Guid, IEnumerable<(UniqueIdentifierId Id, string Value)>, string?, string>(
+                c.Id,
+                c.CompanyIdentifiers.Select(ci => new ValueTuple<UniqueIdentifierId, string>(ci.UniqueIdentifierId, ci.Value)),
+                c.BusinessPartnerNumber,
+                c.Address!.Country!.Alpha2Code
+            ))
+            .SingleOrDefaultAsync();
+
+    public Task<bool> IsExistingCompany(Guid companyId) =>
+        context.Companies.AnyAsync(c => c.Id == companyId);
+
+    public Task<(bool Exists, Guid CompanyId, IEnumerable<Guid> SubmittedCompanyApplicationId)> GetCompanyIdByBpn(string bpn) =>
+        context.Companies
+            .Where(x => x.BusinessPartnerNumber == bpn)
+            .Select(x => new ValueTuple<bool, Guid, IEnumerable<Guid>>(true, x.Id, x.CompanyApplications.Where(a => a.ApplicationStatusId == CompanyApplicationStatusId.SUBMITTED).Select(a => a.Id)))
+            .SingleOrDefaultAsync();
 }

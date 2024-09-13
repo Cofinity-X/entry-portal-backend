@@ -24,8 +24,6 @@ using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.HttpClientExtensions;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.IO;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Token;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -113,16 +111,13 @@ public class CustodianService(
     }
 
     /// <inheritdoc />
-    public async Task TriggerFrameworkAsync(string bpn, UseCaseDetailData useCaseDetailData, CancellationToken cancellationToken)
+    public async Task TriggerFrameworkAsync(string bpn, CancellationToken cancellationToken)
     {
         using var httpClient = await tokenService.GetAuthorizedClient<CustodianService>(_settings, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var requestBody = new CustodianFrameworkRequest
         (
-            bpn,
-            useCaseDetailData.VerifiedCredentialExternalTypeId,
-            useCaseDetailData.Template,
-            useCaseDetailData.Version
+            bpn
         );
 
         await httpClient.PostAsJsonAsync("/api/credentials/issuer/framework", requestBody, Options, cancellationToken)
@@ -130,14 +125,13 @@ public class CustodianService(
     }
 
     /// <inheritdoc />
-    public async Task TriggerDismantlerAsync(string bpn, VerifiedCredentialTypeId credentialTypeId, CancellationToken cancellationToken)
+    public async Task TriggerDismantlerAsync(string bpn, CancellationToken cancellationToken)
     {
         using var httpClient = await tokenService.GetAuthorizedClient<CustodianService>(_settings, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
         var requestBody = new CustodianDismantlerRequest
         (
-            bpn,
-            credentialTypeId
+            bpn
         );
 
         await httpClient.PostAsJsonAsync("/api/credentials/issuer/dismantler", requestBody, Options, cancellationToken)

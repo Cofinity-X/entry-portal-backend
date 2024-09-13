@@ -84,8 +84,11 @@ public class ServiceAccountController : ControllerBase
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
-    public Task<int> DeleteServiceAccount([FromRoute] Guid serviceAccountId) =>
-        _logic.DeleteOwnCompanyServiceAccountAsync(serviceAccountId);
+    public async Task<NoContentResult> DeleteServiceAccount([FromRoute] Guid serviceAccountId)
+    {
+        await _logic.DeleteOwnCompanyServiceAccountAsync(serviceAccountId).ConfigureAwait(ConfigureAwaitOptions.None);
+        return NoContent();
+    }
 
     /// <summary>
     /// Gets the service account details for the given id
@@ -204,6 +207,22 @@ public class ServiceAccountController : ControllerBase
     public async Task<OkResult> ServiceAccountCreationCallback([FromRoute] Guid processId, [FromBody] AuthenticationDetail callbackData)
     {
         await _logic.HandleServiceAccountCreationCallback(processId, callbackData).ConfigureAwait(ConfigureAwaitOptions.None);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Callback for the successful service account deletion
+    /// </summary>
+    /// <param name="processId">The processId that was passed as externalId with the request for deletion of the technical user.</param>
+    /// <remarks>Example: POST: api/administration/serviceaccount/callback/{externalId}/delete</remarks>
+    /// <response code="200">Ok</response>
+    [HttpPost]
+    [Authorize(Roles = "technical_roles_management")]
+    [Authorize(Policy = PolicyTypes.ServiceAccount)]
+    [Route("callback/{processId}/delete")]
+    public async Task<OkResult> ServiceAccountDeletionCallback([FromRoute] Guid processId)
+    {
+        await _logic.HandleServiceAccountDeletionCallback(processId).ConfigureAwait(ConfigureAwaitOptions.None);
         return Ok();
     }
 }

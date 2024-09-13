@@ -38,6 +38,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Processes.Mailing.Library.DependencyIn
 using Org.Eclipse.TractusX.Portal.Backend.Processes.NetworkRegistration.Executor.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.OfferSubscription.Executor.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.ProcessIdentity.DependencyInjection;
+using Org.Eclipse.TractusX.Portal.Backend.Processes.SelfDescriptionCreation.Executor.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.UserProvisioning.Executor;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.Worker.Library;
 using Serilog;
@@ -68,9 +69,10 @@ try
                 .AddMailingProcessExecutor()
                 .AddInvitationProcessExecutor(hostContext.Configuration)
                 .AddMailingProcessCreation(hostContext.Configuration.GetSection("MailingProcessCreation"))
-                .AddDimUserCreationProcessExecutor(hostContext.Configuration.GetSection("ApplicationChecklist"))
+                .AddDimUserProcessExecutor(hostContext.Configuration.GetSection("ApplicationChecklist"))
                 .AddTransient<IProcessTypeExecutor, IdentityProviderProvisioningProcessTypeExecutor>()
-                .AddTransient<IProcessTypeExecutor, UserProvisioningProcessTypeExecutor>();
+                .AddTransient<IProcessTypeExecutor, UserProvisioningProcessTypeExecutor>()
+                .AddSelfDescriptionCreationProcessExecutor(hostContext.Configuration);
 
             if (hostContext.HostingEnvironment.IsDevelopment())
             {
@@ -82,6 +84,7 @@ try
                 {
                     FlurlUntrustedCertExceptionHandler.ConfigureExceptions(urlsToTrust);
                 }
+
                 isDevelopment = true;
             }
         })
@@ -110,5 +113,5 @@ catch (Exception ex) when (!ex.GetType().Name.Equals("StopTheHostException", Str
 finally
 {
     Log.Information("Server Shutting down");
-    Log.CloseAndFlush();
+    await Log.CloseAndFlushAsync().ConfigureAwait(false);
 }

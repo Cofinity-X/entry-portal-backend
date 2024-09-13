@@ -2,6 +2,155 @@
 
 New features, fixed bugs, known defects and other noteworthy changes to each release of the Catena-X Portal Backend.
 
+## 2.2.0
+
+### Change
+
+* **Certificate Management (Administration Service)**
+  * enhanced attributes in database and endpoint details [#823](https://github.com/eclipse-tractusx/portal-backend/pull/823)
+* **Onboarding Service Provider**
+  * added endpoint to OSP companies details [#866](https://github.com/eclipse-tractusx/portal-backend/pull/866)
+  * enhanced endpoint with additional fields and filter possibilities [#916](https://github.com/eclipse-tractusx/portal-backend/pull/916)
+* **Technical Users**
+  * adjusted logic for technical users to delete DIM users [#804](https://github.com/eclipse-tractusx/portal-backend/pull/804)
+* **Connector Management and toggle to deactivate the GX compliance service interface**
+  * added endpoints to get companies and connectors with missing self description  documents [#854](https://github.com/eclipse-tractusx/portal-backend/pull/854)
+  * added process for self description document creation [#854](https://github.com/eclipse-tractusx/portal-backend/pull/854)
+* **Registration Process and toggle to deactivate the GX compliance service interface**
+  * enhanced application checklist with a comment of the skipped self description step [#847](https://github.com/eclipse-tractusx/portal-backend/pull/847)
+  * adjusted selfDescription retriever to check if clearinghouseConnect is disabled [#847](https://github.com/eclipse-tractusx/portal-backend/pull/847)
+* **Registration Process (Administration Service)**
+  * added type to applications endpoint [#900](https://github.com/eclipse-tractusx/portal-backend/pull/900)
+* **Identity Provider**
+  * added search functionality to IdP endpoint [#982](https://github.com/eclipse-tractusx/portal-backend/pull/982)
+
+### Technical Support
+
+* changed licensing and legal docs [#795](https://github.com/eclipse-tractusx/portal-backend/pull/795)
+* dev-flow: maintain latest changes in main branch [#198](https://github.com/eclipse-tractusx/portal-frontend-registration/pull/198)
+* code-quality: fixed imports [#869](https://github.com/eclipse-tractusx/portal-backend/pull/869)
+* merged migrations into one since 2.1.0-rc1 [#908](https://github.com/eclipse-tractusx/portal-backend/pull/908)
+
+### Bugfixes
+
+* **Business Partner Data Management**
+  * allowed null values for geographic coordinate altitude [#882](https://github.com/eclipse-tractusx/portal-backend/pull/882)
+  * adjusted the structure of the BPDM request for the `input/business-partners` request [#928](https://github.com/eclipse-tractusx/portal-backend/pull/928)
+* **Onboarding Service Provider**
+  * added companyUsers to invitation for OSP process [#892](https://github.com/eclipse-tractusx/portal-backend/pull/892)
+* **Connector Management**
+  * adjusted the host and provider company for managed connectors [#948](https://github.com/eclipse-tractusx/portal-backend/pull/948)
+  * added filter for COMPANY_CONNECTOR [#972](https://github.com/eclipse-tractusx/portal-backend/pull/972)
+  * adjusted connector deletion process [#968](https://github.com/eclipse-tractusx/portal-backend/pull/968)
+* **Connector Management and toggle to deactivate the GX compliance service interface**
+  * adjusted self description document validation for connector creation [#894](https://github.com/eclipse-tractusx/portal-backend/pull/894)
+* **Registration Process**
+  * removed active flag to get the name in case of declined registration [#873](https://github.com/eclipse-tractusx/portal-backend/pull/873)
+  * removed DIM authentication details from logs [#951](https://github.com/eclipse-tractusx/portal-backend/pull/951)
+  * adjust retrigger process for sd creation [#938](https://github.com/eclipse-tractusx/portal-backend/pull/938)
+* **Service Release**
+  * fixed returning of the correct lead picture [#904](https://github.com/eclipse-tractusx/portal-backend/pull/904)
+* **Application Activation**
+  * adjusted the set of the theme only for shared IdPs [#852](https://github.com/eclipse-tractusx/portal-backend/pull/852)
+* **App Roles**
+  * added a duplication check for roles before adding them [#877](https://github.com/eclipse-tractusx/portal-backend/pull/877)
+* **Technical Users**
+  * adjusted logic to delete external technical users [#956](https://github.com/eclipse-tractusx/portal-backend/pull/956)
+* **Offer Management**
+  * adjusted status query param for subscription-status [#969](https://github.com/eclipse-tractusx/portal-backend/pull/969)
+
+### Known Knowns
+
+The following are known issues identified in the current release:
+
+* **Initial Wallet Setup**
+  * When initially setting up the portal the operator wallet setup needs manual interventions on db level. More on how to handle it can be found in the [documentation](https://github.com/eclipse-tractusx/portal-assets/blob/v2.1.0/docs/developer/Technical%20Documentation/Operator%20Wallet%20Setup/Initial%20Setup.md)
+* **Missing notifications:**
+  * There are currently no notifications created for the following UseCases [#878](https://github.com/eclipse-tractusx/portal-backend/issues/878):
+    * Welcome - Notification to new user
+    * App Subscription - Info email to provider
+    * Service Release - Info email to requesting user
+* **Deletion Support Deficiencies:**
+  * Removal of BDRS (BPN-DID Resolver Service) entries is currently not supported.
+  * Deletion of wallet tenants has not been implemented.
+* **Validation Limitations:**
+  * Pattern validation for URL inputs in `POST` and `PUT` endpoints is currently limited, potentially allowing invalid URLs to be accepted. [#587](https://github.com/eclipse-tractusx/portal-backend/issues/587)
+* **Validation of File Upload Limitation:**
+  * It is recommended to make use of an existing trustworthy 3rd party virus-scan service for a more broad scan for known malicious signatures. [#779](https://github.com/eclipse-tractusx/portal-backend/issues/779)
+* **In Memory Storage Limitation**:
+  * Sensitive information (such as passwords) is read in an unencrypted manner in memory.
+
+## 2.1.0
+
+### Change
+
+* **Offer Autosetup**
+  * enhanced subscription/provider endpoint with external service data [#867](https://github.com/eclipse-tractusx/portal-backend/pull/867)
+* App Services [#827](https://github.com/eclipse-tractusx/portal-backend/pull/827)
+  * updated endpoint authorization rule setting of `GET /api/apps/AppChange/{appId}/roles` => new permission validation to `edit_apps`
+  * updated endpoint authorization rule setting of `GET /api/apps/AppReleaseProcess/{appId}/roles` => new permission validation to `add_apps`
+* Process Worker
+  * moved email validation in decline application process api from child method to parent method [#822](https://github.com/eclipse-tractusx/portal-backend/pull/822)
+  * removed mail process creation of the decline registration mail if the user self-triggered the decline [#806](https://github.com/eclipse-tractusx/portal-backend/pull/806)
+
+### Feature
+
+* **Registration Process (Administration Service)**
+  * added configuration toggle to deactivate the GX compliance service interface dependency incl. SD factory connectivity to enable registration and connector creation without external dependency [#793](https://github.com/eclipse-tractusx/portal-backend/pull/793)
+
+### Technical Support
+
+* bumped efcore to 8.0.7 [#857](https://github.com/eclipse-tractusx/portal-backend/pull/857)
+* upgraded  implicit dependencies on System.Text.Json [#875](https://github.com/eclipse-tractusx/portal-backend/pull/875)
+* bumped MimeKit from 4.3.0 to 4.7.1 [#833](https://github.com/eclipse-tractusx/portal-backend/pull/833)
+* changed from emulation to cross-compile for building multi-platform images [#803](https://github.com/eclipse-tractusx/portal-backend/pull/803)
+* improved dockerfiles by removing unnecessary base stage and aligning environment variables [#803](https://github.com/eclipse-tractusx/portal-backend/pull/803)
+* running the app from top-level program has been changed from synchronous to asynchronous execution [#786](https://github.com/eclipse-tractusx/portal-backend/pull/786)
+* changed querying db-sequences from synchronous to asynchronous execution [#786](https://github.com/eclipse-tractusx/portal-backend/pull/786)
+* added exception-handling to the crypto helper to properly map the system exceptions that are thrown by the Aes-classes to configuration respective conflict exceptions [#790](https://github.com/eclipse-tractusx/portal-backend/pull/790)
+* updated GitHub actions [#785](https://github.com/eclipse-tractusx/portal-backend/pull/785)/[#777](https://github.com/eclipse-tractusx/portal-backend/pull/777)
+* **Clean-up unused Code** [#783](https://github.com/eclipse-tractusx/portal-backend/pull/783)
+  * removed all company credential (SSI) related endpoints
+  * removed all company credential (SSI) related database tables
+
+### Bugfixes
+
+* **Offer Autosetup**
+  * removed leading '/' from the activate subscription endpoint [#861](https://github.com/eclipse-tractusx/portal-backend/pull/861)
+  * suppressed activation of external service accounts on activation of offer subscription [#864](https://github.com/eclipse-tractusx/portal-backend/pull/864)
+  * skipped optional autosetup provider callback if it is not configured [#865](https://github.com/eclipse-tractusx/portal-backend/pull/865)
+  * added default clientPrefix to appsettings.json [#870](https://github.com/eclipse-tractusx/portal-backend/pull/870)
+* **Decentral Identity Management (DIM) Integration**
+  * fixed callback logic for dim requests in case of multiple company applications with same bpn (some declined, one in status submitted) [#863](https://github.com/eclipse-tractusx/portal-backend/pull/863)
+* **Registration Process (Administration Service)**
+  * fixed typos [#883](https://github.com/eclipse-tractusx/portal-backend/pull/883)
+  * fixed nullability-issue in IdentityProviderBusinessLogic [#786](https://github.com/eclipse-tractusx/portal-backend/pull/786)
+  * fixed ambiguity in IfAny nullable return type declaration [#786](https://github.com/eclipse-tractusx/portal-backend/pull/786)
+  * added locking for the `invite process` process worker [#788](https://github.com/eclipse-tractusx/portal-backend/pull/788)
+  * fixed support of null setting of the attribute `url` for offer provider autosetup url configuration endpoint `PUT /api/administration/SubscriptionConfiguration/owncompany` [#783](https://github.com/eclipse-tractusx/portal-backend/pull/783)
+
+### Known Knowns
+
+The following are known issues identified in the current release:
+
+* **Initial Wallet Setup**
+  * When initially setting up the portal the operator wallet setup needs manual interventions on db level. More on how to handle it can be found in the [documentation](https://github.com/eclipse-tractusx/portal-assets/blob/v2.1.0/docs/developer/Technical%20Documentation/Operator%20Wallet%20Setup/Initial%20Setup.md)
+* **Missing notifications:**
+  * There are currently no notifications created for the following UseCases [#878](https://github.com/eclipse-tractusx/portal-backend/issues/878):
+    * Welcome - Notification to new user
+    * App Subscription - Info email to provider
+    * Service Release - Info email to requesting user
+* **Deletion Support Deficiencies:**
+  * The deletion of technical users from external providers is currently not supported.
+  * Removal of BDRS (BPN-DID Resolver Service) entries is currently not supported.
+  * Deletion of wallet tenants has not been implemented.
+* **Validation Limitations:**
+  * Pattern validation for URL inputs in `POST` and `PUT` endpoints is currently limited, potentially allowing invalid URLs to be accepted. [#587](https://github.com/eclipse-tractusx/portal-backend/issues/587)
+* **Validation of File Upload Limitation:**
+  * It is recommended to make use of an existing trustworthy 3rd party virus-scan service for a more broad scan for known malicious signatures. [#779](https://github.com/eclipse-tractusx/portal-backend/issues/779)
+* **In Memory Storage Limitation**:
+  * Sensitive information (such as passwords) is read in an unencrypted manner in memory.
+
 ## 2.0.0
 
 ### Change
@@ -138,7 +287,7 @@ The following are known issues identified in the current release:
 * **Validation Limitations:**
   * Pattern validation for URL inputs in `POST` and `PUT` endpoints is currently limited, potentially allowing invalid URLs to be accepted. [#587](https://github.com/eclipse-tractusx/portal-backend/issues/587)
 * **Validation of File Upload Limitation:**
-  * It is recommended to make make use of an existing trustworthy 3rd party virus-scan service for a more broad scan for known malicious signatures. [#779](https://github.com/eclipse-tractusx/portal-backend/issues/779)
+  * It is recommended to make use of an existing trustworthy 3rd party virus-scan service for a more broad scan for known malicious signatures. [#779](https://github.com/eclipse-tractusx/portal-backend/issues/779)
 * **In Memory Storage Limitation**:
   * Sensitive information (such as passwords) is read in an unencrypted manner in memory.
 

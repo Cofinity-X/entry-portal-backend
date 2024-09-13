@@ -30,28 +30,14 @@ namespace Org.Eclipse.TractusX.Portal.Backend.SdFactory.Library;
 /// <summary>
 /// Service to handle communication with the connectors sd factory
 /// </summary>
-public class SdFactoryService : ISdFactoryService
+public class SdFactoryService(ITokenService tokenService, IOptions<SdFactorySettings> options) : ISdFactoryService
 {
-    private readonly ITokenService _tokenService;
-    private readonly SdFactorySettings _settings;
-
-    /// <summary>
-    /// Creates a new instance of <see cref="SdFactoryService"/>
-    /// </summary>
-    /// <param name="tokenService">Access to the token service</param>
-    /// <param name="options">The options</param>
-    public SdFactoryService(
-        ITokenService tokenService,
-        IOptions<SdFactorySettings> options)
-    {
-        _settings = options.Value;
-        _tokenService = tokenService;
-    }
+    private readonly SdFactorySettings _settings = options.Value;
 
     /// <inheritdoc />
     public async Task RegisterConnectorAsync(Guid connectorId, string selfDescriptionDocumentUrl, string businessPartnerNumber, CancellationToken cancellationToken)
     {
-        var httpClient = await _tokenService.GetAuthorizedClient<SdFactoryService>(_settings, cancellationToken)
+        var httpClient = await tokenService.GetAuthorizedClient<SdFactoryService>(_settings, cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
         var requestModel = new ConnectorSdFactoryRequestModel(
             connectorId.ToString(),
@@ -68,12 +54,12 @@ public class SdFactoryService : ISdFactoryService
     }
 
     /// <inheritdoc />
-    public async Task RegisterSelfDescriptionAsync(Guid applicationId, IEnumerable<(UniqueIdentifierId Id, string Value)> uniqueIdentifiers, string countryCode, string businessPartnerNumber, CancellationToken cancellationToken)
+    public async Task RegisterSelfDescriptionAsync(Guid externalId, IEnumerable<(UniqueIdentifierId Id, string Value)> uniqueIdentifiers, string countryCode, string businessPartnerNumber, CancellationToken cancellationToken)
     {
-        var httpClient = await _tokenService.GetAuthorizedClient<SdFactoryService>(_settings, cancellationToken)
+        var httpClient = await tokenService.GetAuthorizedClient<SdFactoryService>(_settings, cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
         var requestModel = new SdFactoryRequestModel(
-            applicationId.ToString(),
+            externalId.ToString(),
             uniqueIdentifiers.Select(x => new RegistrationNumber(x.Id.GetSdUniqueIdentifierValue(), x.Value)),
             countryCode,
             countryCode,

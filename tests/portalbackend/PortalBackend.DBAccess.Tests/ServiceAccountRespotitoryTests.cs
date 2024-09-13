@@ -17,6 +17,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Tests.Setup;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
@@ -92,9 +93,9 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
         var result = await sut.GetOwnCompanyServiceAccountWithIamClientIdAsync(_validServiceAccountId, _validCompanyId);
 
         // Assert
-        result.Should().NotBeNull();
-        result!.CompanyServiceAccountTypeId.Should().Be(CompanyServiceAccountTypeId.OWN);
-        result.CompanyServiceAccountKindId.Should().Be(CompanyServiceAccountKindId.INTERNAL);
+        result.Should().NotBeNull().And.Match<CompanyServiceAccountWithRoleDataClientId>(
+            x => x.CompanyServiceAccountTypeId == CompanyServiceAccountTypeId.OWN &&
+                 x.CompanyServiceAccountKindId == CompanyServiceAccountKindId.INTERNAL);
     }
 
     [Fact]
@@ -121,7 +122,7 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
         var (sut, _) = await CreateSut();
 
         // Act
-        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(_validServiceAccountId, _validCompanyId);
+        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(_validServiceAccountId, _validCompanyId, Enumerable.Empty<ProcessStepTypeId>());
 
         // Assert
         result.Should().NotBe(default);
@@ -135,7 +136,7 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
         var (sut, _) = await CreateSut();
 
         // Act
-        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(Guid.NewGuid(), _validCompanyId);
+        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(Guid.NewGuid(), _validCompanyId, Enumerable.Empty<ProcessStepTypeId>());
 
         // Assert
         result.Should().Be(default);
@@ -149,7 +150,7 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
         Guid companyServiceAccountId = new("93eecd4e-ca47-4dd2-85bf-775ea72eb000");
         Guid companyId = new("41fd2ab8-71cd-4546-9bef-a388d91b2542");
         // Act
-        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(companyServiceAccountId, companyId);
+        var result = await sut.GetOwnCompanyServiceAccountWithIamServiceAccountRolesAsync(companyServiceAccountId, companyId, Enumerable.Empty<ProcessStepTypeId>());
         // Assert
         result.Should().NotBeNull();
     }
@@ -291,13 +292,15 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result!.Count.Should().Be(15);
+        result!.Count.Should().Be(17);
         result.Data.Should().HaveCount(10)
             .And.AllSatisfy(x => x.Should().Match<Models.CompanyServiceAccountData>(y =>
                 y.CompanyServiceAccountTypeId == CompanyServiceAccountTypeId.OWN &&
                 y.UserStatusId == UserStatusId.ACTIVE))
             .And.BeInAscendingOrder(x => x.Name)
             .And.Satisfy(
+                x => x.ServiceAccountId == new Guid("4ce1b774-3d00-4e07-9a53-ae1f64193392"),
+                x => x.ServiceAccountId == new Guid("a946f314-f53e-4c72-9124-40b72bcc59aa"),
                 x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201029"),
                 x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201026"),
                 x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201027"),
@@ -305,9 +308,7 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
                 x => x.ServiceAccountId == new Guid("f3498fe6-e0e5-413b-a725-39bf5c7c1959"),
                 x => x.ServiceAccountId == new Guid("ab7f01ea-cbb9-4d58-9efa-ea992395f997"),
                 x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201031"),
-                x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201032"),
-                x => x.ServiceAccountId == new Guid("33480038-9acf-40e2-9127-c9c7a9cbed99"),
-                x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201023"));
+                x => x.ServiceAccountId == new Guid("7e85a0b8-0001-ab67-10d1-0ef508201032"));
     }
 
     [Fact]
@@ -488,6 +489,38 @@ public class ServiceAccountRepositoryTests : IAssemblyFixture<TestDbFixture>
         changeTracker.Entries().Should().ContainSingle()
             .Which.Entity.Should().BeOfType<DimUserCreationData>()
             .Which.ProcessId.Should().Be(processId);
+    }
+
+    #endregion
+
+    #region AttachAndModifyServiceAccount
+
+    [Fact]
+    public async Task AttachAndModifyServiceAccount_ReturnsExpected()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var version = Guid.NewGuid();
+
+        var (sut, context) = await CreateSut();
+
+        // Act
+        sut.AttachAndModifyCompanyServiceAccount(id, version,
+            x =>
+            {
+                x.Description = "test";
+                x.ClientClientId = "foo";
+            },
+            x => x.ClientClientId = "bar");
+
+        // Assert
+        var changeTracker = context.ChangeTracker;
+        changeTracker.HasChanges().Should().BeTrue();
+        changeTracker.Entries().Should().ContainSingle()
+            .Which.Entity.Should().BeOfType<CompanyServiceAccount>()
+            .Which.Should().Match<CompanyServiceAccount>(
+                x => x.Id == id && x.Version != version && x.Description == "test" && x.ClientClientId == "bar"
+            );
     }
 
     #endregion

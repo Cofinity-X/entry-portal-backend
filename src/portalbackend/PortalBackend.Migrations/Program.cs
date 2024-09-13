@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -62,5 +61,5 @@ catch (Exception ex) when (!ex.GetType().Name.Equals("StopTheHostException", Str
 finally
 {
     Log.Information("Process Shutting down...");
-    Log.CloseAndFlush();
+    await Log.CloseAndFlushAsync().ConfigureAwait(false);
 }
