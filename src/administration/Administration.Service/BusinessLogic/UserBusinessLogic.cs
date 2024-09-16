@@ -184,7 +184,31 @@ public class UserBusinessLogic : IUserBusinessLogic
                     userCreationInfo.UserId,
                     UserStatusId.ACTIVE,
                     true
-                ), 1).ToAsyncEnumerable())
+                ), 1).ToAsyncEnumerable(),
+                creationData =>
+                {
+                    var mailParameters = ImmutableDictionary.CreateBuilder<string, string>();
+                    mailParameters.AddRange([
+                        new("companyName", displayName),
+                        new("nameCreatedBy", nameCreatedBy),
+                        new("url", _settings.Portal.BasePortalAddress),
+                        new("idpAlias", displayName),
+                    ]);
+
+                    IEnumerable<string> mailTemplates = companyNameIdpAliasData.IsSharedIdp
+                        ? ["NewUserTemplate", "NewUserPasswordTemplate"]
+                        : ["NewUserExternalIdpTemplate"];
+
+                    if (companyNameIdpAliasData.IsSharedIdp)
+                    {
+                        mailParameters.Add(new("password", creationData.Password ?? throw new UnexpectedConditionException("password should never be null here")));
+                    }
+
+                    foreach (var template in mailTemplates)
+                    {
+                        _mailingProcessCreation.CreateMailProcess(creationData.UserCreationInfo.Email, template, mailParameters.ToImmutable());
+                    }
+                })
             .FirstAsync()
             .ConfigureAwait(false);
 
@@ -192,30 +216,6 @@ public class UserBusinessLogic : IUserBusinessLogic
         {
             throw result.Error;
         }
-
-        var mailParameters = new Dictionary<string, string>
-        {
-            { "companyName", displayName },
-            { "nameCreatedBy", nameCreatedBy },
-            { "url", _settings.Portal.BasePortalAddress },
-            { "idpAlias", displayName },
-        };
-
-        var mailTemplates = companyNameIdpAliasData.IsSharedIdp
-            ? new[] { "NewUserTemplate", "NewUserPasswordTemplate" }
-            : new[] { "NewUserExternalIdpTemplate" };
-
-        if (companyNameIdpAliasData.IsSharedIdp)
-        {
-            mailParameters["password"] = result.Password;
-        }
-
-        foreach (var template in mailTemplates)
-        {
-            _mailingProcessCreation.CreateMailProcess(userCreationInfo.Email, template, mailParameters.ToImmutableDictionary());
-        }
-
-        await _portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
         return result.CompanyUserId;
     }
 
