@@ -90,16 +90,14 @@ public class OfferSubscriptionService : IOfferSubscriptionService
 
         await _mailingProcessCreation.RoleBaseSendMail(
             notificationRecipients,
-            new[]
-            {
+            [
                 ("offerName", offerProviderDetails.OfferName!),
                 ("url", basePortalAddress)
-            },
+            ],
             ("offerProviderName", "User"),
-            new[]
-            {
+            [
                 $"{offerTypeId.ToString().ToLower()}-subscription-request"
-            },
+            ],
             offerProviderDetails.ProviderCompanyId.Value).ConfigureAwait(ConfigureAwaitOptions.None);
 
         return offerSubscription.Id;
