@@ -360,7 +360,8 @@ public class DimBusinessLogicTests
         const string jsonData = """
                                         {
                                             "@context": [
-                                                "https://www.w3.org/ns/did/v1"
+                                                "https://www.w3.org/ns/did/v1",
+                                                "https://w3id.org/security/suites/jws-2020/v1"
                                             ],
                                             "id": "did:web:example.com:did:BPNL0000000000XX",
                                             "verificationMethod": [
