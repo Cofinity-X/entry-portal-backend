@@ -1,0 +1,52 @@
+[
+  {
+    "company_role_id": 1,
+    "language_short_name": "de",
+    "description": "Ein Data Provider & Consumer tellt Daten bereit, nutzt sie und verarbeitet sie, um mit anderen Datenraumteilnehmern zusammenzuarbeiten, um ein bestimmtes Branchenproblem zu lösen und einen geschäftlichen Mehrwert zu schaffen."
+  },
+  {
+    "company_role_id": 1,
+    "language_short_name": "en",
+    "description": "A Data Provider & Consumer provides, consumes, and processes data to collaborate with other dataspace participants to solve a specific industry problem and create  business value."
+  },
+  {
+    "company_role_id": 2,
+    "language_short_name": "de",
+    "description": "Ein Business Application Provider & Enablement Service Provider implementiert, betreibt und pflegt standardisierte Anwendungen und Lösungen von Catena-X über den Cofinity-X-Marktplatz."
+  },
+  {
+    "company_role_id": 2,
+    "language_short_name": "en",
+    "description": "A Business Application Provider & Enablement Service Provider deploys, operates, and maintains Catena-X standardized apps and solutions via the Cofinity-X marketplace."
+  },
+  {
+    "company_role_id": 3,
+    "language_short_name": "de",
+    "description": "Ein Advisory Service Provider bietet Strategie-, Betriebs- und Technologiedienstleistungen für den Catena-X-Datenraum, einschließlich Einführungsberatung, Geschäftswertbewertung und technischer Befähigung."
+  },
+  {
+    "company_role_id": 3,
+    "language_short_name": "en",
+    "description": "An Advisory Service Provider offers services in strategy, operations, and technology for those interested in the Catena-X dataspace. Services include onboarding guidance, business value assessment, and technical enablement."
+  },
+  {
+    "company_role_id": 4,
+    "language_short_name": "de",
+    "description": "Betreiber"
+  },
+  {
+    "company_role_id": 4,
+    "language_short_name": "en",
+    "description": "Operator"
+  },
+  {
+    "company_role_id": 5,
+    "language_short_name": "de",
+    "description": "Der Onboarding Service Prodiver ist eine von Catena-X zertifizierte Rolle, die es dem Unternehmen ermöglicht, die Registrierung, das Onboarding und das Offboarding von Teilnehmern innerhalb des Catena-X-Datenraums zu erleichtern."
+  },
+  {
+    "company_role_id": 5,
+    "language_short_name": "en",
+    "description": "The Onboarding service provider is a Catena-X certified role which enables the company to facilitate the registration, onboarding, and offboarding of participants within the Catena-X dataspace."
+  }
+]
