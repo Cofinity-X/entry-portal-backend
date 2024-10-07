@@ -1,0 +1,302 @@
+[
+  {
+    "user_role_id": "7410693c-c893-409e-852f-9ee886ce94a6",
+    "language_short_name": "de",
+    "description": "Unternehmensadministrator"
+  },
+  {
+    "user_role_id": "7410693c-c893-409e-852f-9ee886ce94a6",
+    "language_short_name": "en",
+    "description": "Company Admin"
+  },
+  {
+    "user_role_id": "7410693c-c893-409e-852f-9ee886ce94a7",
+    "language_short_name": "de",
+    "description": "Legal Admin"
+  },
+  {
+    "user_role_id": "7410693c-c893-409e-852f-9ee886ce94a7",
+    "language_short_name": "en",
+    "description": "Legal Admin"
+  },
+  {
+    "user_role_id": "58f897ec-0aad-4588-8ffa-5f45d6638632",
+    "language_short_name": "de",
+    "description": "CX Admin"
+  },
+  {
+    "user_role_id": "58f897ec-0aad-4588-8ffa-5f45d6638632",
+    "language_short_name": "en",
+    "description": "CX Admin"
+  },
+  {
+    "user_role_id": "58f897ec-0aad-4588-8ffa-5f45d6638633",
+    "language_short_name": "de",
+    "description": "CX User"
+  },
+  {
+    "user_role_id": "58f897ec-0aad-4588-8ffa-5f45d6638633",
+    "language_short_name": "en",
+    "description": "CX User"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51154",
+    "language_short_name": "de",
+    "description": "IT Administrator"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51154",
+    "language_short_name": "en",
+    "description": "IT Admin"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51180",
+    "language_short_name": "de",
+    "description": "Unternehmensadministrator"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51180",
+    "language_short_name": "en",
+    "description": "Company Admin"
+  },
+  {
+    "user_role_id": "ceec23fd-6b26-485c-a4bb-90571a29e148",
+    "language_short_name": "de",
+    "description": "Signing Manager"
+  },
+  {
+    "user_role_id": "ceec23fd-6b26-485c-a4bb-90571a29e148",
+    "language_short_name": "en",
+    "description": "Signing Manager"
+  },
+  {
+    "user_role_id": "95fe4014-4d1b-47af-a22e-72a12f9470db",
+    "language_short_name": "de",
+    "description": "App Developer"
+  },
+  {
+    "user_role_id": "95fe4014-4d1b-47af-a22e-72a12f9470db",
+    "language_short_name": "en",
+    "description": "App Developer"
+  },
+  {
+    "user_role_id": "95fe4014-4d1b-47af-a22e-72a12f9470dc",
+    "language_short_name": "de",
+    "description": "Sales Manager"
+  },
+  {
+    "user_role_id": "95fe4014-4d1b-47af-a22e-72a12f9470dc",
+    "language_short_name": "en",
+    "description": "Sales Manager"
+  },
+  {
+    "user_role_id": "04231a30-df50-4d14-bb00-71ff012ae0cf",
+    "language_short_name": "de",
+    "description": "Einkäufer"
+  },
+  {
+    "user_role_id": "04231a30-df50-4d14-bb00-71ff012ae0cf",
+    "language_short_name": "en",
+    "description": "Purchaser"
+  },
+  {
+    "user_role_id": "916e4be9-0ff7-48fb-bb80-97d2e93fca14",
+    "language_short_name": "de",
+    "description": "Service Manager"
+  },
+  {
+    "user_role_id": "916e4be9-0ff7-48fb-bb80-97d2e93fca14",
+    "language_short_name": "en",
+    "description": "Service Manager"
+  },
+  {
+    "user_role_id": "3ff68c40-6581-4e48-a03a-2a6c1c5aac89",
+    "language_short_name": "de",
+    "description": "App Manager"
+  },
+  {
+    "user_role_id": "3ff68c40-6581-4e48-a03a-2a6c1c5aac89",
+    "language_short_name": "en",
+    "description": "App Manager"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51157",
+    "language_short_name": "de",
+    "description": "Technischer User für den Zugriff auf die eigene Firmen-Wallet - VC anfordern, VP anfordern, VC speichern usw."
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51157",
+    "language_short_name": "en",
+    "description": "Technical user to access own company wallet - request VC, request VP, store VC, etc."
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51165",
+    "language_short_name": "de",
+    "description": "Technischer User für Dataspace Discovery Endpunkte."
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51165",
+    "language_short_name": "en",
+    "description": "Technical user for dataspace discovery endpoints."
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51168",
+    "language_short_name": "de",
+    "description": "Technischer User zum Hinzufügen von Angeboten, Aktivieren von Abonnementanfragen und Erstellen von verwalteten Connector Registrierungen für Dritte."
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de51168",
+    "language_short_name": "en",
+    "description": "Technical user to add offers; activate subscription requests and create managed connector registrations for 3rd parties."
+  },
+  {
+    "user_role_id": "34c42896-a003-4653-af8f-ba06ca595752",
+    "language_short_name": "de",
+    "description": "Technischer User zur Erstellung von Registrierungen von Drittanbietern durch Onboarding Service Provider."
+  },
+  {
+    "user_role_id": "34c42896-a003-4653-af8f-ba06ca595752",
+    "language_short_name": "en",
+    "description": "Technical user to generate 3rd party registrations by onboarding service provider companies."
+  },
+  {
+    "user_role_id": "a6b6a5b6-d7fe-42af-94ce-35c16b3ae128",
+    "language_short_name": "de",
+    "description": "BPDM Sharing Input Consumer"
+  },
+  {
+    "user_role_id": "a6b6a5b6-d7fe-42af-94ce-35c16b3ae128",
+    "language_short_name": "en",
+    "description": "BPDM Sharing Input Consumer"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de52262",
+    "language_short_name": "de",
+    "description": "BPDM Pool Admin"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa8d2de52262",
+    "language_short_name": "en",
+    "description": "BPDM Pool Admin"
+  },
+  {
+    "user_role_id": "3940f9b0-4393-4463-b659-15463098557b",
+    "language_short_name": "de",
+    "description": "Technischer User zur Ansicht semantischer Modelle."
+  },
+  {
+    "user_role_id": "3940f9b0-4393-4463-b659-15463098557b",
+    "language_short_name": "en",
+    "description": "Technical user to view semantic models."
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228014cd6e7",
+    "language_short_name": "de",
+    "description": "Technischer User für den Zugriff auf Catena-X Mitgliedsinformationen."
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228014cd6e7",
+    "language_short_name": "en",
+    "description": "Technical user to access catena-x membership information."
+  },
+  {
+    "user_role_id": "9956fa8d-e454-49ca-a3b1-45e2c106fe59",
+    "language_short_name": "de",
+    "description": "BPDM Sharing Output Consumer"
+  },
+  {
+    "user_role_id": "9956fa8d-e454-49ca-a3b1-45e2c106fe59",
+    "language_short_name": "en",
+    "description": "BPDM Sharing Output Consumer"
+  },
+  {
+    "user_role_id": "ec3a3115-b59c-4319-a8eb-3228014cd6e6",
+    "language_short_name": "de",
+    "description": "BPDM Sharing Admin"
+  },
+  {
+    "user_role_id": "ec3a3115-b59c-4319-a8eb-3228014cd6e6",
+    "language_short_name": "en",
+    "description": "BPDM Sharing Admin - description"
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228984cd6e5",
+    "language_short_name": "de",
+    "description": "BPDM Sharing Input Manager"
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228984cd6e5",
+    "language_short_name": "en",
+    "description": "BPDM Sharing Input Manager"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa6d2de51262",
+    "language_short_name": "de",
+    "description": "BPDM Pool Consumer"
+  },
+  {
+    "user_role_id": "607818be-4978-41f4-bf63-fa6d2de51262",
+    "language_short_name": "en",
+    "description": "BPDM Pool Consumer"
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228884cd7e5",
+    "language_short_name": "de",
+    "description": "Business Partner Data Manager"
+  },
+  {
+    "user_role_id": "ec3a3005-b59c-4319-a8eb-3228884cd7e5",
+    "language_short_name": "en",
+    "description": "Business Partner Data Manager"
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53267",
+    "language_short_name": "de",
+    "description": "BPDM Pool Sharing Consumer"
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53267",
+    "language_short_name": "en",
+    "description": "BPDM Pool Sharing Consumer"
+  },
+  {
+    "user_role_id": "34c42896-a003-4653-af8f-ba06ca595754",
+    "language_short_name": "de",
+    "description": "Technischer User für die Invitation API zur Integration von Drittanbieter-Software."
+  },
+  {
+    "user_role_id": "34c42896-a003-4653-af8f-ba06ca595754",
+    "language_short_name": "en",
+    "description": "Technical user enabling the invitation API to integrate 3rd party software."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53211",
+    "language_short_name": "en",
+    "description": "Customer Wallet Creation and Management."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53211",
+    "language_short_name": "de",
+    "description": "Erstellung und Verwaltung von Kundenwallets."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53212",
+    "language_short_name": "en",
+    "description": "Create and manage BPN/DID records inside the service BDRS."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53212",
+    "language_short_name": "de",
+    "description": "Erstellen und verwalten Sie BPN/DID-Datensätze im BDRS Service."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53213",
+    "language_short_name": "en",
+    "description": "Task Management inside the BPDM Orchestrator."
+  },
+  {
+    "user_role_id": "c01818be-4978-41f4-bf63-fa6d2de53213",
+    "language_short_name": "de",
+    "description": "Aufgabenverwaltung im BPDM Orchestrator."
+  }
+]
