@@ -18,6 +18,165 @@ paths:
                   $ref: '#/components/schemas/ErrorMessageType'
         '500':
           description: Internal Server Error
+  /api/registration/Hubspot/productsByCompanyRole:
+    post:
+      tags:
+        - Hubspot
+      summary: 'Gets hubspot product by company roles (Authorization required - Roles: view_registration)'
+      description: 'Example: POST: /api/registration/Hubspot/productsByCompanyRole'
+      requestBody:
+        description: Role of the company to get the product
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: Returns the products from hubspot
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HubspotProductResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  /api/registration/Hubspot/companyDetails:
+    get:
+      tags:
+        - Hubspot
+      summary: 'Gets hubspot company details for logged in user (Authorization required - Roles: view_registration)'
+      description: 'Example: GET: /api/registration/Hubspot/companyDetails'
+      responses:
+        '200':
+          description: Returns the hubspot company
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HubspotCompanyResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: ''
+        '404':
+          description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  /api/registration/Hubspot/agreements:
+    get:
+      tags:
+        - Hubspot
+      summary: 'Gets hubspot agreements (Authorization required - Roles: view_registration)'
+      description: 'Example: GET: /api/registration/Hubspot/agreements'
+      responses:
+        '200':
+          description: Returns the agreements from hubspot
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HubspotAgreementResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: ''
+        '404':
+          description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  /api/registration/Hubspot/createUpdateHubspotCompany:
+    post:
+      tags:
+        - Hubspot
+      summary: 'Create or Update hubspot company or contact or both (Authorization required - Roles: submit_registration)'
+      description: 'Example: POST: /api/registration/Hubspot/createUpdateHubspotCompany'
+      requestBody:
+        description: hubspotRequest
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HubspotInboundRequest'
+      responses:
+        '200':
+          description: Returns the hubspot company and contact id from hubspot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HubspotCompanyUpdateResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  /api/registration/Hubspot/createDeal:
+    post:
+      tags:
+        - Hubspot
+      summary: 'Create deal in hubspot (Authorization required - Roles: submit_registration)'
+      description: 'Example: POST: /api/registration/Hubspot/createDeal'
+      requestBody:
+        description: hubspotRequest
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HubspotDealRequest'
+      responses:
+        '200':
+          description: 'Returns the dealId, quoteId and quoteUrl from hubspot'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HubspotDealCreateResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
   /api/registration/Network/partnerRegistration/submit:
     post:
       tags:
@@ -1568,6 +1727,164 @@ components:
       additionalProperties: false
     File:
       type: object
+      additionalProperties: false
+    HubspotAgreementResponse:
+      type: object
+      properties:
+        agreement_name:
+          type: string
+          nullable: true
+        hs_object_id:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+      additionalProperties: false
+    HubspotCompanyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        isCatenaXCustomer:
+          type: boolean
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+      additionalProperties: false
+    HubspotCompanyUpdateResponse:
+      type: object
+      properties:
+        companyId:
+          type: string
+          nullable: true
+        contactId:
+          type: string
+          nullable: true
+      additionalProperties: false
+    HubspotContact:
+      required:
+        - email
+      type: object
+      properties:
+        email:
+          type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+      additionalProperties: false
+    HubspotDealCreateResponse:
+      type: object
+      properties:
+        dealId:
+          type: string
+          nullable: true
+        quoteId:
+          type: string
+          nullable: true
+        quoteUrl:
+          type: string
+          nullable: true
+      additionalProperties: false
+    HubspotDealRequest:
+      required:
+        - companyId
+        - contactId
+        - dealname
+        - quotename
+      type: object
+      properties:
+        dealname:
+          type: string
+        quotename:
+          type: string
+        companyId:
+          type: string
+        contactId:
+          type: string
+        agreementIds:
+          type: array
+          items:
+            type: string
+          nullable: true
+        productIds:
+          type: array
+          items:
+            type: string
+          nullable: true
+      additionalProperties: false
+    HubspotInboundCompany:
+      type: object
+      properties:
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+        agreements:
+          type: array
+          items:
+            type: string
+          nullable: true
+      additionalProperties: false
+    HubspotInboundRequest:
+      type: object
+      properties:
+        company:
+          $ref: '#/components/schemas/HubspotInboundCompany'
+        contact:
+          $ref: '#/components/schemas/HubspotContact'
+      additionalProperties: false
+    HubspotProductResponse:
+      required:
+        - company_role
+        - description
+        - name
+        - sales_package
+      type: object
+      properties:
+        allowed_billing_frequencies:
+          type: string
+          nullable: true
+        catena_x_feature_list:
+          type: string
+          nullable: true
+        catena_x_package_id:
+          type: string
+          nullable: true
+        catena_x_tags:
+          type: string
+          nullable: true
+        company_role:
+          type: string
+        createdate:
+          type: string
+          format: date-time
+          nullable: true
+        description:
+          type: string
+        hs_lastmodifieddate:
+          type: string
+          format: date-time
+          nullable: true
+        hs_object_id:
+          type: string
+          nullable: true
+        hs_price_eur:
+          type: string
+          nullable: true
+        name:
+          type: string
+        price_yearly:
+          type: string
+          nullable: true
+        sales_package:
+          type: string
       additionalProperties: false
     InvitationStatusId:
       enum:

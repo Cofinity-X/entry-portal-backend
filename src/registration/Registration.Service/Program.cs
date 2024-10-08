@@ -19,6 +19,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library.DependencyInjection;
+using Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling.Service;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
@@ -61,4 +62,5 @@ await WebAppHelper
 
         builder.Services.AddBpnAccess(builder.Configuration.GetSection("BpnAccess"));
         builder.Services.AddMailingProcessCreation(builder.Configuration.GetSection("MailingProcessCreation"));
+        builder.Services.AddExtendedRegistrationService(builder.Configuration.GetSection("Hubspot"));
     }).ConfigureAwait(ConfigureAwaitOptions.None);
