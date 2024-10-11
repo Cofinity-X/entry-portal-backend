@@ -42,4 +42,8 @@ public enum BpdmIdentifierId
     ID_CRN = 18,
     NO_ORGID = 19,
     LEI_ID = 20,
+    US_EIN_CD = 101,
+    KR_TIN_CD = 102,
+    JP_CN_CD = 103,
+    CN_CC_CD = 104,
 }
