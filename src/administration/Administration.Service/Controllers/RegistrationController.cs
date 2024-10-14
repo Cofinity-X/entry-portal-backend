@@ -577,7 +577,7 @@ public class RegistrationController : ControllerBase
     /// </remarks>
     /// <response code="200">Result as a OSP Company Application Details</response>
     [HttpGet]
-    [Authorize(Roles = "view_submitted_applications")]
+    [Authorize(Roles = "configure_partner_registration")]
     [Authorize(Policy = PolicyTypes.ValidCompany)]
     [Route("network/companies")]
     [ProducesResponseType(typeof(Pagination.Response<CompanyDetailsOspOnboarding>), StatusCodes.Status200OK)]
