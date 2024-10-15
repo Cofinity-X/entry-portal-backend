@@ -8,5 +8,5 @@ public interface IHubspotService
     Task<HubspotCompanyResponse> GetHubspotCompanyDetailsAsync(string portalCompanyId, CancellationToken cancellationToken);
     Task<IEnumerable<HubspotAgreementResponse>> GetHubspotAgreementsAsync(CancellationToken cancellationToken);
     Task<HubspotCompanyUpdateResponse> CreateUpdateHubspotCompanyAsync(HubspotOutboundRequest hubspotRequest, CancellationToken cancellationToken);
-    Task<HubspotDealCreateResponse> CreateDealAsync(HubspotDealRequest hubspotRequest, CancellationToken cancellationToken);
+    Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync(HubspotDealRequest[] hubspotRequest, CancellationToken cancellationToken);
 }

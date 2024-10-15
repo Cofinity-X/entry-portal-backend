@@ -8,6 +8,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Busin
         Task<HubspotCompanyResponse> GetHubspotCompanyDetailsAsync(CancellationToken cancellationToken);
         Task<IEnumerable<HubspotAgreementResponse>> GetHubspotAgreementsAsync(CancellationToken cancellationToken);
         Task<HubspotCompanyUpdateResponse> CreateUpdateHubspotCompanyAsync(HubspotInboundRequest hubspotRequest, CancellationToken cancellationToken);
-        Task<HubspotDealCreateResponse> CreateDealAsync(HubspotDealRequest hubspotDealRequest, CancellationToken cancellationToken);
+        Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync(HubspotDealRequest[] hubspotDealRequest, CancellationToken cancellationToken);
     }
 }

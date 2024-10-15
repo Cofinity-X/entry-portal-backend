@@ -13,6 +13,9 @@ public class HubspotDealRequest
     [JsonPropertyName("companyId")]
     public required string CompanyId { get; set; }
 
+    [JsonPropertyName("company_role")]
+    public required string CompanyRole { get; set; }
+
     [JsonPropertyName("contactId")]
     public required string ContactId { get; set; }
 

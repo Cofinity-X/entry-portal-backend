@@ -112,7 +112,7 @@ public class HubspotService : IHubspotService
         }
     }
 
-    public async Task<HubspotDealCreateResponse> CreateDealAsync(HubspotDealRequest hubspotRequest, CancellationToken cancellationToken)
+    public async Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync(HubspotDealRequest[] hubspotRequest, CancellationToken cancellationToken)
     {
         using var httpClient = await _tokenService.GetAuthorizedClient<HubspotService>(_settings, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
@@ -124,7 +124,7 @@ public class HubspotService : IHubspotService
             var rawResponse = await result.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
             var response = await result.Content
-                .ReadFromJsonAsync<HubspotDealCreateResponse>(Options, cancellationToken)
+                .ReadFromJsonAsync<IEnumerable<HubspotDealCreateResponse>>(Options, cancellationToken)
                 .ConfigureAwait(ConfigureAwaitOptions.None) ?? throw new ServiceException($"Access to external system Hubspot did not return a response");
             return response;
         }
