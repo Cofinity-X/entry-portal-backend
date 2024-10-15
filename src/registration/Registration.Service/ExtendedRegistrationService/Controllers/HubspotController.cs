@@ -106,7 +106,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Contr
         [Authorize(Policy = PolicyTypes.ValidCompany)]
         [ProducesResponseType(typeof(HubspotDealCreateResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
-        public Task<HubspotDealCreateResponse> CreateDealAsync([FromBody] HubspotDealRequest hubspotRequest, CancellationToken cancellationToken) =>
+        public Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync([FromBody] HubspotDealRequest[] hubspotRequest, CancellationToken cancellationToken) =>
             hubspotBusinessLogic.CreateDealAsync(hubspotRequest, cancellationToken);
 
     }

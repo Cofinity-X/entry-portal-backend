@@ -48,10 +48,10 @@ public class HubspotBusinessLogic(
         return response.CompanyId != null || response.ContactId != null ? response : throw new ServiceException("Access to external system Hubspot did not updated the company or contact");
     }
 
-    public async Task<HubspotDealCreateResponse> CreateDealAsync(HubspotDealRequest hubspotDealRequest, CancellationToken cancellationToken)
+    public async Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync(HubspotDealRequest[] hubspotDealRequest, CancellationToken cancellationToken)
     {
         var hsCompany = await hubspotService.GetHubspotCompanyDetailsAsync(identityService.IdentityData.CompanyId.ToString(), cancellationToken);
-        if (hsCompany.Id != hubspotDealRequest.CompanyId)
+        if (hubspotDealRequest.Any(item => hsCompany.Id != item.CompanyId))
         {
             throw new ConflictException("This user is not associated with the Hubspot company sent in the request.");
         }
