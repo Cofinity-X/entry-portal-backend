@@ -171,7 +171,7 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result.IsProviderCompany.Should().BeTrue();
+        result.IsProvidingOrHostCompany.Should().BeTrue();
         result.ConnectorData.Name.Should().Be("Test Connector 1");
         result.ConnectorData.TechnicalUser.Should().BeNull();
         result.ConnectorData.ConnectorUrl.Should().Be("www.google.de");
@@ -201,7 +201,7 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result.IsProviderCompany.Should().BeFalse();
+        result.IsProvidingOrHostCompany.Should().BeFalse();
     }
 
     #endregion
