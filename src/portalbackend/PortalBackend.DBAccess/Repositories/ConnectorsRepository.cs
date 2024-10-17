@@ -158,7 +158,7 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
         dbContext.Connectors
             .AsNoTracking()
             .Where(connector => connector.StatusId == ConnectorStatusId.ACTIVE && (!bpns.Any() || bpns.Contains(connector.Host!.BusinessPartnerNumber)))
-            .OrderBy(connector => connector.ProviderId)
+            .OrderBy(connector => connector.HostId)
             .Select(connector => new ValueTuple<string, string>
             (
                 connector.Host!.BusinessPartnerNumber!,
