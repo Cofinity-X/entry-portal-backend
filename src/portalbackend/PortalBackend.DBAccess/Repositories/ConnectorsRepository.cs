@@ -161,7 +161,7 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
             .OrderBy(connector => connector.ProviderId)
             .Select(connector => new ValueTuple<string, string>
             (
-                connector.Provider!.BusinessPartnerNumber!,
+                connector.Host!.BusinessPartnerNumber!,
                 connector.ConnectorUrl
             ))
             .AsAsyncEnumerable();
