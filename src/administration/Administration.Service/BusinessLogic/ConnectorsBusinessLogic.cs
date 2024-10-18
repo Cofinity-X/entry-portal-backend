@@ -406,9 +406,9 @@ public class ConnectorsBusinessLogic(
             return;
         }
 
-        if (!connector.IsHostCompany)
+        if (!connector.IsProviderCompany)
         {
-            throw ForbiddenException.Create(AdministrationConnectorErrors.CONNECTOR_NOT_HOST_COMPANY, new ErrorParameter[] { new("companyId", _identityData.CompanyId.ToString()) });
+            throw ForbiddenException.Create(AdministrationConnectorErrors.CONNECTOR_NOT_PROVIDER_COMPANY, new ErrorParameter[] { new("companyId", _identityData.CompanyId.ToString()) });
         }
 
         if (connector.Status == ConnectorStatusId.INACTIVE)
