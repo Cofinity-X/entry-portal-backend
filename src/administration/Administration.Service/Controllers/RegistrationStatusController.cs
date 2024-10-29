@@ -68,7 +68,7 @@ public class RegistrationStatusController : ControllerBase
     /// <remarks>Example: POST: api/administration/registrationstatus/callback</remarks>
     /// <response code="204">Returns no content.</response>
     [HttpPost]
-    [Authorize(Roles = "osp_feature_disabled")]
+    [Authorize(Roles = "configure_partner_registration")]
     [Authorize(Policy = PolicyTypes.ValidCompany)]
     [Route("callback")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
