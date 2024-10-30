@@ -40,6 +40,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.6" />
     <PackageReference Include="PasswordGenerator" Version="2.1.0" />
+    <PackageReference Include="PDFsharp" Version="6.1.1" />
   </ItemGroup>
 
   <ItemGroup>

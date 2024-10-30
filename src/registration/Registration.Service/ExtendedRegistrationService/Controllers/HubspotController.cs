@@ -104,10 +104,31 @@ namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Contr
         [Authorize(Roles = "submit_registration")]
         [Route("createDeal")]
         [Authorize(Policy = PolicyTypes.ValidCompany)]
-        [ProducesResponseType(typeof(HubspotDealCreateResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<HubspotDealCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
         public Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync([FromBody] HubspotDealRequest[] hubspotRequest, CancellationToken cancellationToken) =>
             hubspotBusinessLogic.CreateDealAsync(hubspotRequest, cancellationToken);
 
+        /// <summary>
+        /// Get Deal quote combined pdf from Hubspot for logged in company
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation Token</param>
+        /// <returns>Returns the pdf of combined quote </returns>
+        /// <remarks>Example: POST: /api/registration/Hubspot/quote</remarks>
+        /// <response code="200">Returns the combined pdf of quote from hubspot</response>
+        /// <response code="404">No quotes found for the logged in company in hubspot</response>
+        /// <response code="503">The requested service responded with the given error.</response>
+        [HttpPost]
+        [Authorize(Roles = "view_registration")]
+        [Route("quote")]
+        [Authorize(Policy = PolicyTypes.ValidCompany)]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
+        public async Task<ActionResult> GetQuotesAsync(CancellationToken cancellationToken)
+        {
+            var pdfData = await hubspotBusinessLogic.GetQuoteCombinedPdfAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+            return File(pdfData.Content, pdfData.MediaType, pdfData.FileName);
+        }
     }
 }

@@ -133,4 +133,43 @@ public class HubspotService : IHubspotService
             throw new ServiceException($"Access to external system Hubspot did not return a valid json response: {je.Message}");
         }
     }
+
+    public async Task<IEnumerable<HubspotQuoteResponse>> GetQuotesAsync(string portalCompanyId, CancellationToken cancellationToken)
+    {
+        using var httpClient = await _tokenService.GetAuthorizedClient<HubspotService>(_settings, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var request = new { portal_company_id = portalCompanyId };
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+        var result = await httpClient.PostAsync($"api/get-quotes", content, cancellationToken)
+            .CatchingIntoServiceExceptionFor("hubspot-get-quotes", HttpAsyncResponseMessageExtension.RecoverOptions.INFRASTRUCTURE).ConfigureAwait(false);
+        try
+        {
+            var response = await result.Content
+                .ReadFromJsonAsync<IEnumerable<HubspotQuoteResponse>>(Options, cancellationToken)
+                .ConfigureAwait(ConfigureAwaitOptions.None) ?? throw new ServiceException($"Access to external system Hubspot did not return a response");
+            return response;
+        }
+        catch (JsonException je)
+        {
+            throw new ServiceException($"Access to external system Hubspot did not return a valid json response: {je.Message}");
+        }
+    }
+
+    public async Task<MemoryStream> GetQuotePdfAsync(string pdfUrl, CancellationToken cancellationToken)
+    {
+        using var httpClient = await _tokenService.GetAuthorizedClient<HubspotService>(_settings, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        var memoryStream = new MemoryStream();
+        var result = await httpClient.GetAsync(pdfUrl, cancellationToken)
+         .CatchingIntoServiceExceptionFor("hubspot-get-quote-pdf", HttpAsyncResponseMessageExtension.RecoverOptions.INFRASTRUCTURE).ConfigureAwait(false);
+        try
+        {
+            await result.Content.CopyToAsync(memoryStream, cancellationToken);
+            return memoryStream;
+        }
+        catch (Exception ex)
+        {
+            throw new ServiceException($"Access to external system Hubspot did not return a valid pdf response: {ex.Message}");
+        }
+    }
 }

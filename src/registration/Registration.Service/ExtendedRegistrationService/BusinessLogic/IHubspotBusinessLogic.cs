@@ -9,5 +9,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Busin
         Task<IEnumerable<HubspotAgreementResponse>> GetHubspotAgreementsAsync(CancellationToken cancellationToken);
         Task<HubspotCompanyUpdateResponse> CreateUpdateHubspotCompanyAsync(HubspotInboundRequest hubspotRequest, CancellationToken cancellationToken);
         Task<IEnumerable<HubspotDealCreateResponse>> CreateDealAsync(HubspotDealRequest[] hubspotDealRequest, CancellationToken cancellationToken);
+        Task<(string FileName, byte[] Content, string MediaType)> GetQuoteCombinedPdfAsync(CancellationToken cancellationToken);
     }
 }
