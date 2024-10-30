@@ -12,4 +12,7 @@ public class HubspotAgreementResponse
 
     [JsonPropertyName("type")]
     public string? Type { get; set; }
+
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
 }
