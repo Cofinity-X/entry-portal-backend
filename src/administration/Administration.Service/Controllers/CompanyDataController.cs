@@ -147,7 +147,7 @@ public class CompanyDataController(ICompanyDataBusinessLogic logic) : Controller
     /// Company can't unassign from all roles
     /// </response>
     [HttpPost]
-    [Authorize(Roles = "view_company_data")]
+    [Authorize(Roles = "disable_update_company_role")]
     [Authorize(Policy = PolicyTypes.ValidIdentity)]
     [Authorize(Policy = PolicyTypes.ValidCompany)]
     [Route("companyRolesAndConsents")]
