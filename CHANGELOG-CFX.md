@@ -2,6 +2,13 @@
 
 New features, fixed bugs, known defects and other noteworthy changes to each release of the Cofinity-X Portal Backend.
 
+## Unrelased
+
+### Bug fixes
+
+* **Email Template**
+  * Updated new_user_account_external_idp email template with correct content [PM2-1919](https://cofinity-x.atlassian.net/browse/PM2-1919)
+
 ## 2.2.0-cfx-2
 
 ### Feature
