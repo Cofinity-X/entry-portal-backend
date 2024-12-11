@@ -2,7 +2,7 @@
 
 New features, fixed bugs, known defects and other noteworthy changes to each release of the Cofinity-X Portal Backend.
 
-## Unrelased
+## 2.2.0-cfx-5
 
 ### Bug fixes
 
