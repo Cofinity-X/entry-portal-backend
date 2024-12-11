@@ -5,6 +5,7 @@ New features, fixed bugs, known defects and other noteworthy changes to each rel
 - **Email Template**
   - Designs & Subject modifications for email template [#1091](https://cofinity-x.atlassian.net/browse/PM2-1091)
 ## Unrelased
+## 2.2.0-cfx-5
 
 ### Bug fixes
 
