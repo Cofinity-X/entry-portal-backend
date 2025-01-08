@@ -19,6 +19,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -411,7 +412,7 @@ public class ApplicationRepository(PortalDbContext portalDbContext)
                         ca.Address.Zipcode,
                         !string.IsNullOrEmpty(ca.Address.Streetnumber) ? string.Format("{0} {1}", ca.Address.Streetname, ca.Address.Streetnumber) : ca.Address.Streetname
                     ),
-                    ca.CompanyIdentifiers.Select(ci => new UniqueIdData(ci.UniqueIdentifier!.Label, ci.Value))
+                    ca.CompanyIdentifiers.Select(ci => new UniqueIdData(ci.UniqueIdentifierId.GetUniqueIdentifierValue(), ci.Value))
                 )
             ))
             .SingleOrDefaultAsync();
