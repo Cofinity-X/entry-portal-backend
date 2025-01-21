@@ -177,7 +177,7 @@ public class RegistrationController(IRegistrationBusinessLogic logic)
     /// <response code="400">Either the CompanyApplication is not in status SUBMITTED or the clearing_house process is not in status IN_PROGRESS.</response>
     /// <response code="404">No application found for the bpn.</response>
     [HttpPost]
-    [Authorize(Roles = "update_application_checklist_value")]
+    [Authorize(Roles = "update_application_checklist_value, approve_app_release")]
     [Route("clearinghouse")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
