@@ -189,6 +189,28 @@ public class RegistrationController(IRegistrationBusinessLogic logic)
     }
 
     /// <summary>
+    /// Processes the clearinghouse response
+    /// </summary>
+    /// <param name="applicationId">Application Id to perform CH</param>
+    /// <param name="cancellationToken">Cancellation Token</param>
+    /// <returns>NoContent</returns>
+    /// Example: POST: api/administration/registration/test-clearinghouse/{applicationId}
+    /// <response code="204">Empty response on success.</response>
+    /// <response code="400">Either the CompanyApplication is not in status SUBMITTED or the clearing_house process is not in status IN_PROGRESS.</response>
+    /// <response code="404">No application found for the bpn.</response>
+    [HttpPost]
+    [Authorize(Roles = "update_application_checklist_value, approve_app_release")]
+    [Route("test-clearinghouse/{applicationId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<NoContentResult> ClearinghouseRequest([FromRoute] Guid applicationId, CancellationToken cancellationToken)
+    {
+        await logic.ClearinghouseRequestAsync(applicationId, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Processes the dim middlelayer response
     /// </summary>
     /// <param name="bpn">BusinessPartnerNumber for dim</param>

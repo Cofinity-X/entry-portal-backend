@@ -3422,13 +3422,45 @@ paths:
     post:
       tags:
         - Registration
-      summary: 'Processes the clearinghouse response (Authorization required - Roles: update_application_checklist_value)'
+      summary: 'Processes the clearinghouse response (Authorization required - Roles: update_application_checklist_value, approve_app_release)'
       requestBody:
         description: Response data from clearinghouse
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ClearinghouseResponseData'
+      responses:
+        '204':
+          description: Empty response on success.
+        '400':
+          description: Either the CompanyApplication is not in status SUBMITTED or the clearing_house process is not in status IN_PROGRESS.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No application found for the bpn.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  '/api/administration/registration/test-clearinghouse/{applicationId}':
+    post:
+      tags:
+        - Registration
+      summary: 'Processes the clearinghouse response (Authorization required - Roles: update_application_checklist_value, approve_app_release)'
+      parameters:
+        - name: applicationId
+          in: path
+          description: Application Id to perform CH
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         '204':
           description: Empty response on success.

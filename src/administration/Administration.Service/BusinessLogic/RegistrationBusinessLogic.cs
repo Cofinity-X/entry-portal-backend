@@ -316,6 +316,12 @@ public sealed class RegistrationBusinessLogic(
         await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
+    public async Task ClearinghouseRequestAsync(Guid applicationId, CancellationToken cancellationToken)
+    {
+        var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(applicationId, ProcessStepTypeId.START_CLEARING_HOUSE, null!, [ProcessStepTypeId.AWAIT_CLEARING_HOUSE_RESPONSE]);
+        await clearinghouseBusinessLogic.HandleClearinghouse(context, cancellationToken);
+    }
+
     /// <inheritdoc />
     public async Task ProcessDimResponseAsync(string bpn, DimWalletData data, CancellationToken cancellationToken)
     {

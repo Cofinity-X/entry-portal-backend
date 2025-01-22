@@ -58,6 +58,13 @@ public interface IRegistrationBusinessLogic
     Task ProcessClearinghouseResponseAsync(ClearinghouseResponseData data, string bpn, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Processes the clearinghouse request
+    /// </summary>
+    /// <param name="applicationId"></param>
+    /// <param name="cancellationToken">cancellation token</param>
+    Task ClearinghouseRequestAsync(Guid applicationId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Processes the dim response
     /// </summary>
     /// <param name="bpn">the companies business partner number</param>
