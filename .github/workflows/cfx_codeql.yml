@@ -27,3 +27,4 @@ jobs:
     with:
       project-directory: src
       languages: "['csharp']"
+      codeql-cfg-path: ".github/codeql-config.yml"
