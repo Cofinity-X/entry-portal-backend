@@ -7653,6 +7653,14 @@ components:
           type: string
           nullable: true
       additionalProperties: false
+    Reason:
+      type: object
+      properties:
+        message:
+          type: string
+        detailMessage:
+          type: string
+      additionalProperties: false
     RegistrationDeclineData:
       type: object
       properties:
@@ -8029,9 +8037,8 @@ components:
           $ref: '#/components/schemas/ClearinghouseResponseStatus'
         type:
           type: string
-        message:
-          type: string
-          nullable: true
+        reason:
+          $ref: '#/components/schemas/Reason'
       additionalProperties: false
   securitySchemes:
     Bearer:

@@ -221,9 +221,13 @@ public class ClearinghouseBusinessLogicTests
     {
         // Arrange
         var entry = new ApplicationChecklistEntry(IdWithBpn, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.TO_DO, DateTimeOffset.UtcNow);
+        var reason = _fixture.Build<Reason>()
+            .With(x => x.DetailMessage, default(string?))
+            .Create();
+
         var validationUnits = _fixture.Build<ValidationUnits>()
             .With(x => x.Status, ClearinghouseResponseStatus.VALID)
-            .With(x => x.Message, default(string?))
+            .With(x => x.Reason, reason)
             .CreateMany(2);
 
         var data = _fixture.Build<ClearinghouseResponseData>()
@@ -247,9 +251,13 @@ public class ClearinghouseBusinessLogicTests
     {
         // Arrange
         var entry = new ApplicationChecklistEntry(IdWithBpn, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.TO_DO, DateTimeOffset.UtcNow);
+        var reason = _fixture.Build<Reason>()
+            .With(x => x.DetailMessage, "Comment about the error")
+            .Create();
+
         var validationUnits = _fixture.Build<ValidationUnits>()
             .With(x => x.Status, ClearinghouseResponseStatus.INVALID)
-            .With(x => x.Message, "Comment about the error")
+            .With(x => x.Reason, reason)
             .CreateMany(2);
 
         var data = _fixture.Build<ClearinghouseResponseData>()
