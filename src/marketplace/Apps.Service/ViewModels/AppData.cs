@@ -30,6 +30,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 /// <param name="Name">Name of the app.</param>
 /// <param name="ShortDescription">Short description.</param>
 /// <param name="Provider">Provider.</param>
+/// <param name="ProviderShortName">Provider Short Name.</param>
 /// <param name="Price">Price.</param>
 /// <param name="LicenseType">LicenseTypeId for app</param>
 /// <param name="LeadPictureId">Lead picture Id.</param>
@@ -40,6 +41,7 @@ public record AppData(
     string Name,
     string ShortDescription,
     string Provider,
+    string? ProviderShortName,
     LicenseTypeId LicenseType,
     string Price,
     Guid LeadPictureId,

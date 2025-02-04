@@ -29,6 +29,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 /// <param name="Provider"></param>
 /// <param name="LeadPictureId"></param>
 /// <param name="ProviderName"></param>
+/// <param name="ProviderShortName"></param>
 /// <param name="UseCase"></param>
 /// <param name="Descriptions"></param>
 /// <param name="Agreements"></param>
@@ -46,6 +47,7 @@ public record OfferProviderData(
     string Provider,
     Guid LeadPictureId,
     string? ProviderName,
+    string? ProviderShortName,
     IEnumerable<AppUseCaseData>? UseCase,
     IEnumerable<LocalizedDescription> Descriptions,
     IEnumerable<AgreementAssignedOfferData> Agreements,

@@ -31,6 +31,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 /// <param name="Provider">provider name</param>
 /// <param name="LeadPictureId">id of the lead picture</param>
 /// <param name="ProviderName">provider name</param>
+/// <param name="ProviderShortName">provider short name</param>
 /// <param name="UseCase">list of use cases</param>
 /// <param name="Descriptions">the offer descriptions</param>
 /// <param name="Agreements">the assigned agreements</param>
@@ -49,6 +50,7 @@ public record AppProviderResponse(
     string Provider,
     Guid LeadPictureId,
     string? ProviderName,
+    string? ProviderShortName,
     IEnumerable<AppUseCaseData> UseCase,
     IEnumerable<LocalizedDescription> Descriptions,
     IEnumerable<OfferAgreement> Agreements,

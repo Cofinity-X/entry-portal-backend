@@ -403,7 +403,7 @@ public class ServiceBusinessLogicTests
     public async Task GetServiceConsentDetailData_WithValidId_ReturnsServiceConsentDetailData()
     {
         // Arrange
-        var data = new ConsentDetailData(_validConsentId, "The Company", Guid.NewGuid(), ConsentStatusId.ACTIVE, "Agreed");
+        var data = new ConsentDetailData(_validConsentId, "The Company", "TC", Guid.NewGuid(), ConsentStatusId.ACTIVE, "Agreed");
         var offerService = A.Fake<IOfferService>();
         A.CallTo(() => offerService.GetConsentDetailDataAsync(_validConsentId, A<OfferTypeId>._))
             .Returns(data);
@@ -738,7 +738,7 @@ public class ServiceBusinessLogicTests
             .Returns<(Guid, bool)>(default);
 
         A.CallTo(() => _consentRepository.GetConsentDetailData(_validConsentId, OfferTypeId.SERVICE))
-            .Returns(new ConsentDetailData(_validConsentId, "The Company", _companyUser.Id, ConsentStatusId.ACTIVE, "Agreed"));
+            .Returns(new ConsentDetailData(_validConsentId, "The Company", "TC", _companyUser.Id, ConsentStatusId.ACTIVE, "Agreed"));
         A.CallTo(() => _consentRepository.GetConsentDetailData(A<Guid>._, A<OfferTypeId>.That.Not.Matches(x => x == OfferTypeId.SERVICE)))
             .Returns<ConsentDetailData?>(null);
         A.CallTo(() => _consentRepository.GetConsentDetailData(A<Guid>.That.Not.Matches(x => x == _validConsentId), A<OfferTypeId>._))

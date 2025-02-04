@@ -164,7 +164,7 @@ public class ServiceControllerTest
     {
         //Arrange
         var consentId = Guid.NewGuid();
-        var consentDetailData = new ConsentDetailData(consentId, "Test Company", Guid.NewGuid(), ConsentStatusId.ACTIVE, "Aggred");
+        var consentDetailData = new ConsentDetailData(consentId, "Test Company", "TC", Guid.NewGuid(), ConsentStatusId.ACTIVE, "Aggred");
         A.CallTo(() => _logic.GetServiceConsentDetailDataAsync(A<Guid>._))
             .Returns(consentDetailData);
 

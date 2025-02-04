@@ -30,6 +30,7 @@ public record ServiceDetailsData(
     string? Title,
     IEnumerable<ServiceTypeId> ServiceTypeIds,
     string Provider,
+    string? ProviderShortName,
     IEnumerable<LocalizedDescription> Descriptions,
     IEnumerable<DocumentTypeData> Documents,
     string? ProviderUri,

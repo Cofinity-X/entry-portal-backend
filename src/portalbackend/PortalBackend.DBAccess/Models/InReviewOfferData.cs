@@ -49,6 +49,11 @@ public record InReviewOfferData(
     string Provider,
 
     /// <summary>
+    /// Provider short name of the app.
+    /// </summary>
+    string? ProviderShortName,
+
+    /// <summary>
     /// Names of the app's use cases.
     /// </summary>
     IEnumerable<string> UseCases,

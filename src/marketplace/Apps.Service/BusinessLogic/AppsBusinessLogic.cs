@@ -78,6 +78,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
                     app.Name ?? Constants.ErrorString,
                     app.ShortDescription ?? Constants.ErrorString,
                     app.VendorCompanyName,
+                    app.VendorCompanyShortName,
                     app.LicenseType,
                     app.LicenseText ?? Constants.ErrorString,
                     app.LeadPictureId,
@@ -94,7 +95,8 @@ public class AppsBusinessLogic : IAppsBusinessLogic
                     x.OfferName ?? Constants.ErrorString,
                     x.SubscriptionUrl,
                     x.LeadPictureId,
-                    x.Provider));
+                    x.Provider,
+                    x.ProviderShortName));
 
     /// <inheritdoc/>
     public async Task<AppDetailResponse> GetAppDetailsByIdAsync(Guid appId, string? languageShortName = null)
@@ -113,6 +115,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
             result.Images,
             result.ProviderUri ?? Constants.ErrorString,
             result.Provider,
+            result.ProviderShortName,
             result.ContactEmail,
             result.ContactNumber,
             result.UseCases,

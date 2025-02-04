@@ -27,12 +27,14 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 /// </summary>
 /// <param name="Id">ID of the service</param>
 /// <param name="CompanyName">Name of the company that gave the consent</param>
+/// <param name="CompanyShortName">Short name of the company that gave the consent</param>
 /// <param name="CompanyUserId">ID of the company that gave the consent</param>
 /// <param name="ConsentStatus">Consent Status</param>
 /// <param name="AgreementName">The agreement name</param>
 public record ConsentDetailData(
     Guid Id,
     string CompanyName,
+    string? CompanyShortName,
     Guid CompanyUserId,
     ConsentStatusId ConsentStatus,
     string AgreementName);

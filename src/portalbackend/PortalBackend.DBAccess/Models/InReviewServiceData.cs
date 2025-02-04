@@ -25,4 +25,4 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 /// <summary>
 ///  View model of an application's base data.
 /// </summary>
-public record InReviewServiceData(Guid Id, string? Title, OfferStatusId Status, string Provider, string Description);
+public record InReviewServiceData(Guid Id, string? Title, OfferStatusId Status, string Provider, string? ProviderShortName, string Description);

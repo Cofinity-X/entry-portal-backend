@@ -25,4 +25,4 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 /// <summary>
 /// Model for offer data.
 /// </summary>
-public record AllOfferData(Guid Id, string? Name, Guid LeadPictureId, string Provider, OfferStatusId Status, DateTimeOffset? LastChanged);
+public record AllOfferData(Guid Id, string? Name, Guid LeadPictureId, string Provider, string? ProviderShortName, OfferStatusId Status, DateTimeOffset? LastChanged);

@@ -30,6 +30,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Services.Service.ViewModels;
 /// <param name="Title">Title or name of the service.</param>
 /// <param name="ServiceTypes">Collection of the assigned serviceTypeIds</param>
 /// <param name="Provider">Provider of the service.</param>
+/// <param name="ProviderShortName">Short name of provider of the service.</param>
 /// <param name="Descriptions">The description of the service.</param>
 /// <param name="Documents">documents assigned to service.</param>
 /// <param name="ProviderUri">Provider Uri of the service</param>
@@ -43,6 +44,7 @@ public record ServiceData(
     string Title,
     IEnumerable<ServiceTypeId> ServiceTypes,
     string Provider,
+    string? ProviderShortName,
     IEnumerable<LocalizedDescription> Descriptions,
     IDictionary<DocumentTypeId, IEnumerable<DocumentData>> Documents,
     string ProviderUri,

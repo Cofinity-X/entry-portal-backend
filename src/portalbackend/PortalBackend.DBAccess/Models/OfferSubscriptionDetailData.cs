@@ -44,6 +44,7 @@ public record SubscriberSubscriptionDetailData(
     OfferSubscriptionStatusId OfferSubscriptionStatus,
     string? Name,
     string Provider,
+    string? ProviderShortName,
     IEnumerable<string> Contact,
     IEnumerable<SubscriptionTechnicalUserData> TechnicalUserData,
     IEnumerable<SubscriptionAssignedConnectorData> ConnectorData
@@ -77,6 +78,7 @@ public record OfferProviderSubscriptionDetail(
     OfferSubscriptionStatusId OfferSubscriptionStatus,
     string? Name,
     string Customer,
+    string? CustomerShortName,
     string? Bpn,
     IEnumerable<string> Contact,
     IEnumerable<SubscriptionTechnicalUserData> TechnicalUserData,

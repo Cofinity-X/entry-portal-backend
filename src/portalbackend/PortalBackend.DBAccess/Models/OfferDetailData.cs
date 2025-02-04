@@ -47,6 +47,7 @@ public record OfferDetailData(
 /// <param name="Id">ID of the app.</param>
 /// <param name="Title">Title or name of the app.</param>
 /// <param name="Provider">Provider of the app.</param>
+/// <param name="ProviderShortName">Provider short name of the app.</param>
 /// <param name="LeadPictureId">Lead picture Id.</param>
 /// <param name="ContactEmail">Contact email address.</param>
 /// <param name="Description">The description of the service.</param>
@@ -61,6 +62,7 @@ public record ServiceDetailData(
     Guid Id,
     string? Title,
     string Provider,
+    string? ProviderShortName,
     Guid? LeadPictureId,
     string? ContactEmail,
     string? Description,

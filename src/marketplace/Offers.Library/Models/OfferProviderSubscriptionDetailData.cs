@@ -40,6 +40,7 @@ public record OfferProviderSubscriptionDetailData(
     OfferSubscriptionStatusId OfferSubscriptionStatus,
     string? Name,
     string Customer,
+    string? CustomerShortName,
     string? Bpn,
     IEnumerable<string> Contact,
     IEnumerable<SubscriptionTechnicalUserData> TechnicalUserData,

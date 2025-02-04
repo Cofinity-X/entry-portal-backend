@@ -73,6 +73,7 @@ public class ConsentRepository : IConsentRepository
             .Select(x => new ConsentDetailData(
                 x.Id,
                 x.Company!.Name,
+                x.Company!.Shortname,
                 x.CompanyUserId,
                 x.ConsentStatusId,
                 x.Agreement!.Name

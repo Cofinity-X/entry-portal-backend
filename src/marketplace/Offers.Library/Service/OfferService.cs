@@ -261,6 +261,7 @@ public class OfferService(
             data.Provider,
             data.LeadPictureId,
             data.ProviderName,
+            data.ProviderShortName,
             data.UseCase,
             data.Descriptions,
             data.Agreements.Select(a => new OfferAgreement(a.AgreementId, a.AgreementName, a.ConsentStatusId == null ? string.Empty : a.ConsentStatusId.ToString())),
@@ -798,6 +799,7 @@ public class OfferService(
             data.OfferSubscriptionStatus,
             data.Name,
             data.Customer,
+            data.CustomerShortName,
             data.Bpn,
             data.Contact,
             data.TechnicalUserData,
@@ -872,6 +874,7 @@ public class OfferService(
                             item.OfferId,
                             item.OfferName,
                             item.Provider,
+                            item.ProviderShortName,
                             item.OfferSubscriptionStatusId,
                             item.OfferSubscriptionId,
                             item.DocumentId == Guid.Empty ? null : item.DocumentId)));
