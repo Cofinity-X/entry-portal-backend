@@ -341,18 +341,18 @@ public sealed class RegistrationBusinessLogic(
     private ProcessStepTypeId CreateWalletStep() => _settings.UseDimWallet ? ProcessStepTypeId.CREATE_DIM_WALLET : ProcessStepTypeId.CREATE_IDENTITY_WALLET;
 
     /// <inheritdoc />
-    public async Task ProcessClearinghouseResponseAsync(ClearinghouseResponseData data, CancellationToken cancellationToken)
+    public async Task ProcessClearinghouseResponseAsync(ClearinghouseResponseData data, string bpn, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Process SelfDescription called with the following data {Data}", data.ToString().Replace(Environment.NewLine, string.Empty));
-        var result = await portalRepositories.GetInstance<IApplicationRepository>().GetSubmittedApplicationIdsByBpn(data.BusinessPartnerNumber.ToUpper()).ToListAsync(cancellationToken).ConfigureAwait(false);
+        logger.LogInformation("Process SelfDescription called with the following data {Data} and bpn {Bpn}", data.ToString().Replace(Environment.NewLine, string.Empty), bpn.ToString().Replace(Environment.NewLine, string.Empty));
+        var result = await portalRepositories.GetInstance<IApplicationRepository>().GetSubmittedApplicationIdsByBpn(bpn.ToUpper()).ToListAsync(cancellationToken).ConfigureAwait(false);
         if (!result.Any())
         {
-            throw new NotFoundException($"No companyApplication for BPN {data.BusinessPartnerNumber} is not in status SUBMITTED");
+            throw new NotFoundException($"No companyApplication for BPN {bpn} is not in status SUBMITTED");
         }
 
         if (result.Count > 1)
         {
-            throw new ConflictException($"more than one companyApplication in status SUBMITTED found for BPN {data.BusinessPartnerNumber} [{string.Join(", ", result)}]");
+            throw new ConflictException($"more than one companyApplication in status SUBMITTED found for BPN {bpn} [{string.Join(", ", result)}]");
         }
 
         await clearinghouseBusinessLogic.ProcessEndClearinghouse(result.Single(), data, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);

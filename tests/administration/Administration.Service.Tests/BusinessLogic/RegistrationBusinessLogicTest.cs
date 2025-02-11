@@ -476,8 +476,11 @@ public class RegistrationBusinessLogicTest
             .Returns(Enumerable.Repeat(ApplicationId, 1).ToAsyncEnumerable());
 
         // Act
-        var data = new ClearinghouseResponseData(BusinessPartnerNumber, ClearinghouseResponseStatus.CONFIRM, null);
-        await _logic.ProcessClearinghouseResponseAsync(data, CancellationToken.None);
+        var validationUnits = new List<ValidationUnits> {
+            new (ClearinghouseResponseStatus.VALID, "vatId", null)
+        }.AsEnumerable();
+        var data = new ClearinghouseResponseData("COMPLETED", validationUnits);
+        await _logic.ProcessClearinghouseResponseAsync(data, BusinessPartnerNumber, CancellationToken.None);
 
         // Assert
         A.CallTo(() => _clearinghouseBusinessLogic.ProcessEndClearinghouse(ApplicationId, data, A<CancellationToken>._))
@@ -492,8 +495,11 @@ public class RegistrationBusinessLogicTest
             .Returns(new[] { CompanyId, Guid.NewGuid() }.ToAsyncEnumerable());
 
         // Act
-        var data = new ClearinghouseResponseData(BusinessPartnerNumber, ClearinghouseResponseStatus.CONFIRM, null);
-        Task Act() => _logic.ProcessClearinghouseResponseAsync(data, CancellationToken.None);
+        var validationUnits = new List<ValidationUnits> {
+            new (ClearinghouseResponseStatus.VALID, "vatId", null)
+        }.AsEnumerable();
+        var data = new ClearinghouseResponseData("COMPLETED", validationUnits);
+        Task Act() => _logic.ProcessClearinghouseResponseAsync(data, BusinessPartnerNumber, CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
@@ -508,8 +514,11 @@ public class RegistrationBusinessLogicTest
             .Returns(Enumerable.Empty<Guid>().ToAsyncEnumerable());
 
         // Act
-        var data = new ClearinghouseResponseData(BusinessPartnerNumber, ClearinghouseResponseStatus.CONFIRM, null);
-        Task Act() => _logic.ProcessClearinghouseResponseAsync(data, CancellationToken.None);
+        var validationUnits = new List<ValidationUnits> {
+            new (ClearinghouseResponseStatus.VALID, "vatId", null)
+        }.AsEnumerable();
+        var data = new ClearinghouseResponseData("COMPLETED", validationUnits);
+        Task Act() => _logic.ProcessClearinghouseResponseAsync(data, BusinessPartnerNumber, CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);

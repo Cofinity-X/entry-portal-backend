@@ -274,7 +274,7 @@ public class ApplicationRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         data.Should().NotBeNull();
-        data!.ParticipantDetails.Bpn.Should().Be("BPNL00000003CRHL");
+        data!.Bpn.Should().Be("BPNL00000003CRHL");
         data.ApplicationStatusId.Should().Be(CompanyApplicationStatusId.SUBMITTED);
     }
 

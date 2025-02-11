@@ -19,6 +19,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -385,16 +386,20 @@ public class ApplicationRepository(PortalDbContext portalDbContext)
             .Select(ca => new { ca.ApplicationStatusId, ca.Company, ca.Company!.Address, ca.Company.CompanyIdentifiers })
             .Select(ca => new ClearinghouseData(
                 ca.ApplicationStatusId,
-                new ParticipantDetails(
-                    ca.Company!.Name,
-                    ca.Address!.City,
-                    ca.Address.Streetname,
-                    ca.Company.BusinessPartnerNumber,
-                    ca.Address.Region,
-                    ca.Address.Zipcode,
-                    ca.Address.Country!.CountryLongNames.Where(cln => cln.ShortName == "en").Select(cln => cln.LongName).SingleOrDefault(),
-                    ca.Address.CountryAlpha2Code),
-                ca.CompanyIdentifiers.Select(ci => new UniqueIdData(ci.UniqueIdentifier!.Label, ci.Value))))
+                ca.Company!.BusinessPartnerNumber,
+                ca.Company.Name,
+                ca.Address == null
+                    ? null
+                    : new ClearinghouseAddressData(
+                        ca.Address.CountryAlpha2Code,
+                        ca.Address.Region,
+                        ca.Address.City,
+                        ca.Address.Zipcode,
+                        ca.Address.Streetnumber,
+                        ca.Address.Streetname
+                    ),
+                ca.CompanyIdentifiers.Select(ci => new CompanyUniqueIdentifier(ci.UniqueIdentifierId, ci.Value))
+            ))
             .SingleOrDefaultAsync();
 
     /// <inheritdoc />
