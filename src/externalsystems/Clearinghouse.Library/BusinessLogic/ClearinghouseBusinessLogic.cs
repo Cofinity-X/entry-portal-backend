@@ -94,7 +94,8 @@ public class ClearinghouseBusinessLogic(
                 data.Name,
                 new LegalAddress(
                     data.Address.CountryAlpha2Code,
-                    string.Format("{0}-{1}", data.Address.CountryAlpha2Code, data.Address.Region),
+                    // TODO: Revert this change when Region field is mandatory and formatted from Front and Back end.
+                    null!, // string.Format("{0}-{1}", data.Address.CountryAlpha2Code, data.Address.Region),
                     data.Address.City,
                     data.Address.Zipcode,
                     string.IsNullOrEmpty(data.Address.Streetnumber)
