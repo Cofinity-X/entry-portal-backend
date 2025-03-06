@@ -70,6 +70,7 @@ public class TokenServiceTests
     [Fact]
     public async Task GetAuthorizedClient_HttpClientError500_Throws()
     {
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
         var errorResponse = JsonSerializer.Serialize(_fixture.Create<ErrorResponse>());
         SetupForGetAuthorized<TokenService>(new HttpMessageHandlerMock(HttpStatusCode.InternalServerError, errorResponse.ToFormContent("application/json")));
         var settings = _fixture.Create<KeyVaultAuthSettings>();
@@ -82,6 +83,25 @@ public class TokenServiceTests
 
         error.Should().NotBeNull();
         error.Message.Should().Be($"call to external system token-post failed with statuscode 500 - Message: {errorResponse}");
+        error.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
+    public async Task GetAuthorizedClient_HttpClientError500_Throws_In_Production()
+    {
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+        var errorResponse = JsonSerializer.Serialize(_fixture.Create<ErrorResponse>());
+        SetupForGetAuthorized<TokenService>(new HttpMessageHandlerMock(HttpStatusCode.InternalServerError, errorResponse.ToFormContent("application/json")));
+        var settings = _fixture.Create<KeyVaultAuthSettings>();
+
+        var sut = new TokenService(_httpClientFactory);
+
+        Task<HttpClient> Act() => sut.GetAuthorizedClient<TokenService>(settings, _cancellationToken);
+
+        var error = await Assert.ThrowsAsync<ServiceException>(Act);
+
+        error.Should().NotBeNull();
+        error.Message.Should().Be($"call to external system token-post failed with statuscode 500");
         error.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 
@@ -125,6 +145,7 @@ public class TokenServiceTests
     [Fact]
     public async Task GetBasicAuthorizedClient_HttpClientError500_Throws()
     {
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
         var errorResponse = JsonSerializer.Serialize(_fixture.Create<ErrorResponse>());
         SetupForGetAuthorized<TokenService>(new HttpMessageHandlerMock(HttpStatusCode.InternalServerError, errorResponse.ToFormContent("application/json")));
         var settings = _fixture.Create<BasicAuthSettings>();
@@ -137,6 +158,25 @@ public class TokenServiceTests
 
         error.Should().NotBeNull();
         error.Message.Should().Be($"call to external system token-post failed with statuscode 500 - Message: {errorResponse}");
+        error.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
+    public async Task GetBasicAuthorizedClient_HttpClientError500_Throws_In_Production()
+    {
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+        var errorResponse = JsonSerializer.Serialize(_fixture.Create<ErrorResponse>());
+        SetupForGetAuthorized<TokenService>(new HttpMessageHandlerMock(HttpStatusCode.InternalServerError, errorResponse.ToFormContent("application/json")));
+        var settings = _fixture.Create<BasicAuthSettings>();
+
+        var sut = new TokenService(_httpClientFactory);
+
+        var act = () => sut.GetBasicAuthorizedClient<TokenService>(settings, _cancellationToken);
+
+        var error = await Assert.ThrowsAsync<ServiceException>(act);
+
+        error.Should().NotBeNull();
+        error.Message.Should().Be($"call to external system token-post failed with statuscode 500");
         error.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
     }
 

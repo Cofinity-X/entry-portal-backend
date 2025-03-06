@@ -51,11 +51,12 @@ public static class HttpAsyncResponseMessageExtension
             {
                 errorMessage = null;
             }
-
+            var env = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+            var isDevelopment = env == "Development";
             throw new ServiceException(
-                string.IsNullOrWhiteSpace(errorMessage)
-                    ? $"call to external system {requestUri ?? systemName} failed with statuscode {(int)message.StatusCode}"
-                    : $"call to external system {requestUri ?? systemName} failed with statuscode {(int)message.StatusCode} - Message: {errorMessage}",
+                string.IsNullOrWhiteSpace(errorMessage) || !isDevelopment
+                    ? $"call to external system {(isDevelopment ? requestUri ?? systemName : systemName)} failed with statuscode {(int)message.StatusCode}"
+                    : $"call to external system {(isDevelopment ? requestUri ?? systemName : systemName)} failed with statuscode {(int)message.StatusCode} - Message: {errorMessage}",
                 message.StatusCode,
                 (recoverOptions & RecoverOptions.RESPONSE_RECEIVED) == RecoverOptions.RESPONSE_RECEIVED);
         }

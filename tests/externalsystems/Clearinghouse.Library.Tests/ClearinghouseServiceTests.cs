@@ -86,6 +86,7 @@ public class ClearinghouseServiceTests
     public async Task TriggerCompanyDataPost_WithInvalidData_ThrowsServiceException()
     {
         // Arrange
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
         var data = _fixture.Create<ClearinghouseTransferData>();
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.BadRequest);
         using var httpClient = new HttpClient(httpMessageHandlerMock)
@@ -129,6 +130,7 @@ public class ClearinghouseServiceTests
     public async Task TriggerCompanyDataPost_WitErrorContent_LogsContent()
     {
         // Arrange
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
         var data = _fixture.Create<ClearinghouseTransferData>();
         using var stringContent = new StringContent("{ \"message\": \"Framework test!\" }");
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.BadRequest, stringContent);
@@ -144,6 +146,28 @@ public class ClearinghouseServiceTests
         // Assert
         var ex = await Assert.ThrowsAsync<ServiceException>(Act);
         ex.Message.Should().Be("call to external system clearinghouse-post failed with statuscode 400 - Message: { \"message\": \"Framework test!\" }");
+    }
+
+    [Fact]
+    public async Task TriggerCompanyDataPost_WitErrorContent_LogsContent_In_Production()
+    {
+        // Arrange
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+        var data = _fixture.Create<ClearinghouseTransferData>();
+        using var stringContent = new StringContent("{ \"message\": \"Framework test!\" }");
+        var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.BadRequest, stringContent);
+        using var httpClient = new HttpClient(httpMessageHandlerMock)
+        {
+            BaseAddress = new Uri("https://base.address.com")
+        };
+        A.CallTo(() => _tokenService.GetAuthorizedClient<ClearinghouseService>(_options.Value, A<CancellationToken>._)).Returns(httpClient);
+
+        // Act
+        async Task Act() => await _sut.TriggerCompanyDataPost(data, CancellationToken.None);
+
+        // Assert
+        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
+        ex.Message.Should().Be("call to external system clearinghouse-post failed with statuscode 400");
     }
 
     #endregion

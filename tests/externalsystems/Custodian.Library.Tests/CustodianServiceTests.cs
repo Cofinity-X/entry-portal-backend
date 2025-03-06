@@ -107,6 +107,7 @@ public class CustodianServiceTests
     public async Task CreateWallet_WithConflict_ThrowsServiceExceptionWithErrorContent(HttpStatusCode statusCode, string? content, string message, bool isRequiredUri)
     {
         // Arrange
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
         const string bpn = "123";
         const string name = "test";
         var httpMessageHandlerMock = content == null
@@ -126,6 +127,40 @@ public class CustodianServiceTests
         var ex = await Assert.ThrowsAsync<ServiceException>(Act);
         ex.Message.Should().Be(message);
         ex.StatusCode.Should().Be(statusCode);
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Conflict, "{ \"message\": \"Wallet with given identifier already exists!\" }", "call to external system custodian-post failed with statuscode 409", true)]
+    [InlineData(HttpStatusCode.BadRequest, "{ \"test\": \"123\" }", "call to external system custodian-post failed with statuscode 400", false)]
+    [InlineData(HttpStatusCode.BadRequest, "this is no json", "call to external system custodian-post failed with statuscode 400", true)]
+    [InlineData(HttpStatusCode.Forbidden, null, "call to external system custodian-post failed with statuscode 403", true)]
+    [InlineData(HttpStatusCode.InternalServerError, "Internal Server Error", "call to external system custodian-post failed with statuscode 500", true)]
+    [InlineData(HttpStatusCode.InternalServerError, null, "call to external system custodian-post failed with statuscode 500", false)]
+    public async Task CreateWallet_WithConflict_ThrowsServiceExceptionWithErrorContent_In_Production_Env(HttpStatusCode statusCode, string? content, string message, bool isRequiredUri)
+    {
+        // Arrange
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Production");
+        const string bpn = "123";
+        const string name = "test";
+        var httpMessageHandlerMock = content == null
+            ? new HttpMessageHandlerMock(statusCode, null, null, isRequiredUri)
+            : new HttpMessageHandlerMock(statusCode, new StringContent(content), null, isRequiredUri);
+        using var httpClient = new HttpClient(httpMessageHandlerMock)
+        {
+            BaseAddress = new Uri("https://base.address.com")
+        };
+        A.CallTo(() => _tokenService.GetAuthorizedClient<CustodianService>(_options.Value, A<CancellationToken>._)).Returns(httpClient);
+        var sut = new CustodianService(_tokenService, _dateTimeProvider, _options);
+
+        // Act
+        async Task Act() => await sut.CreateWalletAsync(bpn, name, CancellationToken.None);
+
+        // Assert
+        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
+        ex.Message.Should().Be(message);
+        ex.StatusCode.Should().Be(statusCode);
+        Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", null);
     }
 
     [Fact]
