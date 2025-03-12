@@ -376,7 +376,7 @@ public class SubscriptionConfigurationBusinessLogicTests
         //Arrange
         SetupProviderCompanyDetails();
         A.CallTo(() => _companyRepository.GetProviderCompanyDetailAsync(CompanyRoleId.SERVICE_PROVIDER, ExistingCompanyId))
-            .Returns((new ProviderDetailReturnData(Guid.NewGuid(), Guid.NewGuid(), "https://new-test-service.de"), false));
+            .Returns((new ProviderDetailReturnData(Guid.NewGuid(), Guid.NewGuid(), "https://new-test-service.de", "https://new-test-service-callback.de"), false));
 
         //Act
         async Task Action() => await _sut.GetProviderCompanyDetailsAsync();
@@ -407,7 +407,7 @@ public class SubscriptionConfigurationBusinessLogicTests
             });
 
         A.CallTo(() => _companyRepository.GetProviderCompanyDetailAsync(A<CompanyRoleId>.That.Matches(x => x == CompanyRoleId.SERVICE_PROVIDER), A<Guid>.That.Matches(x => x == ExistingCompanyId)))
-            .Returns((new ProviderDetailReturnData(Guid.NewGuid(), Guid.NewGuid(), "https://new-test-service.de"), true));
+            .Returns((new ProviderDetailReturnData(Guid.NewGuid(), Guid.NewGuid(), "https://new-test-service.de", "https://new-test-service-callback.de"), true));
         A.CallTo(() => _companyRepository.GetProviderCompanyDetailAsync(A<CompanyRoleId>.That.Matches(x => x == CompanyRoleId.SERVICE_PROVIDER), A<Guid>.That.Not.Matches(x => x == ExistingCompanyId)))
             .Returns<(ProviderDetailReturnData, bool)>(default);
 
