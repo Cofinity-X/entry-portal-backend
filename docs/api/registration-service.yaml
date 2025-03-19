@@ -157,14 +157,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/HubspotDealRequest'
+              type: array
+              items:
+                $ref: '#/components/schemas/HubspotDealRequest'
       responses:
         '200':
           description: 'Returns the dealId, quoteId and quoteUrl from hubspot'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HubspotDealCreateResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/HubspotDealCreateResponse'
         '503':
           description: The requested service responded with the given error.
           content:
@@ -173,6 +177,36 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '400':
           description: ''
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
+  /api/registration/Hubspot/quote:
+    post:
+      tags:
+        - Hubspot
+      summary: 'Get Deal quote combined pdf from Hubspot for logged in company (Authorization required - Roles: view_registration)'
+      description: 'Example: POST: /api/registration/Hubspot/quote'
+      responses:
+        '200':
+          description: Returns the combined pdf of quote from hubspot
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: No quotes found for the logged in company in hubspot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: The requested service responded with the given error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal Server Error
         '401':
@@ -1740,6 +1774,9 @@ components:
         type:
           type: string
           nullable: true
+        url:
+          type: string
+          nullable: true
       additionalProperties: false
     HubspotCompanyResponse:
       type: object
@@ -1793,6 +1830,7 @@ components:
       additionalProperties: false
     HubspotDealRequest:
       required:
+        - company_role
         - companyId
         - contactId
         - dealname
@@ -1804,6 +1842,8 @@ components:
         quotename:
           type: string
         companyId:
+          type: string
+        company_role:
           type: string
         contactId:
           type: string
