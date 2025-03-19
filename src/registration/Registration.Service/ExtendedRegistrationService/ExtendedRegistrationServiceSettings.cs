@@ -5,4 +5,5 @@ namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration;
 public class ExtendedRegistrationServiceSettings : KeyVaultAuthSettings
 {
     public string BaseAddress { get; set; } = string.Empty;
+    public int MaxRetries { get; set; } = 10;
 }

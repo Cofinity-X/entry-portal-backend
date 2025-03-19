@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Model;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
@@ -8,8 +9,9 @@ using System.Net.Mime;
 namespace Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.BusinessLogic;
 
 public class HubspotBusinessLogic(
-    IHubspotService hubspotService, IIdentityService identityService) : IHubspotBusinessLogic
+    IHubspotService hubspotService, IIdentityService identityService, IOptions<ExtendedRegistrationServiceSettings> options) : IHubspotBusinessLogic
 {
+    private readonly ExtendedRegistrationServiceSettings _settings = options.Value;
     public async Task<IEnumerable<HubspotProductResponse>> GetProductsByCompanyRoleAsync(string[] companyRoles, CancellationToken cancellationToken)
     {
         var response = await hubspotService.GetProductsByCompanyRoleAsync(companyRoles, cancellationToken)
@@ -64,16 +66,41 @@ public class HubspotBusinessLogic(
 
     public async Task<(string FileName, byte[] Content, string MediaType)> GetQuoteCombinedPdfAsync(CancellationToken cancellationToken)
     {
-        var quotes = await hubspotService.GetQuotesAsync(identityService.IdentityData.CompanyId.ToString(), cancellationToken)
-            .ConfigureAwait(ConfigureAwaitOptions.None);
+        var hsCompany = await hubspotService.GetHubspotCompanyDetailsAsync(identityService.IdentityData.CompanyId.ToString(), cancellationToken);
+        var companyRoles = hsCompany?.Properties?.ContainsKey("company_role") == true
+                            ? hsCompany.Properties["company_role"].Split(";")
+                            : null;
+        if (companyRoles == null || companyRoles.Count() == 0)
+        {
+            throw new NotFoundException("No agreements found for this company");
+        }
 
-        if (quotes == null || !quotes.Any())
+        var requiredQuoteCount = companyRoles.Length;
+        List<HubspotQuoteResponse> quotes;
+        //HS takes time in returning pdf quote link after submitting deal so here we have to check if below api returns
+        //the all pdf link as matched by company role count
+        var attempt = 0;
+        do
+        {
+            quotes = (await hubspotService.GetQuotesAsync(identityService.IdentityData.CompanyId.ToString(), cancellationToken)
+                .ConfigureAwait(ConfigureAwaitOptions.None))?.ToList() ?? [];
+
+            if (quotes.Count == requiredQuoteCount)
+            {
+                break;
+            }
+
+            attempt++;
+            await Task.Delay(500, cancellationToken); // Small delay before retrying
+        }
+        while (attempt < _settings.MaxRetries);
+
+        if (quotes == null || quotes.Count == 0)
         {
             throw new NotFoundException("No quotes found for this company");
         }
 
         var pdfStreams = new List<MemoryStream>();
-
         await Parallel.ForEachAsync(quotes, cancellationToken, async (item, ct) =>
         {
             var pdfStream = await hubspotService.GetQuotePdfAsync(item.Quote.HsPdfDownloadLink, ct).ConfigureAwait(false);
