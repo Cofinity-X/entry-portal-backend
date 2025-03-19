@@ -30,6 +30,7 @@ public class PartnerNetworkBusinessLogic : IPartnerNetworkBusinessLogic
 {
     private readonly IPortalRepositories _portalRepositories;
     private readonly IBpnAccess _bpnAccess;
+    private static readonly string DunsTechnicalKey = "DUNS_ID";
 
     /// <summary>
     /// Constructor
@@ -62,7 +63,7 @@ public class PartnerNetworkBusinessLogic : IPartnerNetworkBusinessLogic
                 data.Currentness,
                 data.CreatedAt,
                 data.UpdatedAt,
-                data.Identifiers.Select(identifier =>
+                data.Identifiers.Where(x => x.Type.TechnicalKey != DunsTechnicalKey).Select(identifier =>
                     new BpdmIdentifierData(
                         identifier.Value,
                         new BpdmTechnicalKeyData(identifier.Type.TechnicalKey, identifier.Type.Name),

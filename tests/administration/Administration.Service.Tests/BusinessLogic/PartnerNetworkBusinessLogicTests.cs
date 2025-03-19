@@ -22,6 +22,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic.Tests;
 
@@ -31,6 +32,7 @@ public class PartnerNetworkBusinessLogicTests
     private readonly IBpnAccess _bpnAccess;
     private readonly ICompanyRepository _companyRepository;
     private readonly IPartnerNetworkBusinessLogic _sut;
+    private static readonly string DunsTechnicalKey = "DUNS_ID";
     private readonly IFixture _fixture;
 
     public PartnerNetworkBusinessLogicTests()
@@ -150,6 +152,59 @@ public class PartnerNetworkBusinessLogicTests
         result.Should().NotBeNull();
         result.Content.First().Bpn.Should().Be(businessPartnerNumber);
         result.Content.Should().HaveCount(size);
+        result.Content.Should().BeEquivalentTo(legalEntities);
+        result.TotalElements.Should().Be(totalElements);
+        result.Page.Should().Be(page);
+        result.TotalPages.Should().Be(totalPages);
+    }
+
+    [Fact]
+    public async Task GetPartnerNetworkDataAsync_List_ReturnsExpectedWithout_DUNS_ID()
+    {
+        // Arrange
+        var token = _fixture.Create<string>();
+        var totalElements = 30;
+        var request = new PartnerNetworkRequest(_fixture.CreateMany<string>(totalElements), "");
+        var page = 0;
+        var size = 10;
+        var totalPages = totalElements / size;
+        var legalEntities = _fixture.CreateMany<BpdmLegalEntityDto>(size).ToList();
+        var deunsTechnicalKey = DunsTechnicalKey;
+        var deVatId = BpdmIdentifierId.EU_VAT_ID_DE.ToString();
+        if (legalEntities.Count != 0)
+        {
+            legalEntities[0] = legalEntities[0] with
+            {
+                Identifiers = [new(deunsTechnicalKey, new BpdmTechnicalKey(deunsTechnicalKey, deunsTechnicalKey), "IssuingBody"),
+                    new(deVatId, new BpdmTechnicalKey(deVatId, deVatId), "IssuingBody")]
+            };
+        }
+        var responseDto = _fixture.Build<BpdmPartnerNetworkData>()
+            .With(x => x.Content, legalEntities)
+            .With(x => x.ContentSize, size)
+            .With(x => x.TotalElements, totalElements)
+            .With(x => x.TotalPages, totalPages)
+            .With(x => x.Page, page)
+            .Create();
+
+        A.CallTo(() => _bpnAccess.FetchPartnerNetworkData(page, size, request.Bpnls, request.LegalName, token, A<CancellationToken>._))
+            .Returns(responseDto);
+
+        // Act
+        var result = await _sut
+            .GetPartnerNetworkDataAsync(page, size, request, token, CancellationToken.None);
+
+        A.CallTo(() => _bpnAccess.FetchPartnerNetworkData(page, size, request.Bpnls, request.LegalName, token, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+
+        result.Should().NotBeNull();
+        result.Content.Should().HaveCount(size);
+        result.Content.Should().BeEquivalentTo(
+                legalEntities.Select(entity => entity with
+                {
+                    Identifiers = entity.Identifiers.Where(id => id.Value != deunsTechnicalKey).ToList()
+                })
+        );
         result.TotalElements.Should().Be(totalElements);
         result.Page.Should().Be(page);
         result.TotalPages.Should().Be(totalPages);
