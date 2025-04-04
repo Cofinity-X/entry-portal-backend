@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2025 Contributors to the Eclipse Foundation
+ * Copyright (c) 2024 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -24,51 +24,47 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migrations
 {
     /// <inheritdoc />
-    public partial class _240rc2 : Migration
+    public partial class _700AdjustCompanyInvitation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "region",
+            migrationBuilder.DropColumn(
+                name: "organisation_name",
                 schema: "portal",
-                table: "addresses",
-                type: "character varying(255)",
-                maxLength: 255,
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "character varying(255)",
-                oldMaxLength: 255,
-                oldNullable: true);
+                table: "company_invitations");
 
-            migrationBuilder.InsertData(
+            migrationBuilder.AlterColumn<Guid>(
+                name: "application_id",
                 schema: "portal",
-                table: "process_step_types",
-                columns: new[] { "id", "label" },
-                values: new object[] { 808, "RETRIGGER_CONNECTOR_SELF_DESCRIPTION_WITH_OUTDATED_LEGAL_PERSON" });
+                table: "company_invitations",
+                type: "uuid",
+                nullable: false,
+                defaultValue: Guid.Empty,
+                oldClrType: typeof(Guid),
+                oldType: "uuid",
+                oldNullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DeleteData(
+            migrationBuilder.AlterColumn<Guid>(
+                name: "application_id",
                 schema: "portal",
-                table: "process_step_types",
-                keyColumn: "id",
-                keyValue: 808);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "region",
-                schema: "portal",
-                table: "addresses",
-                type: "character varying(255)",
-                maxLength: 255,
+                table: "company_invitations",
+                type: "uuid",
                 nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(255)",
-                oldMaxLength: 255,
-                oldDefaultValue: "");
+                oldClrType: typeof(Guid),
+                oldType: "uuid");
+
+            migrationBuilder.AddColumn<string>(
+                name: "organisation_name",
+                schema: "portal",
+                table: "company_invitations",
+                type: "text",
+                nullable: false,
+                defaultValue: "");
         }
     }
 }
