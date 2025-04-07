@@ -1417,5 +1417,25 @@
   {
     "country_alpha2code": "FR",
     "unique_identifier_id": 3
+  },
+  {
+    "country_alpha2code": "US",
+    "unique_identifier_id": 1,
+    "bpdm_identifier_id": 101
+  },
+  {
+    "country_alpha2code": "KR",
+    "unique_identifier_id": 1,
+    "bpdm_identifier_id": 102
+  },
+  {
+    "country_alpha2code": "JP",
+    "unique_identifier_id": 1,
+    "bpdm_identifier_id": 103
+  },
+  {
+    "country_alpha2code": "CN",
+    "unique_identifier_id": 1,
+    "bpdm_identifier_id": 104
   }
 ]
