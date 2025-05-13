@@ -45,7 +45,7 @@ public static class StartupServiceExtensions
             options.IdleTimeout = TimeSpan.FromMinutes(10);
         });
 
-        services.AddControllers().ConfigureApiBehaviorOptions(options =>
+        services.AddControllers(options => options.Filters.Add<GeneralHttpExceptionFilter>()).ConfigureApiBehaviorOptions(options =>
             {
                 options.InvalidModelStateResponseFactory = ModelBindingErrorHandler.CreateInvalidModelStateResponse;
             })
