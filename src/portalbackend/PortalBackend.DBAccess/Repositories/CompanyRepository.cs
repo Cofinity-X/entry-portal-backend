@@ -19,7 +19,10 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -51,12 +54,13 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
         modify(company);
     }
 
-    Address ICompanyRepository.CreateAddress(string city, string streetname, string countryAlpha2Code, Action<Address>? setOptionalParameters)
+    Address ICompanyRepository.CreateAddress(string city, string streetname, string region, string countryAlpha2Code, Action<Address>? setOptionalParameters)
     {
         var address = new Address(
             Guid.NewGuid(),
             city,
             streetname,
+            region,
             countryAlpha2Code,
             DateTimeOffset.UtcNow
         );
@@ -66,7 +70,7 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
 
     public void AttachAndModifyAddress(Guid addressId, Action<Address>? initialize, Action<Address> modify)
     {
-        var address = new Address(addressId, null!, null!, null!, default);
+        var address = new Address(addressId, null!, null!, null!, null!, default);
         initialize?.Invoke(address);
         context.Attach(address);
         modify(address);
@@ -424,7 +428,20 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
             c => c.OrderByDescending(company => company.Name),
             c => new CompanyMissingSdDocumentData(
                 c.Id,
-                c.Name)
+                c.BusinessPartnerNumber,
+                c.Name,
+                c.Shortname,
+                c.CompanyApplications
+                    .Where(ca =>
+                        ca.ApplicationChecklistEntries.Any(a =>
+                            a.ApplicationChecklistEntryTypeId == ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP &&
+                            a.ApplicationChecklistEntryStatusId != ApplicationChecklistEntryStatusId.SKIPPED))
+                    .SelectMany(ca =>
+                        ca.ChecklistProcess!.ProcessSteps.Where(ps =>
+                            ps.ProcessStepTypeId == ProcessStepTypeId.START_SELF_DESCRIPTION_LP &&
+                            ps.ProcessStepStatusId == ProcessStepStatusId.SKIPPED))
+                    .OrderByDescending(ps => ps.DateLastChanged)
+                    .FirstOrDefault()!.DateLastChanged)
         ).SingleOrDefaultAsync();
 
     public IAsyncEnumerable<Guid> GetCompanyIdsWithMissingSelfDescription() =>
@@ -440,14 +457,16 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
             .Select(c => c.Id)
             .ToAsyncEnumerable();
 
-    public Task<(Guid Id, IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers, string? BusinessPartnerNumber, string CountryCode)> GetCompanyByProcessId(Guid processId) =>
+    public Task<(Guid Id, string LegalName, IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers, string? BusinessPartnerNumber, string? CountryCode, string? Region)> GetCompanyByProcessId(Guid processId) =>
         context.Companies
             .Where(c => c.SdCreationProcessId == processId)
-            .Select(c => new ValueTuple<Guid, IEnumerable<(UniqueIdentifierId Id, string Value)>, string?, string>(
+            .Select(c => new ValueTuple<Guid, string, IEnumerable<(UniqueIdentifierId Id, string Value)>, string?, string?, string?>(
                 c.Id,
+                c.Name,
                 c.CompanyIdentifiers.Select(ci => new ValueTuple<UniqueIdentifierId, string>(ci.UniqueIdentifierId, ci.Value)),
                 c.BusinessPartnerNumber,
-                c.Address!.Country!.Alpha2Code
+                c.Address!.Country!.Alpha2Code,
+                c.Address!.Region
             ))
             .SingleOrDefaultAsync();
 
@@ -458,5 +477,13 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
         context.Companies
             .Where(x => x.BusinessPartnerNumber == bpn)
             .Select(x => new ValueTuple<bool, Guid, IEnumerable<Guid>>(true, x.Id, x.CompanyApplications.Where(a => a.ApplicationStatusId == CompanyApplicationStatusId.SUBMITTED).Select(a => a.Id)))
+            .SingleOrDefaultAsync();
+
+    public Task<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?> GetProcessDataForCompanyIdId(Guid companyId) =>
+        context.Companies
+            .Where(c => c.Id == companyId && c.SdCreationProcess!.ProcessTypeId == ProcessTypeId.SELF_DESCRIPTION_CREATION)
+            .Select(c => new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(
+                c.SdCreationProcess,
+                c.SdCreationProcess!.ProcessSteps.Where(step => step.ProcessStepStatusId == ProcessStepStatusId.TODO)))
             .SingleOrDefaultAsync();
 }

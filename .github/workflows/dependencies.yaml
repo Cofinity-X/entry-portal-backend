@@ -22,8 +22,22 @@ name: Check Dependencies
 on:
   push:
     branches: [main]
+    paths:
+      # all csproj files which include the external packages
+      - '**.csproj'
+      # dependencies file
+      - 'DEPENDENCIES'
+      # workflow file
+      - '.github/workflows/dependencies.yaml'
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      # all csproj files which include the external packages
+      - '**.csproj'
+      # dependencies file
+      - 'DEPENDENCIES'
+      # workflow file
+      - '.github/workflows/dependencies.yaml'
   workflow_dispatch:
 
 jobs:
@@ -38,20 +52,18 @@ jobs:
     steps:
   
       - name: Set up JDK 17
-        uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # v4.2.2
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee # v4.0.1
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
-          # change to preview .NET 9 until fix for https://github.com/NuGet/Home/issues/12954 gets released for .NET 8
-          dotnet-quality: 'preview'
 
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install dependencies
         run: dotnet restore src
@@ -84,7 +96,7 @@ jobs:
         if: steps.dependencies-changed.outputs.changed == 'true'
 
       - name: Upload DEPENDENCIES file
-        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           path: DEPENDENCIES
         if: steps.dependencies-changed.outputs.changed == 'true'

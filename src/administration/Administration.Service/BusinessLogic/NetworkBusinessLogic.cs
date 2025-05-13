@@ -17,17 +17,21 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.DependencyInjection;
+using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Linq;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.NetworkRegistration.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Service;
@@ -54,13 +58,13 @@ public class NetworkBusinessLogic(
     {
         if (!data.Name.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "OrganisationName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", data.Name)]);
         }
 
         var ownerCompanyId = _identityData.CompanyId;
         var networkRepository = portalRepositories.GetInstance<INetworkRepository>();
         var companyRepository = portalRepositories.GetInstance<ICompanyRepository>();
-        var processStepRepository = portalRepositories.GetInstance<IProcessStepRepository>();
+        var processStepRepository = portalRepositories.GetInstance<IPortalProcessStepRepository>();
         var identityProviderRepository = portalRepositories.GetInstance<IIdentityProviderRepository>();
 
         var (roleData, identityProviderIdAliase, singleIdentityProviderIdAlias, allIdentityProviderIds) = await ValidatePartnerRegistrationData(data, networkRepository, identityProviderRepository, ownerCompanyId).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -85,7 +89,7 @@ public class NetworkBusinessLogic(
         identityProviderRepository.CreateCompanyIdentityProviders(allIdentityProviderIds.Select(identityProviderId => (companyId, identityProviderId)));
 
         Guid GetIdpId(Guid? identityProviderId) =>
-            identityProviderId ?? (singleIdentityProviderIdAlias?.IdentityProviderId ?? throw new UnexpectedConditionException("singleIdentityProviderIdAlias should never be null here"));
+            identityProviderId ?? singleIdentityProviderIdAlias?.IdentityProviderId ?? throw new UnexpectedConditionException("singleIdentityProviderIdAlias should never be null here");
 
         string GetIdpAlias(Guid? identityProviderId) =>
             identityProviderId == null
@@ -119,19 +123,21 @@ public class NetworkBusinessLogic(
         }
 
         var userCreationErrors = await CreateUsers().Where(x => x.Error != null).Select(x => x.Error!).ToListAsync();
-        userCreationErrors.IfAny(errors => throw new ServiceException($"Errors occured while saving the users: ${string.Join("", errors.Select(x => x.Message))}", errors.First()));
+        userCreationErrors.IfAny(errors => throw ServiceException.Create(AdministrationNetworkErrors.NETWORK_SERVICE_ERROR_SAVED_USERS, new ErrorParameter[] { new(nameof(errors), string.Join("", errors.Select(x => x.Message))) }));
 
         await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
     private Guid CreatePartnerCompany(ICompanyRepository companyRepository, PartnerRegistrationData data)
     {
-        var address = companyRepository.CreateAddress(data.City, data.StreetName,
+        var address = companyRepository.CreateAddress(
+            data.City,
+            data.StreetName,
+            data.Region,
             data.CountryAlpha2Code,
             a =>
             {
                 a.Streetnumber = data.StreetNumber;
-                a.Region = data.Region;
                 a.Zipcode = data.ZipCode;
             });
 
@@ -193,7 +199,7 @@ public class NetworkBusinessLogic(
 
         if (!data.CompanyRoles.Any())
         {
-            throw new ControllerArgumentException("At least one company role must be selected", nameof(data.CompanyRoles));
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_LEAST_ONE_COMP_ROLE_SELECT);
         }
 
         foreach (var user in data.UserDetails)
@@ -203,13 +209,13 @@ public class NetworkBusinessLogic(
 
         if (!ExternalId.IsMatch(data.ExternalId))
         {
-            throw new ControllerArgumentException("ExternalId must be between 6 and 36 characters");
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_EXTERNALID_BET_SIX_TO_THIRTYSIX);
         }
 
         if (await networkRepository.CheckExternalIdExists(data.ExternalId, ownerCompanyId)
                 .ConfigureAwait(ConfigureAwaitOptions.None))
         {
-            throw new ControllerArgumentException($"ExternalId {data.ExternalId} already exists", nameof(data.ExternalId));
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_EXTERNALID_EXISTS, new ErrorParameter[] { new(nameof(ExternalId), data.ExternalId) });
         }
 
         var idpResult = await ValidateIdps(data, identityProviderRepository, ownerCompanyId).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -240,12 +246,12 @@ public class NetworkBusinessLogic(
             {
                 var single = await identityProviderRepository.GetSingleManagedIdentityProviderAliasDataUntracked(ownerCompanyId).ConfigureAwait(ConfigureAwaitOptions.None);
                 if (single.IdentityProviderId == Guid.Empty)
-                    throw new ConflictException($"company {ownerCompanyId} has no managed identityProvider");
-                singleIdpAlias = (single.IdentityProviderId, single.Alias ?? throw new ConflictException($"identityProvider {single.IdentityProviderId} has no alias"));
+                    throw ConflictException.Create(AdministrationNetworkErrors.NETWORK_CONFLICT_NO_MANAGED_PROVIDER, new ErrorParameter[] { new(nameof(ownerCompanyId), ownerCompanyId.ToString()) });
+                singleIdpAlias = (single.IdentityProviderId, single.Alias ?? throw ConflictException.Create(AdministrationNetworkErrors.NETWORK_CONFLICT_IDENTITY_PROVIDER_AS_NO_ALIAS, new ErrorParameter[] { new("identityProviderId", single.IdentityProviderId.ToString()) }));
             }
             catch (InvalidOperationException)
             {
-                throw new ControllerArgumentException($"Company {ownerCompanyId} has more than one identity provider linked, therefore identityProviderId must be set for all users", nameof(data.UserDetails));
+                throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_IDENTIFIER_SET_FOR_ALL_USERS, new ErrorParameter[] { new(nameof(ownerCompanyId), ownerCompanyId.ToString()), new("UserDetails", data.UserDetails.ToString() ?? "") });
             }
         }
         else
@@ -263,9 +269,9 @@ public class NetworkBusinessLogic(
                                 .GetManagedIdentityProviderAliasDataUntracked(ownerCompanyId, distinctIds)
                                 .ToDictionaryAsync(
                                     x => x.IdentityProviderId,
-                                    x => x.Alias ?? throw new ConflictException($"identityProvider {x.IdentityProviderId} has no alias")).ConfigureAwait(false);
+                                    x => x.Alias ?? throw ConflictException.Create(AdministrationNetworkErrors.NETWORK_CONFLICT_IDENTITY_PROVIDER_AS_NO_ALIAS, new ErrorParameter[] { new("identityProviderId", x.IdentityProviderId.ToString()) })).ConfigureAwait(false);
                             distinctIds.Except(idpAliasData.Keys).IfAny(invalidIds =>
-                                throw new ControllerArgumentException($"Idps {string.Join("", invalidIds)} do not exist"));
+                                throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_IDPS_NOT_EXIST, new ErrorParameter[] { new(nameof(invalidIds), string.Join("", invalidIds)) }));
                             return idpAliasData;
                         },
                         out var idpAliasDataTask)
@@ -284,17 +290,58 @@ public class NetworkBusinessLogic(
     {
         if (string.IsNullOrWhiteSpace(user.Email) || !new EmailAddressAttribute().IsValid(user.Email))
         {
-            throw new ControllerArgumentException($"Mail {user.Email} must not be empty and have valid format");
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_MAIL_NOT_EMPTY_WITH_VALID_FORMAT, new ErrorParameter[] { new("email", user.Email) });
         }
 
         if (string.IsNullOrWhiteSpace(user.FirstName) || !Name.IsMatch(user.FirstName))
         {
-            throw new ControllerArgumentException("Firstname does not match expected format");
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_FIRST_NAME_NOT_MATCH_FORMAT);
         }
 
         if (string.IsNullOrWhiteSpace(user.LastName) || !Name.IsMatch(user.LastName))
         {
-            throw new ControllerArgumentException("Lastname does not match expected format");
+            throw ControllerArgumentException.Create(AdministrationNetworkErrors.NETWORK_ARGUMENT_LAST_NAME_NOT_MATCH_FORMAT);
         }
+    }
+
+    public Task<Pagination.Response<CompanyDetailsOspOnboarding>> GetOspCompanyDetailsAsync(int page, int size, CompanyApplicationStatusFilter? companyApplicationStatusFilter, string? companyName, string? externalId, DateCreatedOrderFilter? dateCreatedOrderFilter)
+    {
+        if (companyName != null && !companyName.IsValidCompanyName())
+        {
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", companyName)]);
+        }
+
+        var applicationsQuery = portalRepositories.GetInstance<IApplicationRepository>()
+            .GetExternalCompanyApplicationsFilteredQuery(_identityData.CompanyId,
+                companyName?.Length >= 3 ? companyName : null, externalId,
+                companyApplicationStatusFilter.GetCompanyApplicationStatusIds());
+
+        var orderedQuery = dateCreatedOrderFilter == null || dateCreatedOrderFilter.Value == DateCreatedOrderFilter.DESC
+            ? applicationsQuery.AsSplitQuery().OrderByDescending(application => application.DateCreated)
+            : applicationsQuery.AsSplitQuery().OrderBy(application => application.DateCreated);
+
+        return Pagination.CreateResponseAsync(
+            page,
+            size,
+            _settings.ApplicationsMaxPageSize,
+            (skip, take) => new Pagination.AsyncSource<CompanyDetailsOspOnboarding>(
+                applicationsQuery.CountAsync(),
+                orderedQuery
+                    .Skip(skip)
+                    .Take(take)
+                    .Select(application => new CompanyDetailsOspOnboarding(
+                        application.CompanyId,
+                        application.NetworkRegistration!.ExternalId,
+                        application.Id,
+                        application.ApplicationStatusId,
+                        application.DateCreated,
+                        application.Company!.DateCreated,
+                        application.DateLastChanged,
+                        application.Company!.Name,
+                        application.Company.CompanyAssignedRoles.Select(companyAssignedRoles => companyAssignedRoles.CompanyRoleId),
+                        application.Company.IdentityProviders.Select(x => new IdentityProvidersDetails(x.Id, x.IamIdentityProvider!.IamIdpAlias)),
+                        application.Company.BusinessPartnerNumber,
+                        application.Company.Identities.Count(x => x.CompanyUser!.Identity!.UserStatusId != UserStatusId.DELETED)))
+                    .AsAsyncEnumerable()));
     }
 }

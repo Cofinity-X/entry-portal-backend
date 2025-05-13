@@ -25,6 +25,8 @@ using Org.Eclipse.TractusX.Portal.Backend.Framework.DateTimeProvider;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Encryption;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -247,7 +249,7 @@ public class DimBusinessLogicTests
             .MustHaveHappenedOnceExactly();
         company.DidDocumentLocation.Should().NotBeNull();
         result.StepStatusId.Should().Be(ProcessStepStatusId.DONE);
-        result.ScheduleStepTypeIds.Should().ContainSingle(x => x == ProcessStepTypeId.AWAIT_DIM_RESPONSE);
+        result.ScheduleStepTypeIds.Should().ContainSingle(x => x == ProcessStepTypeId.AWAIT_DIM_RESPONSE_RESPONSE);
     }
 
     #endregion
@@ -297,7 +299,7 @@ public class DimBusinessLogicTests
         var context = new IApplicationChecklistService.ManualChecklistProcessStepData(ApplicationId, _fixture.Create<Process>(), Guid.NewGuid(), ApplicationChecklistEntryTypeId.IDENTITY_WALLET, new Dictionary<ApplicationChecklistEntryTypeId, ValueTuple<ApplicationChecklistEntryStatusId, string?>>()
         {
             { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, new(ApplicationChecklistEntryStatusId.TO_DO, string.Empty) }
-        }.ToImmutableDictionary(), Enumerable.Empty<ProcessStep>());
+        }.ToImmutableDictionary(), Enumerable.Empty<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>());
         var didDocument = JsonDocument.Parse("{\n  \"@context\": [\n    \"https://www.w3.org/ns/did/v1\",\n    \"https://w3id.org/security/suites/ed25519-2020/v1\"\n  ],\n  \"id\": \"did:web:example.com:did:BPNL0000000000XX\",\n  \"verificationMethod\": [\n     {\n         \"id\": [\"did:web:example.com:did:BPNL0000000000XX#key-0\"],\n         \"type\": \"JsonWebKey2020\",\n         \"publicKeyJwk\": {\n            \"kty\": \"JsonWebKey2020\",\n            \"crv\": \"Ed25519\",\n            \"x\": \"3534354354353\"\n         }\n     }\n   ],\n   \"services\": [\n     {\n         \"id\": [\"did:web:example.com:did:BPNL0000000000XX#key-0\"],\n         \"type\": \"CredentialStore\",\n         \"serviceEndpoint\": \"test.org:123\"\n     }\n  ]\n}");
         var data = _fixture.Build<DimWalletData>()
             .With(x => x.DidDocument, didDocument)
@@ -306,7 +308,7 @@ public class DimBusinessLogicTests
         var companyId = Guid.NewGuid();
         A.CallTo(() => _companyRepository.GetCompanySubmittedApplicationIdsByBpn(BPN))
             .Returns(Enumerable.Repeat(new ValueTuple<Guid, IEnumerable<Guid>>(companyId, Enumerable.Repeat(ApplicationId, 1)), 1).ToAsyncEnumerable());
-        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
+        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
             .Returns(context);
 
         // Act
@@ -326,13 +328,13 @@ public class DimBusinessLogicTests
         var context = new IApplicationChecklistService.ManualChecklistProcessStepData(ApplicationId, _fixture.Create<Process>(), Guid.NewGuid(), ApplicationChecklistEntryTypeId.IDENTITY_WALLET, new Dictionary<ApplicationChecklistEntryTypeId, ValueTuple<ApplicationChecklistEntryStatusId, string?>>()
         {
             { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, new (ApplicationChecklistEntryStatusId.TO_DO, string.Empty )}
-        }.ToImmutableDictionary(), Enumerable.Empty<ProcessStep>());
+        }.ToImmutableDictionary(), Enumerable.Empty<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>());
         var didDocument = JsonDocument.Parse("{\n  \"@context\": [\n \"abc\" ],\n  \"id\": \"did:web:example.org:did:BPNL0000000000XX\",\n  \"verificationMethod\": [\n     {\n         \"id\": [\"did:web:example.com:did:BPNL0000000000XX#key-0\"],\n         \"publicKeyJwk\": {\n            \"kty\": \"JsonWebKey2020\",\n            \"crv\": \"Ed25519\",\n            \"x\": \"3534354354353\"\n         }\n     }\n   ],\n   \"services\": [\n     {\n         \"id\": [\"did:web:example.com:did:BPNL0000000000XX#key-0\"],\n         \"serviceEndpoint\": \"test.org:123\"\n     }\n  ]\n}");
         var data = _fixture.Build<DimWalletData>().With(x => x.DidDocument, didDocument).With(x => x.Did, "did:web:example.org:did:BPNL0000000000XX").Create();
         var companyId = Guid.NewGuid();
         A.CallTo(() => _companyRepository.GetCompanySubmittedApplicationIdsByBpn(BPN))
             .Returns(Enumerable.Repeat(new ValueTuple<Guid, IEnumerable<Guid>>(companyId, Enumerable.Repeat(ApplicationId, 1)), 1).ToAsyncEnumerable());
-        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
+        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
             .Returns(context);
 
         // Act
@@ -355,7 +357,7 @@ public class DimBusinessLogicTests
             Guid.NewGuid(),
             ApplicationChecklistEntryTypeId.IDENTITY_WALLET,
             ImmutableDictionary.CreateRange(new[] { KeyValuePair.Create<ApplicationChecklistEntryTypeId, ValueTuple<ApplicationChecklistEntryStatusId, string?>>(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, new(ApplicationChecklistEntryStatusId.TO_DO, string.Empty)) }),
-            Enumerable.Empty<ProcessStep>());
+            Enumerable.Empty<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>());
 
         const string jsonData = """
                                         {
@@ -363,26 +365,32 @@ public class DimBusinessLogicTests
                                                 "https://www.w3.org/ns/did/v1",
                                                 "https://w3id.org/security/suites/jws-2020/v1"
                                             ],
-                                            "id": "did:web:example.com:did:BPNL0000000000XX",
+                                            "id": "did:web:portal-backend.int.catena-x.net:api:administration:staticdata:did:BPNL000000006TCJ",
+                                            "service": [
+                                                {
+                                                    "type": "CredentialService",
+                                                    "serviceEndpoint": "https://dis-agent-prod.eu10.dim.cloud.sap/api/v1.0.0/iatp",
+                                                    "id": "did:web:portal-backend.int.catena-x.net:api:administration:staticdata:did:BPNL000000006TCJ#CredentialService"
+                                                }
+                                            ],
                                             "verificationMethod": [
                                                 {
-                                                    "id": "did:web:example.com:did:BPNL0000000000XX#key-0",
+                                                    "id": "did:web:portal-backend.int.catena-x.net:api:administration:staticdata:did:BPNL000000006TCJ#keys-1c1e0ef5-fa61-4030-9a32-6636f6dd1ea2",
                                                     "type": "JsonWebKey2020",
+                                                    "controller": "did:web:portal-backend.int.catena-x.net:api:administration:staticdata:did:BPNL000000006TCJ",
                                                     "publicKeyJwk": {
-                                                        "kty": "JsonWebKey2020",
-                                                        "crv": "Ed25519",
-                                                        "x": "3534354354353",
-                                                        "y": "123456"
+                                                        "kty": "EC",
+                                                        "crv": "secp256k1",
+                                                        "x": "RnrgNQgLvDooE7z7J1fMPFoHyJtnQ0FifgebMO7pEmk",
+                                                        "y": "Z45urmCvyQp7AJzX7_JaRFQSGO-0U8zutUTCrGA1XR8"
                                                     }
                                                 }
                                             ],
-                                            "service": [
-                                                {
-                                                    "id": "did:web:example.com:did:BPNL0000000000XX#key-0",
-                                                    "type": "CredentialStore",
-                                                    "serviceEndpoint": "https://example.com/svc"
-                                                }
-                                            ]
+                                            "authentication": [
+                                                "did:web:portal-backend.int.catena-x.net:api:administration:staticdata:did:BPNL000000006TCJ#keys-1c1e0ef5-fa61-4030-9a32-6636f6dd1ea2"
+                                            ],
+                                            "assertionMethod": [],
+                                            "keyAgreement": []
                                         }
                                 """;
         var didDocument = JsonDocument.Parse(jsonData);
@@ -393,7 +401,7 @@ public class DimBusinessLogicTests
         var companyId = Guid.NewGuid();
         A.CallTo(() => _companyRepository.GetCompanySubmittedApplicationIdsByBpn(BPN))
             .Returns(Enumerable.Repeat(new ValueTuple<Guid, IEnumerable<Guid>>(companyId, Enumerable.Repeat(ApplicationId, 1)), 1).ToAsyncEnumerable());
-        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
+        A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId, ApplicationChecklistEntryTypeId.IDENTITY_WALLET, A<IEnumerable<ApplicationChecklistEntryStatusId>>._, ProcessStepTypeId.AWAIT_DIM_RESPONSE_RESPONSE, A<IEnumerable<ApplicationChecklistEntryTypeId>?>._, A<IEnumerable<ProcessStepTypeId>?>._))
             .Returns(context);
         byte[]? encrypted = null;
         byte[]? iv = null;

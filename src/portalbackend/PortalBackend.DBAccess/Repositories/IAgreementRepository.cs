@@ -19,6 +19,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
@@ -55,8 +56,9 @@ public interface IAgreementRepository
     /// Return all agreements for agreement category app_contract
     /// </summary>
     /// <param name="categoryId"></param>
+    /// <param name="languageShortName"></param>
     /// <returns></returns>
-    IAsyncEnumerable<AgreementDocumentData> GetAgreementDataForOfferType(OfferTypeId offerTypeId);
+    IAsyncEnumerable<AgreementDocumentData> GetAgreementDataForOfferType(OfferTypeId offerTypeId, string languageShortName);
 
     /// <summary>
     /// Return matching Agreement and Consent for agreement category app_contract and offer id
@@ -92,4 +94,6 @@ public interface IAgreementRepository
     /// <param name="offerId">Id of the offer the agreement must be associated with</param>
     /// <returns></returns>
     IAsyncEnumerable<AgreementStatusData> GetAgreementIdsForOfferAsync(Guid offerId);
+
+    void AttachAndModifyAgreements(IEnumerable<(Guid AgreementId, Action<Agreement>? Initialize, Action<Agreement> Modify)> agreementModificationIds);
 }

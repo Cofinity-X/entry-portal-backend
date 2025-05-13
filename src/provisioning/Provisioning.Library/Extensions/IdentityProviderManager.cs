@@ -88,31 +88,32 @@ public partial class ProvisioningManager
             switch (key)
             {
                 case "userInfoUrl":
-                    changed.Config.UserInfoUrl = value as string;
+                    changed.Config.UserInfoUrl = value.ToString();
                     break;
                 case "validateSignature":
-                    changed.Config.ValidateSignature = value as string;
+                    changed.Config.ValidateSignature = value.ToString();
                     break;
                 case "tokenUrl":
-                    changed.Config.TokenUrl = value as string;
+                    changed.Config.TokenUrl = value.ToString();
                     break;
                 case "authorizationUrl":
-                    changed.Config.AuthorizationUrl = value as string;
+                    changed.Config.AuthorizationUrl = value.ToString();
                     break;
                 case "jwksUrl":
-                    changed.Config.JwksUrl = value as string;
+                    changed.Config.JwksUrl = value.ToString();
                     break;
                 case "logoutUrl":
-                    changed.Config.LogoutUrl = value as string;
+                    changed.Config.LogoutUrl = value.ToString();
                     break;
                 case "issuer":
-                    changed.Config.Issuer = value as string;
+                    changed.Config.Issuer = value.ToString();
                     break;
                 case "useJwksUrl":
-                    changed.Config.UseJwksUrl = value as string;
+                    changed.Config.UseJwksUrl = value.ToString();
                     break;
             }
         }
+
         return changed;
     }
 
@@ -142,6 +143,39 @@ public partial class ProvisioningManager
 
     public async Task<string?> GetIdentityProviderDisplayName(string alias) =>
         (await GetCentralIdentityProviderAsync(alias).ConfigureAwait(ConfigureAwaitOptions.None)).DisplayName;
+
+    public async Task UpdateOrCreateCentralIdentityProviderOrganisationMapperAsync(string idpAlias, string organisationName)
+    {
+        var mapperName = _settings.MappedCompanyAttribute + "-mapper";
+        IdentityProviderMapper? mapper;
+        try
+        {
+            mapper = (await _centralIdp.GetIdentityProviderMappersAsync(_settings.CentralRealm, idpAlias).ConfigureAwait(ConfigureAwaitOptions.None))
+                .SingleOrDefault(z => z.Name == mapperName);
+        }
+        catch (InvalidOperationException)
+        {
+            throw new KeycloakEntityConflictException($"idp {idpAlias} attribute-mapper {mapperName} is ambigous in keycloak");
+        }
+        if (mapper is null)
+        {
+            await CreateCentralIdentityProviderOrganisationMapperAsync(idpAlias, organisationName);
+        }
+        else
+        {
+            mapper.Config ??= new Dictionary<string, string>
+            {
+                ["syncMode"] = "INHERIT",
+                ["attribute"] = _settings.MappedCompanyAttribute,
+            };
+            mapper.Config["attribute.value"] = organisationName;
+            await _centralIdp.UpdateIdentityProviderMapperAsync(
+                _settings.CentralRealm,
+                idpAlias,
+                mapper.Id ?? throw new KeycloakEntityConflictException($"idp {idpAlias} attribute-mapper {mapperName} has no Id"),
+                mapper).ConfigureAwait(ConfigureAwaitOptions.None);
+        }
+    }
 
     private async ValueTask<string> GetCentralBrokerEndpointOIDCAsync(string alias)
     {

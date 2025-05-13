@@ -68,7 +68,7 @@ public class IdentityProviderRepository : IIdentityProviderRepository
         _context.Remove(new CompanyIdentityProvider(companyId, identityProviderId));
 
     public void DeleteCompanyIdentityProviderRange(IEnumerable<(Guid CompanyId, Guid IdentityProviderId)> companyIdentityProviderIds) =>
-        _context.RemoveRange(companyIdentityProviderIds.Select(x => new CompanyIdentityProvider(x.CompanyId, x.IdentityProviderId)));
+        _context.CompanyIdentityProviders.RemoveRange(companyIdentityProviderIds.Select(x => new CompanyIdentityProvider(x.CompanyId, x.IdentityProviderId)));
 
     public void CreateCompanyIdentityProviders(IEnumerable<(Guid CompanyId, Guid IdentityProviderId)> companyIdIdentityProviderIds) =>
         _context.CompanyIdentityProviders
@@ -364,4 +364,10 @@ public class IdentityProviderRepository : IIdentityProviderRepository
 
     public void CreateIdentityProviderAssignedProcessRange(IEnumerable<(Guid IdentityProviderId, Guid ProcessId)> identityProviderProcessIds) =>
         _context.AddRange(identityProviderProcessIds.Select(x => new IdentityProviderAssignedProcess(x.IdentityProviderId, x.ProcessId)));
+
+    public Task<string?> GetIamIdentityProviderForIdp(Guid identityProviderId) =>
+        _context.IamIdentityProviders
+            .Where(x => x.IdentityProviderId == identityProviderId)
+            .Select(x => x.IamIdpAlias)
+            .SingleOrDefaultAsync();
 }

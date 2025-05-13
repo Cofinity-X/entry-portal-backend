@@ -17,9 +17,9 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Auditing;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Base;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -37,7 +37,7 @@ public class OfferSubscription : IAuditableV1, IBaseEntity
     public OfferSubscription()
     {
         ConsentAssignedOfferSubscriptions = new HashSet<ConsentAssignedOfferSubscription>();
-        CompanyServiceAccounts = new HashSet<CompanyServiceAccount>();
+        Technicalusers = new HashSet<TechnicalUser>();
         ConnectorAssignedOfferSubscriptions = new HashSet<ConnectorAssignedOfferSubscription>();
     }
 
@@ -49,7 +49,6 @@ public class OfferSubscription : IAuditableV1, IBaseEntity
     /// <param name="companyId">Company id.</param>
     /// <param name="offerSubscriptionStatusId">app subscription status.</param>
     /// <param name="requesterId">Id of the requester</param>
-    /// <param name="lastEditorId">Id of the editor</param>
     /// <param name="dateCreated">DateCreated of an Subscription</param>
     public OfferSubscription(Guid id, Guid offerId, Guid companyId, OfferSubscriptionStatusId offerSubscriptionStatusId, Guid requesterId, DateTimeOffset dateCreated)
         : this()
@@ -140,5 +139,5 @@ public class OfferSubscription : IAuditableV1, IBaseEntity
 
     public virtual ICollection<ConnectorAssignedOfferSubscription> ConnectorAssignedOfferSubscriptions { get; private set; }
     public virtual ICollection<ConsentAssignedOfferSubscription> ConsentAssignedOfferSubscriptions { get; private set; }
-    public virtual ICollection<CompanyServiceAccount> CompanyServiceAccounts { get; private set; }
+    public virtual ICollection<TechnicalUser> Technicalusers { get; private set; }
 }

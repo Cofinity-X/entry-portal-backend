@@ -23,6 +23,7 @@ using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -32,8 +33,8 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.BusinessLogic;
+using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ViewModels;
 using System.Collections.Immutable;
 using Xunit;
@@ -184,6 +185,34 @@ public class ServiceBusinessLogicTests
 
     #endregion
 
+    #region Decline Service Subscription
+
+    [Fact]
+    public async Task DeclineServiceSubscription_ReturnsExpected()
+    {
+        // Arrange
+        var offerSubscriptionId = Guid.NewGuid();
+        A.CallTo(() => _offerSubscriptionService.RemoveOfferSubscriptionAsync(A<Guid>._, OfferTypeId.SERVICE, A<string>._))
+            .Returns(offerSubscriptionId);
+        var serviceSettings = new ServiceSettings
+        {
+            BasePortalAddress = "https://base-portal-address-test.de"
+        };
+        var sut = new ServiceBusinessLogic(null!, null!, _offerSubscriptionService, null!, _identityService, Options.Create(serviceSettings));
+
+        // Act
+        await sut.DeclineServiceSubscriptionAsync(offerSubscriptionId);
+
+        // Assert
+        A.CallTo(() => _offerSubscriptionService.RemoveOfferSubscriptionAsync(
+                A<Guid>.That.IsEqualTo(offerSubscriptionId),
+                A<OfferTypeId>.That.Matches(x => x == OfferTypeId.SERVICE),
+                A<string>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    #endregion
+
     #region GetCompanyProvidedServiceSubscriptionStatusesForUser
 
     [Theory]
@@ -310,7 +339,7 @@ public class ServiceBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Action);
-        ex.Message.Should().Be($"Service {notExistingServiceId} does not exist");
+        ex.Message.Should().Be(ServicesServiceErrors.SERVICES_NOT_EXIST.ToString());
     }
 
     #endregion
@@ -363,7 +392,7 @@ public class ServiceBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Action);
-        ex.Message.Should().Be($"Subscription {notExistingId} does not exist");
+        ex.Message.Should().Be(ServicesServiceErrors.SERVICES_SUBSCRIPTION_NOT_EXIST.ToString());
     }
 
     #endregion
@@ -525,7 +554,10 @@ public class ServiceBusinessLogicTests
         // Arrange
         var offerId = _fixture.Create<Guid>();
         var subscriptionId = _fixture.Create<Guid>();
-        var data = _fixture.Create<OfferProviderSubscriptionDetailData>();
+        var data = _fixture.Build<OfferProviderSubscriptionDetailData>()
+            .With(x => x.AppInstanceId, default(string?))
+            .With(x => x.TenantUrl, default(string?))
+            .Create();
         var settings = new ServiceSettings
         {
             CompanyAdminRoles = new[]
@@ -533,7 +565,7 @@ public class ServiceBusinessLogicTests
                 new UserRoleConfig("ClientTest", new[] {"Test"})
             }
         };
-        A.CallTo(() => _offerService.GetOfferSubscriptionDetailsForProviderAsync(offerId, subscriptionId, OfferTypeId.SERVICE, A<IEnumerable<UserRoleConfig>>._, A<WalletConfigData>._))
+        A.CallTo(() => _offerService.GetOfferSubscriptionDetailsForProviderAsync(A<Guid>._, A<Guid>._, A<OfferTypeId>._, A<IEnumerable<UserRoleConfig>>._, A<WalletConfigData>._))
             .Returns(data);
         var sut = new ServiceBusinessLogic(null!, _offerService, null!, null!, _identityService, Options.Create(settings));
 
@@ -541,7 +573,19 @@ public class ServiceBusinessLogicTests
         var result = await sut.GetSubscriptionDetailForProvider(offerId, subscriptionId);
 
         // Assert
-        result.Should().Be(data);
+        result.Should().Match<ProviderSubscriptionDetailData>(x =>
+            x.Id == data.Id &&
+            x.OfferSubscriptionStatus == data.OfferSubscriptionStatus &&
+            x.Name == data.Name &&
+            x.Customer == data.Customer &&
+            x.Bpn == data.Bpn &&
+            x.Contact.SequenceEqual(data.Contact) &&
+            x.TechnicalUserData.SequenceEqual(data.TechnicalUserData) &&
+            x.ConnectorData.SequenceEqual(data.ConnectorData) &&
+            x.ProcessStepTypeId == data.ProcessStepTypeId &&
+            x.ExternalService == data.ExternalService
+        );
+
         A.CallTo(() => _offerService.GetOfferSubscriptionDetailsForProviderAsync(offerId, subscriptionId, OfferTypeId.SERVICE, A<IEnumerable<UserRoleConfig>>._, A<WalletConfigData>._))
             .MustHaveHappenedOnceExactly();
     }

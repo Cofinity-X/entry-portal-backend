@@ -20,8 +20,7 @@
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Tests.Controllers;
@@ -46,6 +45,7 @@ public class UserControllerTest
         var uploadBusinessLogic = A.Fake<IUserUploadBusinessLogic>();
         _controller = new UserController(_logic, uploadBusinessLogic, _rolesLogic);
         _controller.AddControllerContextWithClaim(_identity);
+        _controller.AddControllerContextWithClaimAndBearer("ac-token", _identity);
     }
 
     [Fact]
@@ -61,6 +61,40 @@ public class UserControllerTest
 
         // Assert
         A.CallTo(() => _logic.GetOwnUserDetails()).MustHaveHappenedOnceExactly();
+        result.Should().Be(data);
+    }
+
+    [Fact]
+    public async Task AddOwnCompanyUserBusinessPartnerNumbers_ReturnsExpectedCalls()
+    {
+        //Arrange
+        var bpns = _fixture.CreateMany<string>();
+        var data = _fixture.Create<CompanyUsersBpnDetails>();
+        A.CallTo(() => _logic.AddOwnCompanyUsersBusinessPartnerNumbersAsync(A<Guid>._, A<string>._, A<IEnumerable<string>>._, CancellationToken.None))
+            .Returns(data);
+
+        // Act
+        var result = await this._controller.AddOwnCompanyUserBusinessPartnerNumbers(_identity.IdentityId, bpns, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _logic.AddOwnCompanyUsersBusinessPartnerNumbersAsync(A<Guid>._, A<string>._, A<IEnumerable<string>>._, CancellationToken.None)).MustHaveHappenedOnceExactly();
+        result.Should().Be(data);
+    }
+
+    [Fact]
+    public async Task AddOwnCompanyUserBusinessPartnerNumber_ReturnsExpectedCalls()
+    {
+        //Arrange
+        var bpn = _fixture.Create<string>();
+        var data = _fixture.Create<CompanyUsersBpnDetails>();
+        A.CallTo(() => _logic.AddOwnCompanyUsersBusinessPartnerNumberAsync(A<Guid>._, A<string>._, A<string>._, CancellationToken.None))
+            .Returns(data);
+
+        // Act
+        var result = await this._controller.AddOwnCompanyUserBusinessPartnerNumber(_identity.IdentityId, bpn, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _logic.AddOwnCompanyUsersBusinessPartnerNumberAsync(A<Guid>._, A<string>._, A<string>._, CancellationToken.None)).MustHaveHappenedOnceExactly();
         result.Should().Be(data);
     }
 }

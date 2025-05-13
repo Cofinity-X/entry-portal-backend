@@ -108,7 +108,7 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
         var offers = await sut.GetAllActiveAppsAsync(null!, Constants.DefaultLanguage).ToListAsync();
 
         // Assert
-        offers.Should().HaveCount(8).And.Satisfy(
+        offers.Should().HaveCount(9).And.Satisfy(
             x => x.Name == "Test App",
             x => x.Name == "Test App 3",
             x => x.Name == "Trace-X",
@@ -116,7 +116,8 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
             x => x.Name == "Top App",
             x => x.Name == "Test App 1",
             x => x.Name == "Test App 2",
-            x => x.Name == "Test App Tech User"
+            x => x.Name == "Test App Tech User",
+        x => x.Name == "Test App Tech provider"
         );
     }
 
@@ -482,14 +483,17 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
 
     #region GetProviderOfferDataWithConsentStatusAsync
 
-    [Fact]
-    public async Task GetProviderOfferDataWithConsentStatusAsync_APP_ReturnsExpectedResult()
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    [InlineData("xx")]
+    public async Task GetProviderOfferDataWithConsentStatusAsync_APP_ReturnsExpectedResult(string languageShortName)
     {
         // Arrange
         var sut = await CreateSut();
 
         // Act
-        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0572c0007"), _userCompanyId, OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE);
+        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0572c0007"), _userCompanyId, OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE, languageShortName);
 
         // Assert
         result.IsProviderCompanyUser.Should().BeTrue();
@@ -499,6 +503,27 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
         result.OfferProviderData.UseCase.Should().NotBeNull();
         result.OfferProviderData.ServiceTypeIds.Should().BeNull();
         result.OfferProviderData.TechnicalUserProfile.Should().BeEmpty();
+        if (languageShortName == "en")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1091") && x.AgreementName == "I confirm that the application I want to offer has successfully received a Catena-X certificate issued by an official Conformity Assessment Body (CAB). I acknowledge to upload the certificate.",
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1015") && x.AgreementName == "Data Sovereignty Guidelines",
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1016") && x.AgreementName == "Marketplace Terms & Conditions");
+        }
+        else if (languageShortName == "de")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1091") && x.AgreementName == "Ich bestätige, dass die App, die ich anbieten möchte, erfolgreich ein Catena-X-Zertifikat erhalten hat, das von einer offiziellen Konformitätsbewertungsstelle ausgestellt wurde. Ich bestätige, das Zertifikat hochzuladen.",
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1015") && x.AgreementName == "Richtlinien zur Datensouveränität",
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1016") && x.AgreementName == "Allgemeine Geschäftsbedingungen - Marktplatz");
+        }
+        else if (languageShortName == "xx")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1091") && x.AgreementName == null,
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1015") && x.AgreementName == null,
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1016") && x.AgreementName == null);
+        }
     }
 
     [Fact]
@@ -508,27 +533,45 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
         var sut = await CreateSut();
 
         // Act
-        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0572c0007"), Guid.NewGuid(), OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE);
+        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0572c0007"), Guid.NewGuid(), OfferTypeId.APP, DocumentTypeId.APP_LEADIMAGE, Constants.DefaultLanguage);
 
         // Assert
         result.IsProviderCompanyUser.Should().BeFalse();
         result.OfferProviderData.Should().BeNull();
     }
 
-    [Fact]
-    public async Task GetProviderOfferDataWithConsentStatusAsync_SERVICE_ReturnsExpectedResult()
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    [InlineData("xx")]
+    public async Task GetProviderOfferDataWithConsentStatusAsync_SERVICE_ReturnsExpectedResult(string languageShortName)
     {
         // Arrange
         var sut = await CreateSut();
 
         // Act
-        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0000c0001"), _userCompanyId, OfferTypeId.SERVICE, DocumentTypeId.SERVICE_LEADIMAGE);
+        var result = await sut.GetProviderOfferDataWithConsentStatusAsync(new Guid("ac1cf001-7fbc-1f2f-817f-bce0000c0001"), _userCompanyId, OfferTypeId.SERVICE, DocumentTypeId.SERVICE_LEADIMAGE, languageShortName);
 
         // Assert
         result.IsProviderCompanyUser.Should().BeTrue();
         result.OfferProviderData.Should().NotBeNull();
         result.OfferProviderData!.UseCase.Should().BeNull();
         result.OfferProviderData.ServiceTypeIds.Should().NotBeNull();
+        if (languageShortName == "en")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1014") && x.AgreementName == "Terms & Conditions - Service Marketplace");
+        }
+        else if (languageShortName == "de")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1014") && x.AgreementName == "Allgemeine Geschäftsbedingungen - Service Marktplatz");
+        }
+        else if (languageShortName == "xx")
+        {
+            result.OfferProviderData.Agreements.Should().Satisfy(
+                x => x.AgreementId == new Guid("aa0a0000-7fbc-1f2f-817f-bce0502c1014") && x.AgreementName == null);
+        }
     }
 
     #endregion
@@ -635,9 +678,9 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
         changeTracker.HasChanges().Should().BeTrue();
         changedEntries.Should().AllSatisfy(entry => entry.Entity.Should().BeOfType<AppAssignedUseCase>());
         changedEntries.Should().HaveCount(addedEntities.Length + removedEntities.Length);
-        var added = changedEntries.Where(entry => entry.State == Microsoft.EntityFrameworkCore.EntityState.Added).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
-        var modified = changedEntries.Where(entry => entry.State == Microsoft.EntityFrameworkCore.EntityState.Modified).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
-        var deleted = changedEntries.Where(entry => entry.State == Microsoft.EntityFrameworkCore.EntityState.Deleted).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
+        var added = changedEntries.Where(entry => entry.State == EntityState.Added).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
+        var modified = changedEntries.Where(entry => entry.State == EntityState.Modified).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
+        var deleted = changedEntries.Where(entry => entry.State == EntityState.Deleted).Select(x => (AppAssignedUseCase)x.Entity).ToImmutableArray();
 
         added.Should().HaveSameCount(addedEntities);
         added.OrderBy(x => x.UseCaseId).Zip(addedEntities).Should().AllSatisfy(x => (x.First.AppId == x.Second.AppId && x.First.UseCaseId == x.Second.UseCaseId).Should().BeTrue());
@@ -837,8 +880,8 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
     #region GetOfferReleaseDataById
 
     [Theory]
-    [InlineData("99C5FD12-8085-4DE2-ABFD-215E1EE4BAA9", "Test App", "Catena-X", false)]
-    [InlineData("99C5FD12-8085-4DE2-ABFD-215E1EE4BAA7", "Latest App", "Catena-X", true)]
+    [InlineData("99C5FD12-8085-4DE2-ABFD-215E1EE4BAA9", "Test App", "CX-Operator", false)]
+    [InlineData("99C5FD12-8085-4DE2-ABFD-215E1EE4BAA7", "Latest App", "CX-Operator", true)]
     public async Task GetOfferReleaseDataByIdAsync_ReturnsExpected(Guid offerId, string name, string companyName, bool hasPrivacyPolicies)
     {
         // Arrange
@@ -1195,7 +1238,7 @@ public class OfferRepositoryTests : IAssemblyFixture<TestDbFixture>
         // Assert
         result.Should().NotBeNull();
         result!.Data.Should().HaveCount(4)
-            .And.StartWith(new InReviewServiceData(new Guid("ac1cf001-7fbc-1f2f-817f-bce0000c0001"), "Consulting Service - Data Readiness", OfferStatusId.ACTIVE, "Catena-X", "Lorem ipsum dolor sit amet, consectetur adipiscing elit."));
+            .And.StartWith(new InReviewServiceData(new Guid("ac1cf001-7fbc-1f2f-817f-bce0000c0001"), "Consulting Service - Data Readiness", OfferStatusId.ACTIVE, "CX-Operator", "Lorem ipsum dolor sit amet, consectetur adipiscing elit."));
     }
 
     #endregion

@@ -22,14 +22,19 @@ using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.DateTimeProvider;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.SdFactory.Library.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.SdFactory.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
@@ -56,15 +61,16 @@ public class ConnectorsBusinessLogicTests
     private readonly ICompanyRepository _companyRepository;
     private readonly IOfferSubscriptionsRepository _offerSubscriptionRepository;
     private readonly IConnectorsRepository _connectorsRepository;
-    private readonly IProcessStepRepository _processStepRepository;
+    private readonly IPortalProcessStepRepository _processStepRepository;
     private readonly IUserRepository _userRepository;
     private readonly IPortalRepositories _portalRepositories;
     private readonly ISdFactoryBusinessLogic _sdFactoryBusinessLogic;
     private readonly ConnectorsBusinessLogic _logic;
     private readonly IDocumentRepository _documentRepository;
-    private readonly IServiceAccountRepository _serviceAccountRepository;
+    private readonly ITechnicalUserRepository _technicalUserRepository;
     private readonly IIdentityService _identityService;
     private readonly IServiceAccountManagement _serviceAccountManagement;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     public ConnectorsBusinessLogicTests()
     {
@@ -77,11 +83,12 @@ public class ConnectorsBusinessLogicTests
         _userRepository = A.Fake<IUserRepository>();
         _sdFactoryBusinessLogic = A.Fake<ISdFactoryBusinessLogic>();
         _serviceAccountManagement = A.Fake<IServiceAccountManagement>();
-        _serviceAccountRepository = A.Fake<IServiceAccountRepository>();
+        _technicalUserRepository = A.Fake<ITechnicalUserRepository>();
         _offerSubscriptionRepository = A.Fake<IOfferSubscriptionsRepository>();
         _identityService = A.Fake<IIdentityService>();
-        _processStepRepository = A.Fake<IProcessStepRepository>();
+        _processStepRepository = A.Fake<IPortalProcessStepRepository>();
         _portalRepositories = A.Fake<IPortalRepositories>();
+        _dateTimeProvider = A.Fake<IDateTimeProvider>();
         _identity = A.Fake<IIdentityData>();
         _connectors = new List<Connector>();
         var options = A.Fake<IOptions<ConnectorsSettings>>();
@@ -103,7 +110,7 @@ public class ConnectorsBusinessLogicTests
 
         SetupIdentity();
 
-        _logic = new ConnectorsBusinessLogic(_portalRepositories, options, _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, A.Fake<ILogger<ConnectorsBusinessLogic>>());
+        _logic = new ConnectorsBusinessLogic(_portalRepositories, options, _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
     }
 
     #region GetAllCompanyConnectorDatas
@@ -119,7 +126,7 @@ public class ConnectorsBusinessLogicTests
         var data = _fixture.CreateMany<ConnectorData>(numberOfElements).ToImmutableArray();
 
         A.CallTo(() => _connectorsRepository.GetAllCompanyConnectorsForCompanyId(A<Guid>._))
-            .Returns((int skip, int take) => Task.FromResult<Pagination.Source<ConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
+            .Returns((skip, take) => Task.FromResult<Pagination.Source<ConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
 
         // Act
         var result = await _logic.GetAllCompanyConnectorDatas(page, size);
@@ -143,7 +150,7 @@ public class ConnectorsBusinessLogicTests
             .CreateMany(numberOfElements).ToImmutableArray();
 
         A.CallTo(() => _connectorsRepository.GetAllCompanyConnectorsForCompanyId(A<Guid>._))
-            .Returns((int skip, int take) => Task.FromResult<Pagination.Source<ConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
+            .Returns((skip, take) => Task.FromResult<Pagination.Source<ConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
 
         // Act
         var result = await _logic.GetAllCompanyConnectorDatas(page, size);
@@ -158,6 +165,7 @@ public class ConnectorsBusinessLogicTests
         result.Content.Should().HaveCount(resultPageSize);
         result.Content.Should().Contain(x => x.Type == ConnectorTypeId.COMPANY_CONNECTOR);
     }
+
     #endregion
 
     #region GetAllCompanyProvidedConnectorDatas
@@ -222,6 +230,8 @@ public class ConnectorsBusinessLogicTests
     public async Task CreateConnectorAsync_WithValidInput_ReturnsCreatedConnectorData(bool clearingHouseDisabled)
     {
         // Arrange
+        var now = DateTimeOffset.UtcNow;
+        A.CallTo(() => _dateTimeProvider.OffsetNow).Returns(now);
         var sut = new ConnectorsBusinessLogic(_portalRepositories, Options.Create(new ConnectorsSettings
         {
             MaxPageSize = 15,
@@ -232,7 +242,7 @@ public class ConnectorsBusinessLogicTests
                 "application/pkix-cert"
             },
             ClearinghouseConnectDisabled = clearingHouseDisabled
-        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, A.Fake<ILogger<ConnectorsBusinessLogic>>());
+        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
 
         var connectorInput = new ConnectorInputModel("connectorName", "https://test.de", "de", ServiceAccountUserId);
 
@@ -242,8 +252,31 @@ public class ConnectorsBusinessLogicTests
         // Assert
         result.Should().NotBeEmpty();
         _connectors.Should().HaveCount(1);
+        _connectors.Should().ContainSingle().And.Satisfy(x =>
+            x.HostId == _identity.CompanyId &&
+            x.ProviderId == _identity.CompanyId &&
+            x.SdSkippedDate == (clearingHouseDisabled ? now : null));
         A.CallTo(() => _connectorsRepository.CreateConnectorAssignedSubscriptions(A<Guid>._, A<Guid>._)).MustNotHaveHappened();
         A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._)).MustHaveHappened(clearingHouseDisabled ? 0 : 1, Times.Exactly);
+    }
+
+    [Fact]
+    public async Task CreateConnectorAsync_WithExistingConnector_ThrowsConflictException()
+    {
+        // Arrange
+        A.CallTo(() => _connectorsRepository.CheckConnectorExists(A<string>._, A<string>._))
+            .Returns(true);
+        var connectorInput = new ConnectorInputModel("connectorName", "https://test.de", "de", ServiceAccountUserId);
+        Task Act() => _logic.CreateConnectorAsync(connectorInput, CancellationToken.None);
+
+        // Act
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+
+        // Assert
+        ex.Message.Should().Be("CONNECTOR_DUPLICATE");
+        _connectors.Should().BeEmpty();
+        A.CallTo(() => _connectorsRepository.CreateConnectorAssignedSubscriptions(A<Guid>._, A<Guid>._)).MustNotHaveHappened();
+        A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -297,7 +330,7 @@ public class ConnectorsBusinessLogicTests
                 "application/pkix-cert"
             },
             ClearinghouseConnectDisabled = true
-        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, A.Fake<ILogger<ConnectorsBusinessLogic>>());
+        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
 
         var connectorInput = new ConnectorInputModel("connectorName", "https://test.de", "de", null);
         A.CallTo(() => _identity.CompanyId).Returns(CompanyIdWithoutSdDocument);
@@ -379,6 +412,8 @@ public class ConnectorsBusinessLogicTests
     public async Task CreateManagedConnectorAsync_WithValidInput_ReturnsCreatedConnectorData(bool clearingHouseDisabled)
     {
         // Arrange
+        var now = DateTimeOffset.UtcNow;
+        A.CallTo(() => _dateTimeProvider.OffsetNow).Returns(now);
         var sut = new ConnectorsBusinessLogic(_portalRepositories, Options.Create(new ConnectorsSettings
         {
             MaxPageSize = 15,
@@ -389,7 +424,7 @@ public class ConnectorsBusinessLogicTests
                 "application/pkix-cert"
             },
             ClearinghouseConnectDisabled = clearingHouseDisabled
-        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, A.Fake<ILogger<ConnectorsBusinessLogic>>());
+        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
 
         var connectorInput = new ManagedConnectorInputModel("connectorName", "https://test.de", "de", _validOfferSubscriptionId, ServiceAccountUserId);
         SetupCheckActiveServiceAccountExistsForCompanyAsyncForManaged();
@@ -400,7 +435,8 @@ public class ConnectorsBusinessLogicTests
         result.Should().NotBeEmpty();
         _connectors.Should().ContainSingle().And.Satisfy(x =>
             x.HostId == HostCompanyId &&
-            x.ProviderId == _identity.CompanyId);
+            x.ProviderId == _identity.CompanyId &&
+            x.SdSkippedDate == (clearingHouseDisabled ? now : null));
         A.CallTo(() => _connectorsRepository.CreateConnectorAssignedSubscriptions(A<Guid>._, _validOfferSubscriptionId)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._)).MustHaveHappened(clearingHouseDisabled ? 0 : 1, Times.Exactly);
     }
@@ -411,6 +447,7 @@ public class ConnectorsBusinessLogicTests
     public async Task CreateManagedConnectorAsync_WithTechnicalUser_ReturnsCreatedConnectorData(bool clearingHouseDisabled)
     {
         // Arrange
+        var connectorInput = new ManagedConnectorInputModel("connectorName", "https://test.de", "de", _validOfferSubscriptionId, null);
         var sut = new ConnectorsBusinessLogic(_portalRepositories, Options.Create(new ConnectorsSettings
         {
             MaxPageSize = 15,
@@ -421,9 +458,7 @@ public class ConnectorsBusinessLogicTests
                 "application/pkix-cert"
             },
             ClearinghouseConnectDisabled = clearingHouseDisabled
-        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, A.Fake<ILogger<ConnectorsBusinessLogic>>());
-
-        var connectorInput = new ManagedConnectorInputModel("connectorName", "https://test.de", "de", _validOfferSubscriptionId, null);
+        }), _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
 
         SetupTechnicalIdentity();
 
@@ -435,6 +470,27 @@ public class ConnectorsBusinessLogicTests
         _connectors.Should().HaveCount(1);
         A.CallTo(() => _connectorsRepository.CreateConnectorAssignedSubscriptions(A<Guid>._, _validOfferSubscriptionId)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._)).MustHaveHappened(clearingHouseDisabled ? 0 : 1, Times.Exactly);
+    }
+
+    [Fact]
+    public async Task CreateManagedConnectorAsync_WithExistingConnector_ThrowsConflictException()
+    {
+        // Arrange
+        A.CallTo(() => _connectorsRepository.CheckConnectorExists(A<string>._, A<string>._))
+            .Returns(true);
+        var connectorInput = new ManagedConnectorInputModel("connectorName", "https://test.de", "de", _validOfferSubscriptionId, ServiceAccountUserId);
+        Task Act() => _logic.CreateManagedConnectorAsync(connectorInput, CancellationToken.None);
+
+        // Act
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+
+        // Assert
+        ex.Message.Should().Be("CONNECTOR_DUPLICATE");
+        _connectors.Should().BeEmpty();
+        A.CallTo(() => _connectorsRepository.CreateConnectorAssignedSubscriptions(A<Guid>._, _validOfferSubscriptionId))
+            .MustNotHaveHappened();
+        A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
     }
 
     [Fact]
@@ -650,6 +706,25 @@ public class ConnectorsBusinessLogicTests
         A.CallTo(() => _connectorsRepository.GetConnectorDataById(connectorId)).MustHaveHappenedOnceExactly();
     }
 
+    [Fact]
+    public async Task ProcessClearinghouseSelfDescription_WithOutdatedLegalPerson_WithoutSelfDescriptionDocument_CallsExpected()
+    {
+        // Arrange
+        var connectorId = Guid.NewGuid();
+        var data = new SelfDescriptionResponseData(connectorId, SelfDescriptionStatus.Failed, "Error code: E2245", null);
+        A.CallTo(() => _connectorsRepository.GetConnectorDataById(A<Guid>._))
+            .Returns((connectorId, null));
+
+        // Act
+        await _logic.ProcessClearinghouseSelfDescription(data, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _connectorsRepository.GetConnectorDataById(connectorId)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _sdFactoryBusinessLogic.ProcessFinishSelfDescriptionLpForConnector(data, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+    }
+
     #endregion
 
     #region DeleteConnector
@@ -674,7 +749,7 @@ public class ConnectorsBusinessLogicTests
             .Invokes((Guid docId, Action<Document>? initialize, Action<Document> modify)
                 =>
             {
-                var document = new Document(docId, null!, null!, null!, default, default, default, default);
+                var document = new Document(docId, null!, null!, null!, default, default, default, default, default);
                 initialize?.Invoke(document);
                 modify(document);
             });
@@ -720,7 +795,7 @@ public class ConnectorsBusinessLogicTests
             .Invokes((Guid docId, Action<Document>? initialize, Action<Document> modify)
                 =>
             {
-                var document = new Document(docId, null!, null!, null!, default, default, default, default);
+                var document = new Document(docId, null!, null!, null!, default, default, default, default, default);
                 initialize?.Invoke(document);
                 modify(document);
             });
@@ -757,6 +832,32 @@ public class ConnectorsBusinessLogicTests
 
         // Act
         await _logic.DeleteConnectorAsync(connectorId, true);
+
+        // Assert
+        A.CallTo(() => _connectorsRepository.GetConnectorDeleteDataAsync(connectorId, _identity.CompanyId, A<IEnumerable<ProcessStepTypeId>>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _connectorsRepository.DeleteConnector(connectorId)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _connectorsRepository.DeleteConnectorAssignedSubscriptions(connectorId, A<IEnumerable<Guid>>.That.Matches(x => x.Count() == 2))).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task DeleteConnectorAsync_WithActiveAndWithoutDocumentId_ExpectedCalls()
+    {
+        // Arrange
+        var connectorId = Guid.NewGuid();
+        var options = A.Fake<IOptions<ConnectorsSettings>>();
+        var settings = new ConnectorsSettings { ClearinghouseConnectDisabled = true };
+        A.CallTo(() => options.Value).Returns(settings);
+        var sut = new ConnectorsBusinessLogic(_portalRepositories, options, _sdFactoryBusinessLogic, _identityService, _serviceAccountManagement, _dateTimeProvider, A.Fake<ILogger<ConnectorsBusinessLogic>>());
+        var connectorOfferSubscriptions = new[] {
+            new ConnectorOfferSubscription(_fixture.Create<Guid>(), OfferSubscriptionStatusId.PENDING),
+            new ConnectorOfferSubscription(_fixture.Create<Guid>(), OfferSubscriptionStatusId.PENDING),
+        };
+        A.CallTo(() => _connectorsRepository.GetConnectorDeleteDataAsync(A<Guid>._, _identity.CompanyId, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns(new DeleteConnectorData(true, null, null, ConnectorStatusId.ACTIVE, connectorOfferSubscriptions, UserStatusId.ACTIVE, Guid.NewGuid(), _fixture.Create<DeleteServiceAccountData>()));
+
+        // Act
+        await sut.DeleteConnectorAsync(connectorId, true);
 
         // Assert
         A.CallTo(() => _connectorsRepository.GetConnectorDeleteDataAsync(connectorId, _identity.CompanyId, A<IEnumerable<ProcessStepTypeId>>._)).MustHaveHappenedOnceExactly();
@@ -820,11 +921,11 @@ public class ConnectorsBusinessLogicTests
             .Returns(new DeleteConnectorData(true, null, null, ConnectorStatusId.ACTIVE, Enumerable.Empty<ConnectorOfferSubscription>(), UserStatusId.ACTIVE, Guid.NewGuid(), _fixture.Create<DeleteServiceAccountData>()));
 
         // Act
-        async Task Act() => await _logic.DeleteConnectorAsync(connectorId, true);
+        await _logic.DeleteConnectorAsync(connectorId, true);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be(AdministrationConnectorErrors.CONNECTOR_CONFLICT_DELETION_DECLINED.ToString());
+        A.CallTo(() => _connectorsRepository.GetConnectorDeleteDataAsync(connectorId, _identity.CompanyId, A<IEnumerable<ProcessStepTypeId>>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -833,7 +934,7 @@ public class ConnectorsBusinessLogicTests
         // Arrange
         var connectorId = Guid.NewGuid();
         A.CallTo(() => _connectorsRepository.GetConnectorDeleteDataAsync(connectorId, _identity.CompanyId, A<IEnumerable<ProcessStepTypeId>>._))
-            .Returns(new DeleteConnectorData(true, null, null, ConnectorStatusId.ACTIVE, Enumerable.Empty<ConnectorOfferSubscription>(), UserStatusId.ACTIVE, Guid.NewGuid(), _fixture.Create<DeleteServiceAccountData>()));
+            .Returns(new DeleteConnectorData(true, null, null, ConnectorStatusId.INACTIVE, Enumerable.Empty<ConnectorOfferSubscription>(), UserStatusId.ACTIVE, Guid.NewGuid(), _fixture.Create<DeleteServiceAccountData>()));
 
         // Act
         async Task Act() => await _logic.DeleteConnectorAsync(connectorId, true);
@@ -941,7 +1042,7 @@ public class ConnectorsBusinessLogicTests
         var data = _fixture.CreateMany<ManagedConnectorData>(numberOfElements).ToImmutableArray();
 
         A.CallTo(() => _connectorsRepository.GetManagedConnectorsForCompany(A<Guid>._))
-            .Returns((int skip, int take) => Task.FromResult<Pagination.Source<ManagedConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
+            .Returns((skip, take) => Task.FromResult<Pagination.Source<ManagedConnectorData>?>(new(data.Length, data.Skip(skip).Take(take))));
 
         // Act
         var result = await _logic.GetManagedConnectorForCompany(page, size);
@@ -961,7 +1062,7 @@ public class ConnectorsBusinessLogicTests
     {
         // Arrange
         A.CallTo(() => _connectorsRepository.GetManagedConnectorsForCompany(A<Guid>._))
-            .Returns((int _, int _) => Task.FromResult<Pagination.Source<ManagedConnectorData>?>(null));
+            .Returns((_, _) => Task.FromResult<Pagination.Source<ManagedConnectorData>?>(null));
 
         // Act
         var result = await _logic.GetManagedConnectorForCompany(0, 10);
@@ -989,7 +1090,7 @@ public class ConnectorsBusinessLogicTests
             .Returns<ConnectorUpdateInformation?>(null);
 
         // Act
-        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://test.de"));
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://test.de"), CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
@@ -1008,14 +1109,14 @@ public class ConnectorsBusinessLogicTests
             .Returns(data);
 
         // Act
-        await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://test.de"));
+        await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://test.de"), CancellationToken.None);
 
         // Assert
         A.CallTo(() => _portalRepositories.SaveAsync()).MustNotHaveHappened();
     }
 
     [Fact]
-    public async Task UpdateConnectorUrl_WithUserNotOfHostCompany_ThrowsForbiddenException()
+    public async Task UpdateConnectorUrl_WithUserNotOfProviderCompany_ThrowsForbiddenException()
     {
         // Arrange
         var connectorId = Guid.NewGuid();
@@ -1027,7 +1128,7 @@ public class ConnectorsBusinessLogicTests
             .Returns(data);
 
         // Act
-        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"));
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ForbiddenException>(Act);
@@ -1048,7 +1149,7 @@ public class ConnectorsBusinessLogicTests
             .Returns(data);
 
         // Act
-        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"));
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
@@ -1071,7 +1172,7 @@ public class ConnectorsBusinessLogicTests
             .Returns(data);
 
         // Act
-        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"));
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
@@ -1096,7 +1197,7 @@ public class ConnectorsBusinessLogicTests
             .Returns<string?>(null);
 
         // Act
-        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"));
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
@@ -1107,7 +1208,9 @@ public class ConnectorsBusinessLogicTests
     public async Task UpdateConnectorUrl_WithValidData_CallsExpected()
     {
         // Arrange
+        var documentId = Guid.NewGuid();
         var connectorId = Guid.NewGuid();
+        var document = new Document(documentId, null!, null!, null!, default, default, DocumentStatusId.PENDING, default, default);
         var connector = _fixture.Build<Connector>()
             .With(x => x.ConnectorUrl, "https://old.de")
             .Create();
@@ -1117,7 +1220,10 @@ public class ConnectorsBusinessLogicTests
             .With(x => x.Status, ConnectorStatusId.ACTIVE)
             .With(x => x.Type, ConnectorTypeId.CONNECTOR_AS_A_SERVICE)
             .With(x => x.Bpn, "BPNL123456789")
+            .With(x => x.SelfDescriptionDocumentId, documentId)
+            .With(x => x.SelfDescriptionCompanyDocumentId, Guid.NewGuid())
             .Create();
+
         A.CallTo(() => _connectorsRepository.GetConnectorUpdateInformation(connectorId, _identity.CompanyId))
             .Returns(data);
         A.CallTo(() => _connectorsRepository.AttachAndModifyConnector(connectorId, null, A<Action<Connector>>._))
@@ -1126,14 +1232,48 @@ public class ConnectorsBusinessLogicTests
                 initialize?.Invoke(connector);
                 setOptionalProperties.Invoke(connector);
             });
+        A.CallTo(() => _documentRepository.AttachAndModifyDocument(A<Guid>._, A<Action<Document>>._, A<Action<Document>>._))
+           .Invokes((Guid documentId, Action<Document>? initialize, Action<Document> modify)
+               =>
+           {
+               initialize?.Invoke(document);
+               modify(document);
+           });
 
         // Act
-        await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"));
+        await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
 
         // Assert
         A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
         A.CallTo(() => _connectorsRepository.AttachAndModifyConnector(connectorId, null, A<Action<Connector>>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _documentRepository.AttachAndModifyDocument((Guid)data.SelfDescriptionDocumentId!, null, A<Action<Document>>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         connector.ConnectorUrl.Should().Be("https://new.de");
+        document.DocumentStatusId.Should().Be(DocumentStatusId.INACTIVE);
+    }
+
+    [Fact]
+    public async Task UpdateConnectorUrl_WithSelfDescriptionCompanyIdNotSet_ThrowsConflictException()
+    {
+        // Arrange
+        var connectorId = Guid.NewGuid();
+        var data = _fixture.Build<ConnectorUpdateInformation>()
+            .With(x => x.ConnectorUrl, "https://old.de")
+            .With(x => x.IsProviderCompany, true)
+            .With(x => x.Status, ConnectorStatusId.ACTIVE)
+            .With(x => x.Type, ConnectorTypeId.CONNECTOR_AS_A_SERVICE)
+            .With(x => x.Bpn, "BPNL123456789")
+            .With(x => x.SelfDescriptionCompanyDocumentId, default(Guid?))
+            .Create();
+        A.CallTo(() => _connectorsRepository.GetConnectorUpdateInformation(connectorId, _identity.CompanyId))
+            .Returns(data);
+
+        // Act
+        async Task Act() => await _logic.UpdateConnectorUrl(connectorId, new ConnectorUpdateRequest("https://new.de"), CancellationToken.None);
+
+        // Assert
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+        ex.Message.Should().Be(AdministrationConnectorErrors.CONNECTOR_CONFLICT_NO_DESCRIPTION.ToString());
     }
 
     #endregion
@@ -1236,7 +1376,7 @@ public class ConnectorsBusinessLogicTests
 
     #endregion
 
-    #region GetCompanyConnectorData
+    #region GetCompanyConnectorData   
 
     [Fact]
     public async Task GetCompanyConnectorData_WithInvalid_ThrowsForbiddenException()
@@ -1261,7 +1401,7 @@ public class ConnectorsBusinessLogicTests
         // Arrange
         var connectorId = Guid.NewGuid();
         A.CallTo(() => _connectorsRepository.GetConnectorByIdForCompany(connectorId, _identity.CompanyId))
-            .Returns<(ConnectorData, bool)>(default);
+           .Returns<(ConnectorData, bool)>(default);
 
         // Act
         async Task Act() => await _logic.GetCompanyConnectorData(connectorId);
@@ -1280,7 +1420,7 @@ public class ConnectorsBusinessLogicTests
             .With(x => x.Name, "Test Connector")
             .Create();
         A.CallTo(() => _connectorsRepository.GetConnectorByIdForCompany(connectorId, _identity.CompanyId))
-            .Returns((connectorData, true));
+             .Returns((connectorData, true));
 
         // Act
         var result = await _logic.GetCompanyConnectorData(connectorId);
@@ -1331,7 +1471,7 @@ public class ConnectorsBusinessLogicTests
         // Arrange
         var processId = Guid.NewGuid();
         var processes = new List<Process>();
-        var processSteps = new List<ProcessStep>();
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
         A.CallTo(() => _processStepRepository.CreateProcess(A<ProcessTypeId>._))
             .Invokes((ProcessTypeId processTypeId) =>
             {
@@ -1341,7 +1481,7 @@ public class ConnectorsBusinessLogicTests
         A.CallTo(() => _processStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
             .Invokes((ProcessStepTypeId processStepTypeId, ProcessStepStatusId processStepStatusId, Guid _) =>
             {
-                processSteps.Add(new ProcessStep(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
+                processSteps.Add(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
             });
         A.CallTo(() => _connectorsRepository.GetConnectorIdsWithMissingSelfDescription())
             .Returns(new[] { Guid.NewGuid(), Guid.NewGuid() }.ToAsyncEnumerable());
@@ -1369,7 +1509,7 @@ public class ConnectorsBusinessLogicTests
         // Arrange
         var processId = Guid.NewGuid();
         var processes = new List<Process>();
-        var processSteps = new List<ProcessStep>();
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
         A.CallTo(() => _processStepRepository.CreateProcess(A<ProcessTypeId>._))
             .Invokes((ProcessTypeId processTypeId) =>
             {
@@ -1379,7 +1519,7 @@ public class ConnectorsBusinessLogicTests
         A.CallTo(() => _processStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
             .Invokes((ProcessStepTypeId processStepTypeId, ProcessStepStatusId processStepStatusId, Guid _) =>
             {
-                processSteps.Add(new ProcessStep(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
+                processSteps.Add(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
             });
         A.CallTo(() => _connectorsRepository.GetConnectorIdsWithMissingSelfDescription())
             .Returns(Enumerable.Empty<Guid>().ToAsyncEnumerable());
@@ -1390,6 +1530,49 @@ public class ConnectorsBusinessLogicTests
         // Assert
         processes.Should().BeEmpty();
         processSteps.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region RetriggerSelfDescriptionResponseCreation
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseCreation_CallsExpected()
+    {
+        // Arrange
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        A.CallTo(() => _processStepRepository.IsValidProcess(process.Id, ProcessTypeId.SELF_DESCRIPTION_CREATION, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns((true, new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.RETRIGGER_AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow), 1))));
+        A.CallTo(() => _processStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId, ProcessStepStatusId, Guid)>>._))
+            .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> ps) =>
+            {
+                processSteps.AddRange(ps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+            });
+
+        // Act
+        await _logic.RetriggerSelfDescriptionResponseCreation(process.Id);
+
+        // Assert
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+        processSteps.Should().ContainSingle().And.Satisfy(
+            x => x.ProcessStepTypeId == ProcessStepTypeId.SELF_DESCRIPTION_CONNECTOR_CREATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO);
+    }
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseCreation_WithInvalidProcess_ThrowsNotFoundException()
+    {
+        // Arrange
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        A.CallTo(() => _processStepRepository.IsValidProcess(process.Id, ProcessTypeId.SELF_DESCRIPTION_CREATION, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns((false, new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.RETRIGGER_AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow), 1))));
+        Task Act() => _logic.RetriggerSelfDescriptionResponseCreation(process.Id);
+
+        // Act
+        var result = await Assert.ThrowsAsync<NotFoundException>(Act);
+
+        // Assert
+        result.Message.Should().Be($"process {process.Id} does not exist");
     }
 
     #endregion
@@ -1410,7 +1593,7 @@ public class ConnectorsBusinessLogicTests
         A.CallTo(() => _companyRepository.GetCompanyBpnAndSelfDescriptionDocumentByIdAsync(A<Guid>.That.Not.Matches(x => x == ValidCompanyId || x == CompanyIdWithoutSdDocument)))
             .Returns((null, null));
         A.CallTo(() => _offerSubscriptionRepository.CheckOfferSubscriptionWithOfferProvider(_validOfferSubscriptionId, ValidCompanyId))
-            .Returns((true, true, false, OfferSubscriptionStatusId.ACTIVE, Guid.NewGuid(), ProviderCompanyId: HostCompanyId, ValidCompanyBpn));
+            .Returns((true, true, false, OfferSubscriptionStatusId.ACTIVE, Guid.NewGuid(), HostCompanyId, ValidCompanyBpn));
 
         A.CallTo(() => _connectorsRepository.CreateConnector(A<string>._, A<string>._, A<string>._, A<Action<Connector>?>._))
             .Invokes((string name, string location, string connectorUrl, Action<Connector>? setupOptionalFields) =>
@@ -1428,26 +1611,26 @@ public class ConnectorsBusinessLogicTests
         A.CallTo(() => _connectorsRepository.GetConnectorInformationByIdForIamUser(ExistingConnectorId, A<Guid>.That.Not.Matches(x => x == _identity.CompanyId)))
             .Returns((_fixture.Create<ConnectorInformationData>(), false));
 
-        A.CallTo(() => _serviceAccountRepository.CheckActiveServiceAccountExistsForCompanyAsync(ServiceAccountUserId, ValidCompanyId))
+        A.CallTo(() => _technicalUserRepository.CheckActiveServiceAccountExistsForCompanyAsync(ServiceAccountUserId, ValidCompanyId))
             .Returns(true);
 
         A.CallTo(() => _sdFactoryBusinessLogic.RegisterConnectorAsync(A<Guid>._, A<string>._, A<string>._, A<CancellationToken>._))
             .Returns(Task.CompletedTask);
 
-        A.CallTo(() => _portalRepositories.GetInstance<IServiceAccountRepository>()).Returns(_serviceAccountRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<ITechnicalUserRepository>()).Returns(_technicalUserRepository);
         A.CallTo(() => _portalRepositories.GetInstance<ICountryRepository>()).Returns(_countryRepository);
         A.CallTo(() => _portalRepositories.GetInstance<ICompanyRepository>()).Returns(_companyRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IConnectorsRepository>()).Returns(_connectorsRepository);
-        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IPortalProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository<ProcessTypeId, ProcessStepTypeId>>()).Returns(_processStepRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IUserRepository>()).Returns(_userRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IDocumentRepository>()).Returns(_documentRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IOfferSubscriptionsRepository>()).Returns(_offerSubscriptionRepository);
-        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository>()).Returns(_processStepRepository);
     }
 
     private void SetupCheckActiveServiceAccountExistsForCompanyAsyncForManaged()
     {
-        A.CallTo(() => _serviceAccountRepository.CheckActiveServiceAccountExistsForCompanyAsync(ServiceAccountUserId, HostCompanyId))
+        A.CallTo(() => _technicalUserRepository.CheckActiveServiceAccountExistsForCompanyAsync(ServiceAccountUserId, HostCompanyId))
             .Returns(true);
     }
 
@@ -1461,7 +1644,7 @@ public class ConnectorsBusinessLogicTests
     private void SetupTechnicalIdentity()
     {
         A.CallTo(() => _identity.IdentityId).Returns(ServiceAccountUserId);
-        A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_SERVICE_ACCOUNT);
+        A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.TECHNICAL_USER);
     }
 
     private void SetupFakesForGetMissingSdDocConnectors(int count = 5)

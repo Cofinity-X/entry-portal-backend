@@ -20,7 +20,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Org.Eclipse.TractusX.Portal.Backend.IssuerComponent.Library</AssemblyName>
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="JsonSchema.Net" Version="6.0.5" />
+    <PackageReference Include="JsonSchema.Net" Version="7.3.1" />
   </ItemGroup>
 
 </Project>

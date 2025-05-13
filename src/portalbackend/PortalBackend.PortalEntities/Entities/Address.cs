@@ -18,8 +18,8 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Auditing;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Base;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -32,15 +32,17 @@ public class Address : IBaseEntity
         City = null!;
         Streetname = null!;
         CountryAlpha2Code = null!;
+        Region = null!;
         Companies = new HashSet<Company>();
     }
 
-    public Address(Guid id, string city, string streetname, string countryAlpha2Code, DateTimeOffset dateCreated) : this()
+    public Address(Guid id, string city, string streetname, string region, string countryAlpha2Code, DateTimeOffset dateCreated) : this()
     {
         Id = id;
         DateCreated = dateCreated;
         City = city;
         Streetname = streetname;
+        Region = region;
         CountryAlpha2Code = countryAlpha2Code;
     }
 
@@ -55,7 +57,7 @@ public class Address : IBaseEntity
     public string City { get; set; }
 
     [MaxLength(255)]
-    public string? Region { get; set; }
+    public string Region { get; set; }
 
     [MaxLength(255)]
     public string? Streetadditional { get; set; }

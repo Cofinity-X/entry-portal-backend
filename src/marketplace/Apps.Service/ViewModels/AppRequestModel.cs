@@ -32,10 +32,10 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 /// <param name="Descriptions">Descriptions</param>
 /// <param name="SupportedLanguageCodes">SupportedLanguageCodes</param>
 /// <param name="Price">Price</param>
-/// <param name="PrivacyPolicies">Price</param>
-/// <param name="ProviderUri">Price</param>
-/// <param name="ContactEmail">Price</param>
-/// <param name="ContactNumber">Price</param>
+/// <param name="PrivacyPolicies">PrivacyPolicies</param>
+/// <param name="ProviderUri">ProviderUri</param>
+/// <param name="ContactEmail">ContactEmail</param>
+/// <param name="ContactNumber">ContactNumber</param>
 public record AppRequestModel(
     string? Title,
     Guid? SalesManagerId,

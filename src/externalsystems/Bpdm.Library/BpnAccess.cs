@@ -27,25 +27,15 @@ using System.Text.Json;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library;
 
-public class BpnAccess : IBpnAccess
+public class BpnAccess(IHttpClientFactory httpFactory) : IBpnAccess
 {
-    private readonly HttpClient _httpClient;
     private static readonly JsonSerializerOptions Options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-
-    public BpnAccess(IHttpClientFactory httpFactory)
-    {
-        _httpClient = httpFactory.CreateClient(nameof(BpnAccess));
-    }
 
     public async Task<BpdmLegalEntityDto> FetchLegalEntityByBpn(string businessPartnerNumber, string token, CancellationToken cancellationToken)
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var uri = new UriBuilder
-        {
-            Path = $"legal-entities/{Uri.EscapeDataString(businessPartnerNumber)}",
-            Query = "idType=BPN"
-        }.Uri;
-        var result = await _httpClient.GetAsync(uri.PathAndQuery.TrimStart('/'), cancellationToken)
+        using var httpClient = httpFactory.CreateClient(nameof(BpnAccess));
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var result = await httpClient.GetAsync($"legal-entities/{Uri.EscapeDataString(businessPartnerNumber)}?idType=BPN", cancellationToken)
             .CatchingIntoServiceExceptionFor("bpn-fetch-legal-entity")
             .ConfigureAwait(false);
         try
@@ -55,6 +45,7 @@ public class BpnAccess : IBpnAccess
             {
                 throw new ServiceException("Access to external system bpdm did not return a valid legal entity response");
             }
+
             return legalEntityResponse;
         }
         catch (JsonException je)
@@ -65,7 +56,8 @@ public class BpnAccess : IBpnAccess
 
     public async Task<BpdmPartnerNetworkData> FetchPartnerNetworkData(int page, int size, IEnumerable<string> bpnl, string legalName, string token, CancellationToken cancellationToken)
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var httpClient = httpFactory.CreateClient(nameof(BpnAccess));
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var uri = new UriBuilder
         {
             Path = $"members/legal-entities/search",
@@ -77,7 +69,7 @@ public class BpnAccess : IBpnAccess
         async ValueTask<(bool, string?)> CreateErrorMessage(HttpResponseMessage errorResponse) =>
             (false, (await errorResponse.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None)));
 
-        var result = await _httpClient.PostAsync(uri.PathAndQuery.TrimStart('/'), content, cancellationToken)
+        var result = await httpClient.PostAsync(uri.PathAndQuery.TrimStart('/'), content, cancellationToken)
             .CatchingIntoServiceExceptionFor("fetch-partner-network", HttpAsyncResponseMessageExtension.RecoverOptions.INFRASTRUCTURE, CreateErrorMessage)
             .ConfigureAwait(false);
         try

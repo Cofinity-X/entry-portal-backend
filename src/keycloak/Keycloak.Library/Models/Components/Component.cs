@@ -24,24 +24,30 @@
  * SOFTWARE.
  ********************************************************************************/
 
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.Components;
 
 public class Component
 {
-    [JsonProperty("id")]
-    public string Id { get; set; }
-    [JsonProperty("name")]
-    public string Name { get; set; }
-    [JsonProperty("providerId")]
-    public string ProviderId { get; set; }
-    [JsonProperty("providerType")]
-    public string ProviderType { get; set; }
-    [JsonProperty("parentId")]
-    public string ParentId { get; set; }
-    [JsonProperty("config")]
-    public Config Config { get; set; }
-    [JsonProperty("subType")]
-    public string SubType { get; set; }
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("providerId")]
+    public string? ProviderId { get; set; }
+
+    [JsonPropertyName("providerType")]
+    public string? ProviderType { get; set; }
+
+    [JsonPropertyName("parentId")]
+    public string? ParentId { get; set; }
+
+    [JsonPropertyName("config")]
+    public IReadOnlyDictionary<string, IEnumerable<string>?>? Config { get; set; }
+
+    [JsonPropertyName("subType")]
+    public string? SubType { get; set; }
 }

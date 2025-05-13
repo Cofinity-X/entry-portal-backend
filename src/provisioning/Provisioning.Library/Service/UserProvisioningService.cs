@@ -19,6 +19,7 @@
 
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Async;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Keycloak.ErrorHandling;
@@ -246,9 +247,6 @@ public class UserProvisioningService : IUserProvisioningService
         var idpAlias = idpAliase.First();
         return (new CompanyNameIdpAliasData(company.CompanyId, company.CompanyName, company.BusinessPartnerNumber, idpAlias.Alias, idpAlias.IdentityProviderId, true), createdByName);
     }
-
-    public Task<string?> GetIdentityProviderDisplayName(string idpAlias) =>
-        _provisioningManager.GetCentralIdentityProviderDisplayName(idpAlias);
 
     private async Task<Guid> ValidateDuplicateIdpUsersAsync(IUserRepository userRepository, string alias, UserCreationRoleDataIdpInfo user, Guid companyId)
     {

@@ -22,14 +22,14 @@
   <PropertyGroup>
     <AssemblyName>Org.Eclipse.TractusX.Portal.Backend.Mailing.SendMail</AssemblyName>
     <RootNamespace>Org.Eclipse.TractusX.Portal.Backend.Mailing.SendMail</RootNamespace>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.3.0" />
-    <PackageReference Include="MimeKit" Version="4.7.1" />
+    <PackageReference Include="MailKit" Version="4.9.0" />
+    <PackageReference Include="MimeKit" Version="4.9.0" />
   </ItemGroup>
 
   <ItemGroup>

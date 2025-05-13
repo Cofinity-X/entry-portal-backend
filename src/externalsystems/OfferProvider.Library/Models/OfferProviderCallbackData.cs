@@ -25,10 +25,10 @@ namespace Org.Eclipse.TractusX.Portal.Backend.OfferProvider.Library.Models;
 /// <summary>
 /// Callback data for the offer provider after the auto setup succeeded
 /// </summary>
-/// <param name="TechnicalUsersInfo">List containing the information of the technical users</param>
+/// <param name="TechnicalUserInfo">Object containing the information of the technical user</param>
 /// <param name="ClientInfo">Information of the created client</param>
 public record OfferProviderCallbackData(
-    [property: JsonPropertyName("technicalUsersInfo")] IEnumerable<CallbackTechnicalUserInfoData>? TechnicalUsersInfo,
+    [property: JsonPropertyName("technicalUserInfo")] CallbackTechnicalUserInfoData? TechnicalUserInfo,
     [property: JsonPropertyName("clientInfo")] CallbackClientInfoData? ClientInfo
 );
 

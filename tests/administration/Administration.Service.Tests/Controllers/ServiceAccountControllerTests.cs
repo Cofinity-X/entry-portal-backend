@@ -20,10 +20,10 @@
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Collections.Immutable;
@@ -34,7 +34,7 @@ public class ServiceAccountControllerTests
 {
     private readonly IIdentityData _identity;
     private readonly IFixture _fixture;
-    private readonly IServiceAccountBusinessLogic _logic;
+    private readonly ITechnicalUserBusinessLogic _logic;
     private readonly ServiceAccountController _controller;
 
     public ServiceAccountControllerTests()
@@ -48,7 +48,7 @@ public class ServiceAccountControllerTests
         A.CallTo(() => _identity.IdentityId).Returns(Guid.NewGuid());
         A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_USER);
         A.CallTo(() => _identity.CompanyId).Returns(Guid.NewGuid());
-        _logic = A.Fake<IServiceAccountBusinessLogic>();
+        _logic = A.Fake<ITechnicalUserBusinessLogic>();
         _controller = new ServiceAccountController(_logic);
         _controller.AddControllerContextWithClaim(_identity);
     }
@@ -59,10 +59,10 @@ public class ServiceAccountControllerTests
         // Arrange
         var serviceAccountId = Guid.NewGuid();
         var responseData = _fixture.Build<ServiceAccountDetails>()
-            .With(x => x.ServiceAccountId, serviceAccountId)
+            .With(x => x.TechnicalUserId, serviceAccountId)
             .CreateMany(1);
-        var data = _fixture.Create<ServiceAccountCreationInfo>();
-        A.CallTo(() => _logic.CreateOwnCompanyServiceAccountAsync(A<ServiceAccountCreationInfo>._))
+        var data = _fixture.Create<TechnicalUserCreationInfo>();
+        A.CallTo(() => _logic.CreateOwnCompanyServiceAccountAsync(A<TechnicalUserCreationInfo>._))
             .Returns(responseData);
 
         // Act
@@ -71,7 +71,7 @@ public class ServiceAccountControllerTests
         // Assert
         A.CallTo(() => _logic.CreateOwnCompanyServiceAccountAsync(data)).MustHaveHappenedOnceExactly();
 
-        result.Should().ContainSingle(x => x.ServiceAccountId == responseData.First().ServiceAccountId);
+        result.Should().ContainSingle(x => x.TechnicalUserId == responseData.First().TechnicalUserId);
     }
 
     [Fact]

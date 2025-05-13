@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -166,6 +165,10 @@ public class ServiceSettings
     [Required(AllowEmptyStrings = false)]
     public string OfferDetailAddress { get; init; } = null!;
 
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> DimUserRoles { get; set; } = null!;
+
     [Required(AllowEmptyStrings = true)]
     public string DecentralIdentityManagementAuthUrl { get; set; } = null!;
 
@@ -174,6 +177,10 @@ public class ServiceSettings
 
     [Required(AllowEmptyStrings = true)]
     public string BpnDidResolverUrl { get; set; } = null!;
+
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> UserRolesAccessibleByProviderOnly { get; set; } = null!;
 }
 
 public static class ServiceSettingsExtension
@@ -184,10 +191,7 @@ public static class ServiceSettingsExtension
     {
         services.AddOptions<ServiceSettings>()
             .Bind(section)
-            .ValidateDataAnnotations()
-            .ValidateEnumEnumeration(section)
-            .ValidateDistinctValues(section)
-            .ValidateOnStart();
+            .EnvironmentalValidation(section);
         return services;
     }
 }

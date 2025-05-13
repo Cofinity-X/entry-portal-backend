@@ -71,8 +71,9 @@ public interface IOfferService
     /// Return Agreements for App_Contract Category
     /// </summary>
     /// <param name="offerTypeId">OfferTypeId the agreement is associated with</param>
+    /// <param name="languageShortName">language to get agreement value</param>
     /// <returns></returns>
-    IAsyncEnumerable<AgreementDocumentData> GetOfferTypeAgreements(OfferTypeId offerTypeId);
+    IAsyncEnumerable<AgreementDocumentData> GetOfferTypeAgreements(OfferTypeId offerTypeId, string languageShortName);
 
     /// <summary>
     /// Return Offer Agreement Consent
@@ -105,8 +106,9 @@ public interface IOfferService
     /// <param name="offerId"></param>
     /// <param name="offerTypeId"></param>
     /// <param name="documentTypeId"></param>
+    /// <param name="languageShortName"></param>
     /// <returns></returns>
-    Task<OfferProviderResponse> GetProviderOfferDetailsForStatusAsync(Guid offerId, OfferTypeId offerTypeId, DocumentTypeId documentTypeId);
+    Task<OfferProviderResponse> GetProviderOfferDetailsForStatusAsync(Guid offerId, OfferTypeId offerTypeId, DocumentTypeId documentTypeId, string languageShortName);
 
     /// <summary>
     /// Checks whether the sales manager has the a sales manager role assigned and is in the same company as the user
@@ -200,8 +202,10 @@ public interface IOfferService
     /// </summary>
     /// <param name="offerId">Id of the offer</param>
     /// <param name="offerTypeId">Id of the offer type</param>
+    /// <param name="externalUserRolesConfig">The ExternalUserRoles</param>
+    /// <param name="userRolesAccessibleByProviderOnly">The user roles that make a technical user accessible only be the provider</param>
     /// <returns>IEnumerable with the technical user profile information</returns>
-    Task<IEnumerable<TechnicalUserProfileInformation>> GetTechnicalUserProfilesForOffer(Guid offerId, OfferTypeId offerTypeId);
+    Task<IEnumerable<TechnicalUserProfileInformation>> GetTechnicalUserProfilesForOffer(Guid offerId, OfferTypeId offerTypeId, IEnumerable<UserRoleConfig> externalUserRolesConfig, IEnumerable<UserRoleConfig> userRolesAccessibleByProviderOnly);
 
     /// <summary>
     /// Creates or updates the technical user profiles
@@ -210,7 +214,8 @@ public interface IOfferService
     /// <param name="offerTypeId">The OfferTypeId of the offer</param>
     /// <param name="data">The technical user profiles</param>
     /// <param name="technicalUserProfileClient">Client to get the technicalUserProfiles</param>
-    Task UpdateTechnicalUserProfiles(Guid offerId, OfferTypeId offerTypeId, IEnumerable<TechnicalUserProfileData> data, string technicalUserProfileClient);
+    /// <param name="userRolesAccessibleByProviderOnly">User roles which will make the technical user visible for only the provider</param>
+    Task UpdateTechnicalUserProfiles(Guid offerId, OfferTypeId offerTypeId, IEnumerable<TechnicalUserProfileData> data, string technicalUserProfileClient, IEnumerable<UserRoleConfig> userRolesAccessibleByProviderOnly);
 
     /// <summary>
     /// Gets the information for the subscription for the subscriber

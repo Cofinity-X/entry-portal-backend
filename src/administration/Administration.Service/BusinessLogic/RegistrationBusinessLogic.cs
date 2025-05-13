@@ -20,6 +20,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Clearinghouse.Library.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Clearinghouse.Library.Models;
@@ -27,6 +28,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Dim.Library.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Dim.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.IssuerComponent.Library.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.IssuerComponent.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
@@ -35,9 +37,8 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.ApplicationChecklist.Library;
-using Org.Eclipse.TractusX.Portal.Backend.Processes.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.Mailing.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Common;
@@ -58,13 +59,11 @@ public sealed class RegistrationBusinessLogic(
     IIssuerComponentBusinessLogic issuerComponentBusinessLogic,
     IProvisioningManager provisioningManager,
     IMailingProcessCreation mailingProcessCreation,
-    IIdentityService identityService,
     ILogger<RegistrationBusinessLogic> logger)
     : IRegistrationBusinessLogic
 {
     private static readonly Regex BpnRegex = new(ValidationExpressions.Bpn, RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
-    private readonly IIdentityData _identityData = identityService.IdentityData;
     private readonly RegistrationSettings _settings = configuration.Value;
 
     public Task<CompanyWithAddressData> GetCompanyWithAddressAsync(Guid applicationId)
@@ -82,11 +81,11 @@ public sealed class RegistrationBusinessLogic(
         var companyWithAddress = await portalRepositories.GetInstance<IApplicationRepository>().GetCompanyUserRoleWithAddressUntrackedAsync(applicationId, _settings.DocumentTypeIds).ConfigureAwait(ConfigureAwaitOptions.None);
         if (companyWithAddress == null)
         {
-            throw NotFoundException.Create(AdministrationRegistrationErrors.APPLICATION_NOT_FOUND, [new("applicationId", applicationId.ToString())]);
+            throw NotFoundException.Create(AdministrationRegistrationErrors.APPLICATION_NOT_FOUND, [new ErrorParameter(nameof(applicationId), applicationId.ToString())]);
         }
         if (!companyWithAddress.Name.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "OrganisationName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", "OrganisationName")]);
         }
 
         return new CompanyWithAddressData(
@@ -125,12 +124,12 @@ public sealed class RegistrationBusinessLogic(
     {
         if (companyName != null && !companyName.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "CompanyName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", "CompanyName")]);
         }
         var applications = portalRepositories.GetInstance<IApplicationRepository>()
             .GetCompanyApplicationsFilteredQuery(
                 companyName?.Length >= 3 ? companyName : null,
-                GetCompanyApplicationStatusIds(companyApplicationStatusFilter));
+                companyApplicationStatusFilter.GetCompanyApplicationStatusIds());
 
         return Pagination.CreateResponseAsync(
             page,
@@ -161,50 +160,11 @@ public sealed class RegistrationBusinessLogic(
                     .AsAsyncEnumerable()));
     }
 
-    public Task<Pagination.Response<CompanyDetailsOspOnboarding>> GetOspCompanyDetailsAsync(int page, int size, CompanyApplicationStatusFilter? companyApplicationStatusFilter, string? companyName, string? externalId, DateCreatedOrderFilter? dateCreatedOrderFilter)
-    {
-        if (companyName != null && !companyName.IsValidCompanyName())
-        {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "CompanyName")]);
-        }
-        var applicationsQuery = portalRepositories.GetInstance<IApplicationRepository>()
-            .GetExternalCompanyApplicationsFilteredQuery(_identityData.CompanyId,
-                companyName?.Length >= 3 ? companyName : null, externalId,
-                GetCompanyApplicationStatusIds(companyApplicationStatusFilter));
-
-        var orderedQuery = dateCreatedOrderFilter == null || dateCreatedOrderFilter.Value == DateCreatedOrderFilter.DESC
-            ? applicationsQuery.AsSplitQuery().OrderByDescending(application => application.DateCreated)
-            : applicationsQuery.AsSplitQuery().OrderBy(application => application.DateCreated);
-
-        return Pagination.CreateResponseAsync(
-            page,
-            size,
-            _settings.ApplicationsMaxPageSize,
-            (skip, take) => new Pagination.AsyncSource<CompanyDetailsOspOnboarding>(
-                applicationsQuery.CountAsync(),
-                orderedQuery
-                    .Skip(skip)
-                    .Take(take)
-                    .Select(application => new CompanyDetailsOspOnboarding(
-                        application.CompanyId,
-                        application.NetworkRegistration!.ExternalId,
-                        application.Id,
-                        application.ApplicationStatusId,
-                        application.DateCreated,
-                        application.Company!.DateCreated,
-                        application.DateLastChanged,
-                        application.Company!.Name,
-                        application.Company.CompanyAssignedRoles.Select(companyAssignedRoles => companyAssignedRoles.CompanyRoleId),
-                        application.Company.IdentityProviders.Select(x => new IdentityProvidersDetails(x.Id, x.IamIdentityProvider!.IamIdpAlias)),
-                        application.Company.BusinessPartnerNumber,
-                        application.Company.Identities.Count(x => x.CompanyUser!.Identity!.UserStatusId != UserStatusId.DELETED)))
-                    .AsAsyncEnumerable()));
-    }
     public Task<Pagination.Response<CompanyApplicationWithCompanyUserDetails>> GetAllCompanyApplicationsDetailsAsync(int page, int size, string? companyName)
     {
         if (companyName != null && !companyName.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "CompanyName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", "CompanyName")]);
         }
         var applications = portalRepositories.GetInstance<IApplicationRepository>().GetAllCompanyApplicationsDetailsQuery(companyName);
 
@@ -253,12 +213,12 @@ public sealed class RegistrationBusinessLogic(
     {
         if (!BpnRegex.IsMatch(bpn))
         {
-            throw new ControllerArgumentException("BPN must contain exactly 16 characters long.", nameof(bpn));
+            throw ControllerArgumentException.Create(AdministrationRegistrationErrors.REGISTRATION_ARGUMENT_BPN_MUST_SIXTEEN_CHAR_LONG, new ErrorParameter[] { new(nameof(bpn), bpn) });
         }
 
         if (!bpn.StartsWith("BPNL", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ControllerArgumentException("businessPartnerNumbers must prefixed with BPNL", nameof(bpn));
+            throw ControllerArgumentException.Create(AdministrationRegistrationErrors.REGISTRATION_ARGUMENT_BPNL_PREFIXED_BPNL, new ErrorParameter[] { new(nameof(bpn), bpn) });
         }
 
         return UpdateCompanyBpnInternal(applicationId, bpn);
@@ -270,25 +230,23 @@ public sealed class RegistrationBusinessLogic(
             .GetBpnForIamUserUntrackedAsync(applicationId, bpn.ToUpper()).ToListAsync().ConfigureAwait(false);
         if (!result.Exists(item => item.IsApplicationCompany))
         {
-            throw new NotFoundException($"application {applicationId} not found");
+            throw NotFoundException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_APPLICATION_FOUND, new ErrorParameter[] { new(nameof(applicationId), applicationId.ToString()) });
         }
 
         if (result.Exists(item => !item.IsApplicationCompany))
         {
-            throw new ConflictException("BusinessPartnerNumber is already assigned to a different company");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_BPN_ASSIGN_TO_OTHER_COMP);
         }
 
         var applicationCompanyData = result.Single(item => item.IsApplicationCompany);
         if (!applicationCompanyData.IsApplicationPending)
         {
-            throw new ConflictException(
-                $"application {applicationId} for company {applicationCompanyData.CompanyId} is not pending");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_APPLICATION_FOR_COMPANY_NOT_PENDING, new ErrorParameter[] { new(nameof(applicationId), applicationId.ToString()), new("companyId", applicationCompanyData.CompanyId.ToString()) });
         }
 
         if (!string.IsNullOrWhiteSpace(applicationCompanyData.BusinessPartnerNumber))
         {
-            throw new ConflictException(
-                $"BusinessPartnerNumber of company {applicationCompanyData.CompanyId} has already been set.");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_BPN_OF_COMPANY_SET, new ErrorParameter[] { new("companyId", applicationCompanyData.CompanyId.ToString()) });
         }
 
         var context = await checklistService
@@ -347,12 +305,12 @@ public sealed class RegistrationBusinessLogic(
         var result = await portalRepositories.GetInstance<IApplicationRepository>().GetSubmittedApplicationIdsByBpn(bpn.ToUpper()).ToListAsync(cancellationToken).ConfigureAwait(false);
         if (!result.Any())
         {
-            throw new NotFoundException($"No companyApplication for BPN {bpn} is not in status SUBMITTED");
+            throw NotFoundException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_COMP_APP_BPN_STATUS_SUBMIT, new ErrorParameter[] { new("businessPartnerNumber", bpn) });
         }
 
         if (result.Count > 1)
         {
-            throw new ConflictException($"more than one companyApplication in status SUBMITTED found for BPN {bpn} [{string.Join(", ", result)}]");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_APP_STATUS_STATUS_SUBMIT_FOUND_BPN, new ErrorParameter[] { new("businessPartnerNumber", bpn) });
         }
 
         await clearinghouseBusinessLogic.ProcessEndClearinghouse(result.Single(), data, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -376,7 +334,7 @@ public sealed class RegistrationBusinessLogic(
             .ConfigureAwait(ConfigureAwaitOptions.None);
         if (data == default)
         {
-            throw new NotFoundException($"Application {applicationId} does not exists");
+            throw NotFoundException.Create(AdministrationRegistrationErrors.APPLICATION_NOT_FOUND, [new("applicationId", applicationId.ToString())]);
         }
 
         return data.ChecklistData
@@ -395,13 +353,13 @@ public sealed class RegistrationBusinessLogic(
         var possibleSteps = entryTypeId.GetManualTriggerProcessStepIds();
         if (!possibleSteps.Contains(processStepTypeId))
         {
-            throw new ControllerArgumentException($"The processStep {processStepTypeId} is not retriggerable");
+            throw ControllerArgumentException.Create(AdministrationRegistrationErrors.REGISTRATION_ARGUMENT_PROCEES_TYPID_NOT_TRIGERABLE, new ErrorParameter[] { new(nameof(processStepTypeId), processStepTypeId.ToString()) });
         }
 
         var nextStepData = processStepTypeId.GetNextProcessStepDataForManualTriggerProcessStepId();
         if (nextStepData == default)
         {
-            throw new UnexpectedConditionException($"While the processStep {processStepTypeId} is configured to be retriggerable there is no next step configured");
+            throw UnexpectedConditionException.Create(AdministrationRegistrationErrors.REGISTRATION_UNEXPECT_PROCESS_TYPID_CONFIGURED_TRIGERABLE, new ErrorParameter[] { new(nameof(processStepTypeId), processStepTypeId.ToString()) });
         }
 
         return TriggerChecklistInternal(applicationId, entryTypeId, processStepTypeId, nextStepData.ProcessStepTypeId, nextStepData.ChecklistEntryStatusId);
@@ -453,12 +411,12 @@ public sealed class RegistrationBusinessLogic(
                 .ConfigureAwait(ConfigureAwaitOptions.None);
             if (!result.IsValidApplicationId)
             {
-                throw new NotFoundException($"companyApplication {data.ExternalId} not found");
+                throw NotFoundException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_COMPANY_EXTERNAL_APP_NOT_FOUND, new ErrorParameter[] { new("externalId", data.ExternalId.ToString()) });
             }
 
             if (!result.IsSubmitted)
             {
-                throw new ConflictException($"companyApplication {data.ExternalId} is not in status SUBMITTED");
+                throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_COMPANY_EXTERNAL_NOT_STATUS_SUBMIT, new ErrorParameter[] { new("externalId", data.ExternalId.ToString()) });
             }
 
             await sdFactoryBusinessLogic.ProcessFinishSelfDescriptionLpForApplication(data, result.CompanyId, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
@@ -475,7 +433,7 @@ public sealed class RegistrationBusinessLogic(
                 applicationId,
                 ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION,
                 [ApplicationChecklistEntryStatusId.TO_DO],
-                ProcessStepTypeId.VERIFY_REGISTRATION,
+                ProcessStepTypeId.MANUAL_VERIFY_REGISTRATION,
                 [ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER],
                 [CreateWalletStep()])
             .ConfigureAwait(ConfigureAwaitOptions.None);
@@ -500,13 +458,13 @@ public sealed class RegistrationBusinessLogic(
     {
         if (string.IsNullOrWhiteSpace(comment))
         {
-            throw new ConflictException("No comment set.");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_COMMENT_NOT_SET);
         }
 
         var result = await portalRepositories.GetInstance<IApplicationRepository>().GetCompanyIdNameForSubmittedApplication(applicationId).ConfigureAwait(ConfigureAwaitOptions.None);
         if (result == default)
         {
-            throw new ArgumentException($"CompanyApplication {applicationId} is not in status SUBMITTED", nameof(applicationId));
+            throw ControllerArgumentException.Create(AdministrationRegistrationErrors.REGISTRATION_ARGUMENT_COMP_APP_STATUS_NOTSUBMITTED, new ErrorParameter[] { new(nameof(applicationId), applicationId.ToString()) });
         }
 
         var (companyId, companyName, networkRegistrationProcessId, idps, companyUserIds) = result;
@@ -516,12 +474,12 @@ public sealed class RegistrationBusinessLogic(
                 applicationId,
                 ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION,
                 [ApplicationChecklistEntryStatusId.TO_DO, ApplicationChecklistEntryStatusId.DONE],
-                ProcessStepTypeId.DECLINE_APPLICATION,
+                ProcessStepTypeId.MANUAL_DECLINE_APPLICATION,
                 null,
-                [ProcessStepTypeId.VERIFY_REGISTRATION,])
+                [ProcessStepTypeId.MANUAL_VERIFY_REGISTRATION,])
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
-        checklistService.SkipProcessSteps(context, [ProcessStepTypeId.VERIFY_REGISTRATION]);
+        checklistService.SkipProcessSteps(context, [ProcessStepTypeId.MANUAL_VERIFY_REGISTRATION]);
 
         var identityProviderRepository = portalRepositories.GetInstance<IIdentityProviderRepository>();
         var userRepository = portalRepositories.GetInstance<IUserRepository>();
@@ -592,7 +550,7 @@ public sealed class RegistrationBusinessLogic(
 
             if (string.IsNullOrWhiteSpace(user.Email))
             {
-                throw new ConflictException($"user {userName} has no assigned email");
+                throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_EMAIL_NOT_ASSIGN_TO_USERNAME, new ErrorParameter[] { new(nameof(userName), userName) });
             }
 
             var mailParameters = ImmutableDictionary.CreateRange(new[]
@@ -606,25 +564,6 @@ public sealed class RegistrationBusinessLogic(
         }
     }
 
-    private static IEnumerable<CompanyApplicationStatusId> GetCompanyApplicationStatusIds(CompanyApplicationStatusFilter? companyApplicationStatusFilter)
-    {
-        switch (companyApplicationStatusFilter)
-        {
-            case CompanyApplicationStatusFilter.Closed:
-                {
-                    return [CompanyApplicationStatusId.CONFIRMED, CompanyApplicationStatusId.DECLINED];
-                }
-            case CompanyApplicationStatusFilter.InReview:
-                {
-                    return [CompanyApplicationStatusId.SUBMITTED];
-                }
-            default:
-                {
-                    return [CompanyApplicationStatusId.SUBMITTED, CompanyApplicationStatusId.CONFIRMED, CompanyApplicationStatusId.DECLINED];
-                }
-        }
-    }
-
     /// <inheritdoc />
     public async Task<(string fileName, byte[] content, string contentType)> GetDocumentAsync(Guid documentId)
     {
@@ -633,7 +572,7 @@ public sealed class RegistrationBusinessLogic(
             .ConfigureAwait(ConfigureAwaitOptions.None);
         if (document == null)
         {
-            throw new NotFoundException($"Document {documentId} does not exist");
+            throw NotFoundException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_DOC_NOT_EXIST, new ErrorParameter[] { new(nameof(documentId), documentId.ToString()) });
         }
 
         return (document.DocumentName, document.DocumentContent, document.MediaTypeId.MapToMediaType());
@@ -661,48 +600,19 @@ public sealed class RegistrationBusinessLogic(
         var result = await portalRepositories.GetInstance<IApplicationRepository>().GetSubmittedApplicationIdsByBpn(data.Bpn.ToUpper()).ToListAsync(cancellationToken).ConfigureAwait(false);
         if (!result.Any())
         {
-            throw new NotFoundException($"No companyApplication for BPN {data.Bpn} is not in status SUBMITTED");
+            throw NotFoundException.Create(AdministrationRegistrationErrors.REGISTRATION_NOT_COMP_APP_BPN_STATUS_SUBMIT, new ErrorParameter[] { new("businessPartnerNumber", data.Bpn) });
         }
 
         if (result.Count > 1)
         {
-            throw new ConflictException($"more than one companyApplication in status SUBMITTED found for BPN {data.Bpn} [{string.Join(", ", result)}]");
+            throw ConflictException.Create(AdministrationRegistrationErrors.REGISTRATION_CONFLICT_APP_STATUS_STATUS_SUBMIT_FOUND_BPN, new ErrorParameter[] { new("businessPartnerNumber", data.Bpn) });
         }
 
         return result.Single();
     }
 
-    public Task RetriggerDeleteIdpSharedRealm(Guid processId) => RetriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_REALM);
-
-    /// <inheritdoc />
-    public Task RetriggerDeleteIdpSharedServiceAccount(Guid processId) => RetriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_SERVICEACCOUNT);
-
-    /// <inheritdoc />
-    public Task RetriggerDeleteCentralIdentityProvider(Guid processId) => RetriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_IDENTITY_PROVIDER);
-
-    public Task RetriggerDeleteCentralUser(Guid processId) => RetriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_USER);
-
-    private async Task RetriggerProcessStepInternal(Guid processId, ProcessStepTypeId stepToTrigger)
-    {
-        var (processType, nextStep) = stepToTrigger switch
-        {
-            ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_REALM => (ProcessTypeId.IDENTITYPROVIDER_PROVISIONING, ProcessStepTypeId.DELETE_IDP_SHARED_REALM),
-            ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_SERVICEACCOUNT => (ProcessTypeId.IDENTITYPROVIDER_PROVISIONING, ProcessStepTypeId.DELETE_IDP_SHARED_SERVICEACCOUNT),
-            ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_IDENTITY_PROVIDER => (ProcessTypeId.IDENTITYPROVIDER_PROVISIONING, ProcessStepTypeId.DELETE_CENTRAL_IDENTITY_PROVIDER),
-            ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_USER => (ProcessTypeId.USER_PROVISIONING, ProcessStepTypeId.DELETE_CENTRAL_USER),
-            _ => throw new UnexpectedConditionException($"Step {stepToTrigger} is not retriggerable")
-        };
-
-        var (validProcessId, processData) = await portalRepositories.GetInstance<IProcessStepRepository>().IsValidProcess(processId, processType, Enumerable.Repeat(stepToTrigger, 1)).ConfigureAwait(false);
-        if (!validProcessId)
-        {
-            throw new NotFoundException($"process {processId} does not exist");
-        }
-
-        var context = processData.CreateManualProcessData(stepToTrigger, portalRepositories, () => $"processId {processId}");
-
-        context.ScheduleProcessSteps(Enumerable.Repeat(nextStep, 1));
-        context.FinalizeProcessStep();
-        await portalRepositories.SaveAsync().ConfigureAwait(false);
-    }
+    public Task RetriggerDeleteIdpSharedRealm(Guid processId) => ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_REALM.TriggerProcessStep(processId, portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerDeleteIdpSharedServiceAccount(Guid processId) => ProcessStepTypeId.RETRIGGER_DELETE_IDP_SHARED_SERVICEACCOUNT.TriggerProcessStep(processId, portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerDeleteCentralIdentityProvider(Guid processId) => ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_IDENTITY_PROVIDER.TriggerProcessStep(processId, portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerDeleteCentralUser(Guid processId) => ProcessStepTypeId.RETRIGGER_DELETE_CENTRAL_USER.TriggerProcessStep(processId, portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
 }

@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -20,6 +19,7 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -59,7 +59,7 @@ public class TechnicalUserProfileRepository : ITechnicalUserProfileRepository
 
     /// <inheritdoc />
     public void RemoveTechnicalUserProfiles(IEnumerable<Guid> technicalUserProfileIds) =>
-        _context.RemoveRange(technicalUserProfileIds.Select(profileId => new TechnicalUserProfile(profileId, Guid.Empty)));
+        _context.TechnicalUserProfiles.RemoveRange(technicalUserProfileIds.Select(profileId => new TechnicalUserProfile(profileId, Guid.Empty)));
 
     /// <inheritdoc />
     public void RemoveTechnicalUserProfilesForOffer(Guid offerId)
@@ -69,14 +69,47 @@ public class TechnicalUserProfileRepository : ITechnicalUserProfileRepository
     }
 
     /// <inheritdoc />
-    public Task<(bool IsUserOfProvidingCompany, IEnumerable<TechnicalUserProfileInformation> Information)>
-        GetTechnicalUserProfileInformation(Guid offerId, Guid usersCompanyId, OfferTypeId offerTypeId) =>
-            _context.Offers
-                .Where(x => x.Id == offerId && x.OfferTypeId == offerTypeId)
-                .Select(x => new ValueTuple<bool, IEnumerable<TechnicalUserProfileInformation>>(
-                    x.ProviderCompanyId == usersCompanyId,
-                    x.TechnicalUserProfiles.Select(tup => new TechnicalUserProfileInformation(
-                        tup.Id,
-                        tup.TechnicalUserProfileAssignedUserRoles.Select(ur => new UserRoleInformation(ur.UserRole!.Id, ur.UserRole.UserRoleText))))))
-                .SingleOrDefaultAsync();
+    public Task<(bool IsUserOfProvidingCompany, IEnumerable<TechnicalUserProfileInformationTransferData> Information)> GetTechnicalUserProfileInformation(Guid offerId, Guid usersCompanyId, OfferTypeId offerTypeId, IEnumerable<UserRoleConfig> externalRoles, IEnumerable<UserRoleConfig> providerOnlyRoles)
+    {
+        var externalRoleIds = _context.UserRoles
+            .SelectMany(ur => ur.Offer!.AppInstances.Select(ai => new
+            {
+                ai.IamClient!.ClientClientId,
+                ur.UserRoleText,
+                UserRoleId = ur.Id
+            }))
+            .JoinTuples(
+                externalRoles.SelectMany(cr => cr.UserRoleNames.Select(urn => (cr.ClientId, urn))),
+                x => x.ClientClientId,
+                x => x.UserRoleText)
+            .Select(x => x.UserRoleId);
+
+        var providerOnlyRoleIds = _context.UserRoles
+            .SelectMany(ur => ur.Offer!.AppInstances.Select(ai => new
+            {
+                ai.IamClient!.ClientClientId,
+                ur.UserRoleText,
+                UserRoleId = ur.Id
+            }))
+            .JoinTuples(
+                providerOnlyRoles.SelectMany(cr => cr.UserRoleNames.Select(urn => (cr.ClientId, urn))),
+                x => x.ClientClientId,
+                x => x.UserRoleText)
+            .Select(x => x.UserRoleId);
+
+        return _context.Offers
+            .Where(x => x.Id == offerId && x.OfferTypeId == offerTypeId)
+            .Select(x => new ValueTuple<bool, IEnumerable<TechnicalUserProfileInformationTransferData>>(
+                x.ProviderCompanyId == usersCompanyId,
+                x.TechnicalUserProfiles.Select(tup => new TechnicalUserProfileInformationTransferData(
+                    tup.Id,
+                    tup.TechnicalUserProfileAssignedUserRoles
+                        .Select(ur => new UserRoleInformationTransferData(
+                            ur.UserRole!.Id,
+                            ur.UserRole.UserRoleText,
+                            externalRoleIds.Contains(ur.UserRole.Id),
+                            providerOnlyRoleIds.Contains(ur.UserRole.Id)
+                            ))))))
+            .SingleOrDefaultAsync();
+    }
 }

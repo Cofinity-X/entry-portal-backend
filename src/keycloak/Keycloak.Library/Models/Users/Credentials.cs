@@ -24,36 +24,36 @@
  * SOFTWARE.
  ********************************************************************************/
 
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.Users;
 
 public class Credentials
 {
-    [JsonProperty("algorithm")]
-    public string Algorithm { get; set; }
-    [JsonProperty("config")]
-    public IDictionary<string, string> Config { get; set; }
-    [JsonProperty("counter")]
+    [JsonPropertyName("algorithm")]
+    public string? Algorithm { get; set; }
+    [JsonPropertyName("config")]
+    public IDictionary<string, string>? Config { get; set; }
+    [JsonPropertyName("counter")]
     public int? Counter { get; set; }
-    [JsonProperty("createdDate")]
+    [JsonPropertyName("createdDate")]
     public long? CreatedDate { get; set; }
-    [JsonProperty("device")]
-    public string Device { get; set; }
-    [JsonProperty("digits")]
+    [JsonPropertyName("device")]
+    public string? Device { get; set; }
+    [JsonPropertyName("digits")]
     public int? Digits { get; set; }
-    [JsonProperty("hashIterations")]
+    [JsonPropertyName("hashIterations")]
     public int? HashIterations { get; set; }
-    [JsonProperty("hashSaltedValue")]
-    public string HashSaltedValue { get; set; }
-    [JsonProperty("period")]
+    [JsonPropertyName("hashSaltedValue")]
+    public string? HashSaltedValue { get; set; }
+    [JsonPropertyName("period")]
     public int? Period { get; set; }
-    [JsonProperty("salt")]
-    public string Salt { get; set; }
-    [JsonProperty("temporary")]
+    [JsonPropertyName("salt")]
+    public string? Salt { get; set; }
+    [JsonPropertyName("temporary")]
     public bool? Temporary { get; set; }
-    [JsonProperty("type")]
-    public string Type { get; set; }
-    [JsonProperty("value")]
-    public string Value { get; set; }
+    [JsonPropertyName("type")]
+    public string? Type { get; set; }
+    [JsonPropertyName("value")]
+    public string? Value { get; set; }
 }

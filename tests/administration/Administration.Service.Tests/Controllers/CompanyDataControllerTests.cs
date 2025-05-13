@@ -20,11 +20,11 @@ using Microsoft.AspNetCore.Mvc;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Net;
@@ -224,6 +224,20 @@ public class CompanyDataControllerTests
 
         // Assert
         A.CallTo(() => _logic.RetriggerSelfDescriptionCreation(processId)).MustHaveHappenedOnceExactly();
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseProcess_CallsExpected()
+    {
+        //Arrange
+        var processId = Guid.NewGuid();
+
+        // Act
+        var result = await _controller.RetriggerSelfDescriptionResponseProcess(processId);
+
+        // Assert
+        A.CallTo(() => _logic.RetriggerSelfDescriptionResponseCreation(processId)).MustHaveHappenedOnceExactly();
         result.Should().BeOfType<NoContentResult>();
     }
 }

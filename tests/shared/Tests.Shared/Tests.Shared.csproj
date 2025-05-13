@@ -22,16 +22,13 @@
   <PropertyGroup>
     <AssemblyName>Org.Eclipse.TractusX.Portal.Backend.Tests.Shared</AssemblyName>
     <RootNamespace>Org.Eclipse.TractusX.Portal.Backend.Tests.Shared</RootNamespace>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Flurl.Http.Signed" Version="3.2.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
-    <PackageReference Include="Testcontainers" Version="3.7.0" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="3.7.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,7 +36,6 @@
     <ProjectReference Include="..\..\..\src\keycloak\Keycloak.Library\Keycloak.Library.csproj" />
     <ProjectReference Include="..\..\framework\Framework.Tests.Shared\Framework.Tests.Shared.csproj" />
     <ProjectReference Include="..\..\..\src\portalbackend\PortalBackend.Migrations\PortalBackend.Migrations.csproj" />
-    <ProjectReference Include="..\..\..\src\portalbackend\PortalBackend.PortalEntities\PortalBackend.PortalEntities.csproj" />
     <ProjectReference Include="..\..\..\src\web\Web.Identity\Web.Identity.csproj" />
     <ProjectReference Include="..\..\..\src\web\Web.PublicInfos\Web.PublicInfos.csproj" />
   </ItemGroup>

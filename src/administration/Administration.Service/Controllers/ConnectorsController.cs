@@ -18,7 +18,6 @@
  ********************************************************************************/
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
@@ -228,6 +227,7 @@ public class ConnectorsController(IConnectorsBusinessLogic logic)
     /// </summary>
     /// <param name="connectorId" example="5636F9B9-C3DE-4BA5-8027-00D17A2FECFB">Id of the connector to trigger the daps call.</param>
     /// <param name="data">The update data</param>
+    /// <param name="cancellationToken">CancellationToken</param>
     /// <returns>NoContent Result.</returns>
     /// <remarks>Example: PUT: /api/administration/connectors/{connectorId}/connectorUrl</remarks>
     /// <response code="204">Url was successfully updated.</response>
@@ -244,9 +244,9 @@ public class ConnectorsController(IConnectorsBusinessLogic logic)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
-    public async Task<NoContentResult> UpdateConnectorUrl([FromRoute] Guid connectorId, [FromBody] ConnectorUpdateRequest data)
+    public async Task<NoContentResult> UpdateConnectorUrl([FromRoute] Guid connectorId, [FromBody] ConnectorUpdateRequest data, CancellationToken cancellationToken)
     {
-        await logic.UpdateConnectorUrl(connectorId, data)
+        await logic.UpdateConnectorUrl(connectorId, data, cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
         return NoContent();
     }
@@ -324,6 +324,26 @@ public class ConnectorsController(IConnectorsBusinessLogic logic)
     public async Task<NoContentResult> RetriggerSelfDescriptionProcess([FromRoute] Guid processId)
     {
         await logic.RetriggerSelfDescriptionCreation(processId).ConfigureAwait(false);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Retriggers the process to create the missing self description response documents
+    /// </summary>
+    /// <returns>NoContent</returns>
+    /// Example: POST: /api/administration/connectors/retrigger-self-description-response/{processId}
+    /// <response code="204">Empty response on success.</response>
+    /// <response code="404">No Process found for the processId</response>
+    [HttpPost]
+    [Authorize(Roles = "approve_new_partner")]
+    [Authorize(Policy = PolicyTypes.CompanyUser)]
+    [Route("retrigger-self-description-response")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<NoContentResult> RetriggerSelfDescriptionResponseProcess([FromRoute] Guid processId)
+    {
+        await logic.RetriggerSelfDescriptionResponseCreation(processId).ConfigureAwait(false);
         return NoContent();
     }
 }

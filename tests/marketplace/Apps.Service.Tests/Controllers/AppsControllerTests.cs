@@ -24,11 +24,11 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Collections.Immutable;
@@ -208,6 +208,21 @@ public class AppsControllerTests
 
         //Assert
         A.CallTo(() => _logic.AddOwnCompanyAppSubscriptionAsync(serviceId, consentData)).MustHaveHappenedOnceExactly();
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task DeclineAppSubscriptionAsync_ReturnsExpected()
+    {
+        //Arrange
+        var offerSubscriptionId = Guid.NewGuid();
+        A.CallTo(() => _logic.DeclineAppSubscriptionAsync(A<Guid>._));
+
+        //Act
+        var result = await _controller.DeclineAppSubscriptionAsync(offerSubscriptionId);
+
+        //Assert
+        A.CallTo(() => _logic.DeclineAppSubscriptionAsync(offerSubscriptionId)).MustHaveHappenedOnceExactly();
         Assert.IsType<NoContentResult>(result);
     }
 

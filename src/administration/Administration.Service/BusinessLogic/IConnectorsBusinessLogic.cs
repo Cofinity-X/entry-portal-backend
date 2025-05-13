@@ -97,7 +97,8 @@ public interface IConnectorsBusinessLogic
     /// </summary>
     /// <param name="connectorId">Id of the connector</param>
     /// <param name="data">Update data for the connector</param>
-    Task UpdateConnectorUrl(Guid connectorId, ConnectorUpdateRequest data);
+    /// <param name="cancellationToken">CancellationToken</param>
+    Task UpdateConnectorUrl(Guid connectorId, ConnectorUpdateRequest data, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets the offer subscription data
@@ -112,4 +113,5 @@ public interface IConnectorsBusinessLogic
     Task<Pagination.Response<ConnectorMissingSdDocumentData>> GetConnectorsWithMissingSdDocument(int page, int size);
     Task TriggerSelfDescriptionCreation();
     Task RetriggerSelfDescriptionCreation(Guid processId);
+    Task RetriggerSelfDescriptionResponseCreation(Guid processId);
 }

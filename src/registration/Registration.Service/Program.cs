@@ -20,20 +20,24 @@
 
 using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.DependencyInjection;
-using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling.Service;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.ApplicationChecklist.Config;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.Mailing.Library.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Service;
+using Org.Eclipse.TractusX.Portal.Backend.Registration.Common.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Registration.Service;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic;
+using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Web.Initialization;
 using Org.Eclipse.TractusX.Portal.Backend.Web.PublicInfos.DependencyInjection;
 
-var VERSION = "v2";
+var version = AssemblyExtension.GetApplicationVersion();
 
 await WebAppHelper
-    .BuildAndRunWebApplicationAsync<Program>(args, "registration", VERSION, builder =>
+    .BuildAndRunWebApplicationAsync<Program>(args, "registration", version, builder =>
     {
         builder.Services
             .AddPublicInfos();
@@ -45,11 +49,18 @@ await WebAppHelper
         builder.Services.AddTransient<IUserProvisioningService, UserProvisioningService>();
         builder.Services.AddTransient<IStaticDataBusinessLogic, StaticDataBusinessLogic>();
         builder.Services.AddTransient<IRegistrationBusinessLogic, RegistrationBusinessLogic>()
+            .AddTransient<IIdentityProviderProvisioningService, IdentityProviderProvisioningService>()
             .ConfigureRegistrationSettings(builder.Configuration.GetSection("Registration"))
             .AddTransient<INetworkBusinessLogic, NetworkBusinessLogic>();
 
         builder.Services.AddApplicationChecklistCreation(builder.Configuration.GetSection("ApplicationCreation"));
-        builder.Services.AddBpnAccess(builder.Configuration.GetValue<string>("BPN_Address") ?? throw new ConfigurationException("BPN_Address is not configured"));
+        builder.Services
+            .AddSingleton<IErrorMessageService, ErrorMessageService>()
+            .AddSingleton<IErrorMessageContainer, RegistrationValidationErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, RegistrationErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, NetworkErrorMessageContainer>();
+
+        builder.Services.AddBpnAccess(builder.Configuration.GetSection("BpnAccess"));
         builder.Services.AddMailingProcessCreation(builder.Configuration.GetSection("MailingProcessCreation"));
         builder.Services.AddExtendedRegistrationService(builder.Configuration.GetSection("Hubspot"));
     }).ConfigureAwait(ConfigureAwaitOptions.None);

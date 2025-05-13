@@ -37,9 +37,10 @@ public interface IDocumentRepository
     /// <param name="hash">Hash of the document</param>
     /// <param name="mediaTypeId">The documents mediaType</param>
     /// <param name="documentTypeId">the document type id</param>
+    /// <param name="documentSize">the document size</param>
     /// <param name="setupOptionalFields">Action to setup the additional fields</param>
     /// <returns>Returns the created document</returns>
-    Document CreateDocument(string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields);
+    Document CreateDocument(string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentLength, Action<Document>? setupOptionalFields);
 
     /// <summary>
     /// Gets the document with the given id from the persistence layer.
@@ -65,7 +66,7 @@ public interface IDocumentRepository
     /// <param name="documentId">id of the document the user id should be selected for</param>
     /// <param name="companyUserId"></param>
     /// <returns>Returns the user id if a document is found for the given id, otherwise null</returns>
-    Task<(Guid DocumentId, bool IsSameUser)> GetDocumentIdWithCompanyUserCheckAsync(Guid documentId, Guid companyUserId);
+    Task<(Guid DocumentId, bool IsSameUser, bool IsRoleOperator, bool IsStatusConfirmed)> GetDocumentIdWithCompanyUserCheckAsync(Guid documentId, Guid companyUserId);
 
     /// <summary>
     /// Get the document data and checks if the user 
@@ -153,4 +154,6 @@ public interface IDocumentRepository
     /// <param name="documentTypeIds">the document types</param>
     /// <returns></returns>
     Task<(byte[] Content, string FileName, bool IsDocumentTypeMatch, MediaTypeId MediaTypeId)> GetDocumentAsync(Guid documentId, IEnumerable<DocumentTypeId> documentTypeIds);
+
+    IAsyncEnumerable<(Guid DocumentId, IEnumerable<Guid> AgreementIds, IEnumerable<Guid> OfferIds)> GetDocumentDataForCleanup(DateTimeOffset dateCreated);
 }

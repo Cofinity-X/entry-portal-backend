@@ -23,6 +23,7 @@ using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Notifications.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Notifications.Service.ErrorHandling;
@@ -32,7 +33,6 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Xunit;
 
@@ -464,7 +464,7 @@ public class NotificationBusinessLogicTests
         }));
         var userId = Guid.NewGuid();
         var data = _fixture.Build<NotificationRequest>()
-            .With(x => x.Requester, userId)
+            .With(x => x.Receiver, userId)
             .With(x => x.NotificationTypeId, NotificationTypeId.CREDENTIAL_APPROVAL)
             .Create();
         A.CallTo(() => _userRepository.CheckUserExists(userId)).Returns(false);
@@ -487,7 +487,7 @@ public class NotificationBusinessLogicTests
             MaxPageSize = 15
         }));
         var userId = Guid.NewGuid();
-        var data = _fixture.Build<NotificationRequest>().With(x => x.Requester, userId).With(x => x.NotificationTypeId, NotificationTypeId.INFO).Create();
+        var data = _fixture.Build<NotificationRequest>().With(x => x.Receiver, userId).With(x => x.NotificationTypeId, NotificationTypeId.INFO).Create();
         async Task Act() => await sut.CreateNotification(data).ConfigureAwait(false);
 
         // Act
@@ -509,7 +509,7 @@ public class NotificationBusinessLogicTests
         var userId = Guid.NewGuid();
         var notifications = new List<Notification>();
         var data = _fixture.Build<NotificationRequest>()
-            .With(x => x.Requester, userId)
+            .With(x => x.Receiver, userId)
             .With(x => x.Content, "test")
             .With(x => x.NotificationTypeId, notificationTypeId)
             .Create();

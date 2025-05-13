@@ -19,7 +19,9 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Validation;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.ProcessIdentity;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Processes.ProcessIdentity.DependencyInjection;
 
@@ -29,7 +31,7 @@ public static class ProcessIdentityServiceCollectionExtensions
     {
         services.AddOptions<ProcessIdentitySettings>()
             .Bind(section)
-            .ValidateOnStart();
+            .EnvironmentalValidation(section);
 
         return services
             .AddTransient<IProcessIdentityDataBuilder, ProcessIdentityDataBuilder>()
@@ -40,7 +42,7 @@ public static class ProcessIdentityServiceCollectionExtensions
     {
         services.AddOptions<ProcessIdentitySettings>()
             .Bind(section)
-            .ValidateOnStart();
+            .EnvironmentalValidation(section);
 
         return services
             .AddScoped<IProcessIdentityDataBuilder, ProcessIdentityDataBuilder>()

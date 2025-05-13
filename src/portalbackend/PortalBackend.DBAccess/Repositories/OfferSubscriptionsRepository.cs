@@ -19,7 +19,10 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -58,11 +61,10 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                     SubscriptionStatusSorting.OfferIdDesc => (IEnumerable<Offer> o) => o.OrderByDescending(offer => offer.Id),
                     _ => null
                 },
-                g => new OfferCompanySubscriptionStatusData
-                {
-                    OfferId = g.Id,
-                    ServiceName = g.Name,
-                    CompanySubscriptionStatuses = g.OfferSubscriptions
+                g => new OfferCompanySubscriptionStatusData(
+                    g.Id,
+                    g.Name,
+                    g.OfferSubscriptions
                         .Where(os =>
                             statusIds.Contains(os.OfferSubscriptionStatusId) &&
                             (companyName == null || EF.Functions.ILike(os.Company!.Name, $"%{companyName.EscapeForILike()}%")))
@@ -82,11 +84,11 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                                         ps.ProcessStepTypeId,
                                         ps.ProcessStepStatusId))
                                     .Distinct())),
-                    Image = g.Documents
+                    g.Documents
                         .Where(document => document.DocumentTypeId == DocumentTypeId.APP_LEADIMAGE && document.DocumentStatusId == DocumentStatusId.LOCKED)
                         .Select(document => document.Id)
                         .FirstOrDefault()
-                })
+                ))
             .SingleOrDefaultAsync();
 
     /// <inheritdoc />
@@ -101,8 +103,8 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                 true,
                 os.ConnectorAssignedOfferSubscriptions.Where(caos => caos.Connector!.StatusId != ConnectorStatusId.INACTIVE).Select(caos =>
                     caos.Connector!.Id),
-                os.ConnectorAssignedOfferSubscriptions.Where(caos => caos.Connector!.CompanyServiceAccountId != null && caos.Connector.CompanyServiceAccount!.Identity!.UserStatusId != UserStatusId.INACTIVE).Select(caos =>
-                    caos.Connector!.CompanyServiceAccount!.Identity!.Id)
+                os.ConnectorAssignedOfferSubscriptions.Where(caos => caos.Connector!.TechnicalUserId != null && caos.Connector.TechnicalUser!.Identity!.UserStatusId != UserStatusId.INACTIVE).Select(caos =>
+                    caos.Connector!.TechnicalUser!.Identity!.Id)
             ))
             .SingleOrDefaultAsync();
 
@@ -166,9 +168,10 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
     /// <inheritdoc />
     public IAsyncEnumerable<(Guid OfferId, Guid SubscriptionId, string? OfferName, string SubscriptionUrl, Guid LeadPictureId, string Provider)> GetAllBusinessAppDataForUserIdAsync(Guid userId) =>
         dbContext.CompanyUsers.AsNoTracking()
-            .Where(user => user.Id == userId)
+            .Where(user => user.Id == userId && user.Identity!.IdentityTypeId == IdentityTypeId.COMPANY_USER)
             .SelectMany(user => user.Identity!.Company!.OfferSubscriptions.Where(subscription =>
-                subscription.Offer!.UserRoles.Any(ur => ur.IdentityAssignedRoles.Any(cu => cu.IdentityId == user.Id && cu.Identity!.IdentityTypeId == IdentityTypeId.COMPANY_USER)) &&
+                subscription.Offer!.OfferTypeId == OfferTypeId.APP &&
+                subscription.Offer.UserRoles.Any(ur => ur.IdentityAssignedRoles.Any(iar => iar.IdentityId == userId)) &&
                 subscription.AppSubscriptionDetail!.AppInstance != null &&
                 subscription.AppSubscriptionDetail.AppSubscriptionUrl != null))
             .Select(offerSubscription => new ValueTuple<Guid, Guid, string?, string, Guid, string>(
@@ -201,9 +204,9 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                         x.Company!.Name,
                         x.Company.BusinessPartnerNumber,
                         x.Company.Identities.Where(i => i.IdentityTypeId == IdentityTypeId.COMPANY_USER).Select(id => id.CompanyUser!).Where(cu => cu.Email != null && cu.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Any(ur => userRoleIds.Contains(ur.Id))).Select(cu => cu.Email!),
-                        x.Subscription.CompanyServiceAccounts.Select(sa => new SubscriptionTechnicalUserData(sa.Id, sa.Name, sa.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Select(ur => ur.UserRoleText))),
-                        x.Subscription.AppSubscriptionDetail!.AppSubscriptionUrl,
-                        x.Subscription.AppSubscriptionDetail!.AppInstance!.IamClient!.ClientClientId,
+                        x.Subscription.Technicalusers.Select(sa => new SubscriptionTechnicalUserData(sa.Id, sa.Name, sa.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Select(ur => ur.UserRoleText))),
+                        offerTypeId == OfferTypeId.APP ? x.Subscription.AppSubscriptionDetail!.AppSubscriptionUrl : null,
+                        offerTypeId == OfferTypeId.APP ? x.Subscription.AppSubscriptionDetail!.AppInstance!.IamClient!.ClientClientId : null,
                         x.Subscription.Process!.ProcessSteps
                             .Where(ps => ps.ProcessStepStatusId == ProcessStepStatusId.TODO)
                             .Select(ps => new ValueTuple<ProcessStepTypeId, ProcessStepStatusId>(
@@ -235,7 +238,7 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                         x.Subscription.Offer!.Name,
                         x.ProviderCompany!.Name,
                         x.ProviderCompany.Identities.Where(x => x.IdentityTypeId == IdentityTypeId.COMPANY_USER).Select(i => i.CompanyUser!).Where(cu => cu.Email != null && cu.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Any(ur => userRoleIds.Contains(ur.Id))).Select(cu => cu.Email!),
-                        x.Subscription.CompanyServiceAccounts.Where(x => x.Identity!.IdentityAssignedRoles.Any()).Select(sa => new SubscriptionTechnicalUserData(sa.Id, sa.Name, sa.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Select(ur => ur.UserRoleText))),
+                        x.Subscription.Technicalusers.Where(x => x.Identity!.IdentityAssignedRoles.Any()).Select(sa => new SubscriptionTechnicalUserData(sa.Id, sa.Name, sa.Identity!.IdentityAssignedRoles.Select(ur => ur.UserRole!).Select(ur => ur.UserRoleText))),
                         x.Subscription.ConnectorAssignedOfferSubscriptions.Select(caos => new SubscriptionAssignedConnectorData(
                             caos.Connector!.Id,
                             caos.Connector.Name,
@@ -367,7 +370,7 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
                 x.Offer.OfferTypeId == OfferTypeId.APP && (x.Offer.AppInstanceSetup == null || !x.Offer.AppInstanceSetup!.IsSingleInstance) ?
                     x.AppSubscriptionDetail!.AppInstance!.IamClient!.ClientClientId :
                     null,
-                x.CompanyServiceAccounts.Where(sa => sa.CompanyServiceAccountKindId == CompanyServiceAccountKindId.INTERNAL && sa.ClientClientId != null).Select(sa => sa.ClientClientId!),
+                x.Technicalusers.Where(sa => sa.TechnicalUserKindId == TechnicalUserKindId.INTERNAL && sa.ClientClientId != null).Select(sa => sa.ClientClientId!),
                 x.Offer.ProviderCompany!.ProviderCompanyDetail!.AutoSetupCallbackUrl != null
             ))
             .SingleOrDefaultAsync();
@@ -383,11 +386,11 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
             .SingleOrDefaultAsync();
 
     /// <inheritdoc />
-    public Task<VerifyProcessData?> GetProcessStepData(Guid offerSubscriptionId, IEnumerable<ProcessStepTypeId> processStepTypeIds) =>
+    public Task<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?> GetProcessStepData(Guid offerSubscriptionId, IEnumerable<ProcessStepTypeId> processStepTypeIds) =>
         dbContext.OfferSubscriptions
             .AsNoTracking()
             .Where(os => os.Id == offerSubscriptionId)
-            .Select(x => new VerifyProcessData(
+            .Select(x => new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(
                 x.Process,
                 x.Process!.ProcessSteps
                     .Where(step =>
@@ -423,11 +426,11 @@ public class OfferSubscriptionsRepository(PortalDbContext dbContext) : IOfferSub
             .SingleOrDefaultAsync();
 
     /// <inheritdoc />
-    public Task<(IEnumerable<(Guid TechnicalUserId, string? TechnicalClientId, CompanyServiceAccountKindId CompanyServiceAccountKindId)> ServiceAccounts, string? ClientId, string? CallbackUrl, OfferSubscriptionStatusId Status)> GetTriggerProviderCallbackInformation(Guid offerSubscriptionId) =>
+    public Task<(IEnumerable<(Guid TechnicalUserId, string? TechnicalClientId, TechnicalUserKindId TechnicalUserKindId)> ServiceAccounts, string? ClientId, string? CallbackUrl, OfferSubscriptionStatusId Status)> GetTriggerProviderCallbackInformation(Guid offerSubscriptionId) =>
         dbContext.OfferSubscriptions
             .Where(x => x.Id == offerSubscriptionId)
-            .Select(x => new ValueTuple<IEnumerable<(Guid, string?, CompanyServiceAccountKindId)>, string?, string?, OfferSubscriptionStatusId>(
-                    x.CompanyServiceAccounts.Select(sa => new ValueTuple<Guid, string?, CompanyServiceAccountKindId>(sa.Id, sa.ClientClientId, sa.CompanyServiceAccountKindId)),
+            .Select(x => new ValueTuple<IEnumerable<(Guid, string?, TechnicalUserKindId)>, string?, string?, OfferSubscriptionStatusId>(
+                    x.Technicalusers.Select(sa => new ValueTuple<Guid, string?, TechnicalUserKindId>(sa.Id, sa.ClientClientId, sa.TechnicalUserKindId)),
                     x.AppSubscriptionDetail!.AppInstance!.IamClient!.ClientClientId,
                     x.Offer!.ProviderCompany!.ProviderCompanyDetail!.AutoSetupCallbackUrl,
                     x.OfferSubscriptionStatusId

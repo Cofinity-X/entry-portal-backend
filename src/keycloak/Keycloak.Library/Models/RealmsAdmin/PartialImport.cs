@@ -24,22 +24,22 @@
  * SOFTWARE.
  ********************************************************************************/
 
-using Newtonsoft.Json;
-using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Common.Converters;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.Clients;
 using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.Groups;
 using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.Users;
+using System.Text.Json.Serialization;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library.Models.RealmsAdmin;
 
 public class PartialImport
 {
-    public IEnumerable<Client> Clients { get; set; }
-    public IEnumerable<Group> Groups { get; set; }
-    public IEnumerable<IdentityProvider> IdentityProviders { get; set; }
-    public string IfResourceExists { get; set; }
-    [JsonConverter(typeof(PoliciesConverter))]
-    public Policies Policy { get; set; }
-    public Roles Roles { get; set; }
-    public IEnumerable<User> Users { get; set; }
+    public IEnumerable<Client>? Clients { get; set; }
+    public IEnumerable<Group>? Groups { get; set; }
+    public IEnumerable<IdentityProvider>? IdentityProviders { get; set; }
+    public string? IfResourceExists { get; set; }
+    [JsonConverter(typeof(EnumMemberConverter<Policies>))]
+    public Policies? Policy { get; set; }
+    public Roles? Roles { get; set; }
+    public IEnumerable<User>? Users { get; set; }
 }

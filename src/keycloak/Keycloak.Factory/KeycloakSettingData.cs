@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2023 BMW Group AG
  * Copyright (c) 2023 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -21,6 +20,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Validation;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Factory;
 
@@ -65,7 +65,7 @@ public sealed class KeycloakSettingsMap : Dictionary<string, KeycloakSettings>
 {
     public bool Validate()
     {
-        if (!Values.Any())
+        if (Values.Count == 0)
         {
             throw new ConfigurationException();
         }
@@ -85,10 +85,17 @@ public static class KeycloakSettingsExtention
         this IServiceCollection services,
         IConfigurationSection section)
     {
-        services.AddOptions<KeycloakSettingsMap>()
-            .Bind(section)
-            .Validate(x => x.Validate())
-            .ValidateOnStart();
+        var options = services.AddOptions<KeycloakSettingsMap>()
+            .Bind(section);
+
+        options
+            .EnvironmentalValidation(section);
+
+        if (!EnvironmentExtensions.SkipValidation())
+        {
+            options.Validate(x => x.Validate());
+        }
+
         return services;
     }
 }

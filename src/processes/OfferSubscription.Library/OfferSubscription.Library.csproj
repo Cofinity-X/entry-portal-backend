@@ -22,13 +22,17 @@
     <PropertyGroup>
         <AssemblyName>Org.Eclipse.TractusX.Portal.Backend.Processes.OfferSubscription.Library</AssemblyName>
         <RootNamespace>Org.Eclipse.TractusX.Portal.Backend.Processes.OfferSubscription.Library</RootNamespace>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Processes.Library\Processes.Library.csproj" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.1" />
     </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\portalbackend\PortalBackend.DBAccess\PortalBackend.DBAccess.csproj" />
+  </ItemGroup>
 
 </Project>

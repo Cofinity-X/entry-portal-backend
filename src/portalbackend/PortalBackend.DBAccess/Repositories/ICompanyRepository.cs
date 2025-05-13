@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
@@ -40,7 +41,7 @@ public interface ICompanyRepository
 
     void AttachAndModifyCompany(Guid companyId, Action<Company>? initialize, Action<Company> modify);
 
-    Address CreateAddress(string city, string streetname, string countryAlpha2Code, Action<Address>? setOptionalParameters = null);
+    Address CreateAddress(string city, string streetname, string region, string countryAlpha2Code, Action<Address>? setOptionalParameters = null);
 
     void AttachAndModifyAddress(Guid addressId, Action<Address>? initialize, Action<Address> modify);
 
@@ -180,7 +181,8 @@ public interface ICompanyRepository
     void RemoveProviderCompanyDetails(Guid providerCompanyDetailId);
     Func<int, int, Task<Pagination.Source<CompanyMissingSdDocumentData>?>> GetCompaniesWithMissingSdDocument();
     IAsyncEnumerable<Guid> GetCompanyIdsWithMissingSelfDescription();
-    Task<(Guid Id, IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers, string? BusinessPartnerNumber, string CountryCode)> GetCompanyByProcessId(Guid processId);
+    Task<(Guid Id, string LegalName, IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers, string? BusinessPartnerNumber, string? CountryCode, string? Region)> GetCompanyByProcessId(Guid processId);
     Task<bool> IsExistingCompany(Guid companyId);
     Task<(bool Exists, Guid CompanyId, IEnumerable<Guid> SubmittedCompanyApplicationId)> GetCompanyIdByBpn(string bpn);
+    Task<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?> GetProcessDataForCompanyIdId(Guid companyId);
 }

@@ -26,9 +26,9 @@ using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Clearinghouse.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Dim.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.SdFactory.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Text;
@@ -71,30 +71,6 @@ public class RegistrationControllerTest
         //Assert
         A.CallTo(() => _logic.GetCompanyApplicationDetailsAsync(0, 15, null, null)).MustHaveHappenedOnceExactly();
         Assert.IsType<Pagination.Response<CompanyApplicationDetails>>(result);
-        result.Content.Should().HaveCount(5);
-    }
-
-    [Fact]
-    public async Task GetOspCompanyApplicationDetailsAsync_ReturnsCompanyApplicationDetails()
-    {
-        //Arrange
-        var page = _fixture.Create<int>();
-        var size = _fixture.Create<int>();
-        var companyApplicationStatusFilter = _fixture.Create<CompanyApplicationStatusFilter>();
-        var companyName = _fixture.Create<string>();
-        var externalId = _fixture.Create<string>();
-        var dateCreatedOrderFilter = _fixture.Create<DateCreatedOrderFilter>();
-
-        var paginationResponse = new Pagination.Response<CompanyDetailsOspOnboarding>(new Pagination.Metadata(15, 1, 1, 15), _fixture.CreateMany<CompanyDetailsOspOnboarding>(5));
-        A.CallTo(() => _logic.GetOspCompanyDetailsAsync(A<int>._, A<int>._, A<CompanyApplicationStatusFilter>._, A<string>._, A<string>._, A<DateCreatedOrderFilter>._))
-                  .Returns(paginationResponse);
-
-        //Act
-        var result = await _controller.GetOspCompanyDetailsAsync(page, size, companyApplicationStatusFilter, companyName, externalId, dateCreatedOrderFilter);
-
-        //Assert
-        A.CallTo(() => _logic.GetOspCompanyDetailsAsync(page, size, companyApplicationStatusFilter, companyName, externalId, dateCreatedOrderFilter)).MustHaveHappenedOnceExactly();
-        Assert.IsType<Pagination.Response<CompanyDetailsOspOnboarding>>(result);
         result.Content.Should().HaveCount(5);
     }
 
@@ -243,7 +219,7 @@ public class RegistrationControllerTest
         var result = await _controller.OverrideClearinghouseChecklist(applicationId);
 
         // Assert
-        A.CallTo(() => _logic.TriggerChecklistAsync(applicationId, ApplicationChecklistEntryTypeId.CLEARING_HOUSE, ProcessStepTypeId.TRIGGER_OVERRIDE_CLEARING_HOUSE)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _logic.TriggerChecklistAsync(applicationId, ApplicationChecklistEntryTypeId.CLEARING_HOUSE, ProcessStepTypeId.MANUAL_TRIGGER_OVERRIDE_CLEARING_HOUSE)).MustHaveHappenedOnceExactly();
         result.Should().BeOfType<NoContentResult>();
     }
 
@@ -417,6 +393,20 @@ public class RegistrationControllerTest
 
         // Assert
         A.CallTo(() => _logic.RetriggerDeleteCentralUser(processId)).MustHaveHappenedOnceExactly();
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [Fact]
+    public async Task RetriggerSetCxMembership_ReturnsExpectedResult()
+    {
+        // Arrange
+        var applicationId = _fixture.Create<Guid>();
+
+        // Act
+        var result = await _controller.RetriggerSetCxMembership(applicationId);
+
+        // Assert
+        A.CallTo(() => _logic.TriggerChecklistAsync(applicationId, ApplicationChecklistEntryTypeId.APPLICATION_ACTIVATION, ProcessStepTypeId.RETRIGGER_SET_CX_MEMBERSHIP_IN_BPDM)).MustHaveHappenedOnceExactly();
         result.Should().BeOfType<NoContentResult>();
     }
 }

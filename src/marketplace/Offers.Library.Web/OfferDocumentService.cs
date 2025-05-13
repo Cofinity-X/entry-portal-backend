@@ -20,13 +20,13 @@
 
 using Microsoft.AspNetCore.Http;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Web;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Web;
 
@@ -96,7 +96,7 @@ public class OfferDocumentService : IOfferDocumentService
 
         var documentData = await document.GetContentAndHash(cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        var doc = _portalRepositories.GetInstance<IDocumentRepository>().CreateDocument(document.FileName, documentData.Content, documentData.Hash, mediaTypeId, documentTypeId, x =>
+        var doc = _portalRepositories.GetInstance<IDocumentRepository>().CreateDocument(document.FileName, documentData.Content, documentData.Hash, mediaTypeId, documentTypeId, document.Length, x =>
         {
             x.CompanyUserId = _identityData.IdentityId;
         });

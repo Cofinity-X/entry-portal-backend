@@ -17,15 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Auditing;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Base;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 
-[AuditEntityV1(typeof(AuditConnector20240814))]
+[AuditEntityV1(typeof(AuditConnector20250113))]
 public class Connector : IAuditableV1, IBaseEntity
 {
     public Connector(Guid id, string name, string locationId, string connectorUrl)
@@ -66,9 +66,10 @@ public class Connector : IAuditableV1, IBaseEntity
     [LastChangedV1]
     public DateTimeOffset? DateLastChanged { get; set; }
 
-    public Guid? CompanyServiceAccountId { get; set; }
+    public Guid? TechnicalUserId { get; set; }
 
     public Guid? SdCreationProcessId { get; set; }
+    public DateTimeOffset? SdSkippedDate { get; set; }
 
     [LastEditorV1]
     public Guid? LastEditorId { get; private set; }
@@ -79,7 +80,7 @@ public class Connector : IAuditableV1, IBaseEntity
     public virtual Company? Provider { get; set; }
     public virtual Company? Host { get; set; }
     public virtual Country? Location { get; set; }
-    public virtual CompanyServiceAccount? CompanyServiceAccount { get; set; }
+    public virtual TechnicalUser? TechnicalUser { get; set; }
     public virtual Identity? LastEditor { get; set; }
     public virtual Process? SdCreationProcess { get; set; }
 

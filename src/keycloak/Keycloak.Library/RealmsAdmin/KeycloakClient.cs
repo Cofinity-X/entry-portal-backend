@@ -37,7 +37,7 @@ public partial class KeycloakClient
     public async Task ImportRealmAsync(string realm, Realm rep, CancellationToken cancellationToken = default) =>
         await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms")
-            .PostJsonAsync(rep, cancellationToken)
+            .PostJsonAsync(rep, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task<IEnumerable<Realm>> GetRealmsAsync(string realm) =>
@@ -50,14 +50,14 @@ public partial class KeycloakClient
         await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms/")
             .AppendPathSegment(realm, true)
-            .GetJsonAsync<Realm>(cancellationToken)
+            .GetJsonAsync<Realm>(cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task UpdateRealmAsync(string realm, Realm rep, CancellationToken cancellationToken = default) =>
         await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms/")
             .AppendPathSegment(realm, true)
-            .PutJsonAsync(rep, cancellationToken)
+            .PutJsonAsync(rep, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task DeleteRealmAsync(string realm) =>
@@ -331,12 +331,13 @@ public partial class KeycloakClient
             .ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
-    public async Task RealmPartialImportAsync(string realm, PartialImport rep) =>
-        await (await GetBaseUrlAsync(realm).ConfigureAwait(ConfigureAwaitOptions.None))
+    public async Task<PartialImportResponse> RealmPartialImportAsync(string realm, PartialImport rep, CancellationToken cancellationToken = default) =>
+        await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms/")
             .AppendPathSegment(realm, true)
             .AppendPathSegment("/partialImport")
-            .PostJsonAsync(rep)
+            .PostJsonAsync(rep, cancellationToken: cancellationToken)
+            .ReceiveJson<PartialImportResponse>()
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task<GlobalRequestResult> PushRealmRevocationPolicyAsync(string realm)

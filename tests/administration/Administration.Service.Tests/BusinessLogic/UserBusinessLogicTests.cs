@@ -21,7 +21,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library;
+using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Tests.Shared;
@@ -30,7 +33,6 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.Mailing.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Models;
@@ -44,6 +46,7 @@ public class UserBusinessLogicTests
     private readonly IFixture _fixture;
     private readonly IProvisioningManager _provisioningManager;
     private readonly IUserProvisioningService _userProvisioningService;
+    private readonly IIdentityProviderProvisioningService _identityProviderProvisioningService;
     private readonly IPortalRepositories _portalRepositories;
     private readonly IIdentityProviderRepository _identityProviderRepository;
     private readonly INotificationRepository _notificationRepository;
@@ -79,6 +82,7 @@ public class UserBusinessLogicTests
     private readonly Exception _error;
     private readonly UserSettings _settings;
     private readonly IIdentityService _identityService;
+    private readonly IBpnAccess _bpnAccess;
 
     public UserBusinessLogicTests()
     {
@@ -89,6 +93,7 @@ public class UserBusinessLogicTests
 
         _provisioningManager = A.Fake<IProvisioningManager>();
         _userProvisioningService = A.Fake<IUserProvisioningService>();
+        _identityProviderProvisioningService = A.Fake<IIdentityProviderProvisioningService>();
         _portalRepositories = A.Fake<IPortalRepositories>();
         _identityProviderRepository = A.Fake<IIdentityProviderRepository>();
         _userRepository = A.Fake<IUserRepository>();
@@ -124,6 +129,7 @@ public class UserBusinessLogicTests
 
         _identity = A.Fake<IIdentityData>();
         _identityService = A.Fake<IIdentityService>();
+        _bpnAccess = A.Fake<IBpnAccess>();
 
         A.CallTo(() => _identity.IdentityId).Returns(_companyUserId);
         A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_USER);
@@ -142,6 +148,7 @@ public class UserBusinessLogicTests
         A.CallTo(() => _portalRepositories.GetInstance<IUserRepository>()).Returns(_userRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IUserRolesRepository>()).Returns(_userRolesRepository);
         A.CallTo(() => _portalRepositories.GetInstance<INotificationRepository>()).Returns(_notificationRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
     }
 
     #region CreateOwnCompanyUsersAsync
@@ -162,11 +169,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         var result = await sut.CreateOwnCompanyUsersAsync(userList).ToListAsync();
@@ -205,10 +214,12 @@ public class UserBusinessLogicTests
             null!,
             _userProvisioningService,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         var Act = async () => await sut.CreateOwnCompanyUsersAsync(userList).ToListAsync();
@@ -238,10 +249,12 @@ public class UserBusinessLogicTests
             null!,
             _userProvisioningService,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         var Act = async () => await sut.CreateOwnCompanyUsersAsync(userList).ToListAsync();
@@ -284,11 +297,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         var result = await sut.CreateOwnCompanyUsersAsync(userList).ToListAsync();
@@ -340,11 +355,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         async Task Act() => await sut.CreateOwnCompanyUsersAsync(userList).ToListAsync();
@@ -383,11 +400,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         var result = await sut.CreateOwnCompanyIdpUserAsync(_identityProviderId, userCreationInfoIdp);
@@ -412,11 +431,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             null!,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         Task Act() => sut.CreateOwnCompanyIdpUserAsync(_identityProviderId, userCreationInfoIdp);
@@ -446,11 +467,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             null!,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         Task Act() => sut.CreateOwnCompanyIdpUserAsync(_identityProviderId, userCreationInfoIdp);
@@ -477,11 +500,13 @@ public class UserBusinessLogicTests
         var sut = new UserBusinessLogic(
             null!,
             _userProvisioningService,
+            _identityProviderProvisioningService,
             null!,
             null!,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options);
 
         Task Act() => sut.CreateOwnCompanyIdpUserAsync(_identityProviderId, userCreationInfoIdp);
@@ -505,10 +530,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -557,10 +584,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -588,10 +617,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -817,7 +848,7 @@ public class UserBusinessLogicTests
         await sut.ModifyAppUserRolesAsync(_validOfferId, _companyUserId, userRoles);
 
         // Assert
-        A.CallTo(() => _portalRepositories.RemoveRange(A<IEnumerable<IdentityAssignedRole>>.That.Matches(x => x.Count() == 1))).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _userRolesRepository.RemoveIdentityAssignedRoles(A<IEnumerable<IdentityAssignedRole>>.That.Matches(x => x.Count() == 1))).MustHaveHappenedOnceExactly();
         notifications.Should().ContainSingle()
             .Which.Should().Match<Notification>(x =>
                 x.ReceiverUserId == _companyUserId &&
@@ -964,10 +995,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -997,10 +1030,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -1058,10 +1093,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -1115,10 +1152,12 @@ public class UserBusinessLogicTests
             _provisioningManager,
             null!,
             null!,
+            null!,
             _portalRepositories,
             _identityService,
             _mailingProcessCreation,
             _logger,
+            null!,
             _options
         );
 
@@ -1153,7 +1192,7 @@ public class UserBusinessLogicTests
 
         A.CallTo(() => _userRepository.GetOwnCompanyAppUsersPaginationSourceAsync(A<Guid>._, A<Guid>._, A<IEnumerable<OfferSubscriptionStatusId>>._, A<IEnumerable<UserStatusId>>._, A<CompanyUserFilter>._))
             .Returns((skip, take) => Task.FromResult<Pagination.Source<CompanyAppUserDetails>?>(new Pagination.Source<CompanyAppUserDetails>(companyUsers.Count(), companyUsers.Skip(skip).Take(take))));
-        var sut = new UserBusinessLogic(null!, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(null!, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         var results = await sut.GetOwnCompanyAppUsersAsync(
@@ -1178,7 +1217,7 @@ public class UserBusinessLogicTests
 
         A.CallTo(() => _userRepository.GetOwnCompanyAppUsersPaginationSourceAsync(A<Guid>._, A<Guid>._, A<IEnumerable<OfferSubscriptionStatusId>>._, A<IEnumerable<UserStatusId>>._, A<CompanyUserFilter>._))
             .Returns((skip, take) => Task.FromResult<Pagination.Source<CompanyAppUserDetails>?>(new Pagination.Source<CompanyAppUserDetails>(companyUsers.Count(), companyUsers.Skip(skip).Take(take))));
-        var sut = new UserBusinessLogic(null!, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(null!, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         var results = await sut.GetOwnCompanyAppUsersAsync(
@@ -1208,7 +1247,7 @@ public class UserBusinessLogicTests
         A.CallTo(() => _userBusinessPartnerRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersAsync(companyUserId, _adminCompanyId, businessPartnerNumber))
             .Returns<(bool, bool, bool)>(default);
         A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
-        var sut = new UserBusinessLogic(null!, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(null!, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         async Task Act() => await sut.DeleteOwnUserBusinessPartnerNumbersAsync(companyUserId, businessPartnerNumber);
@@ -1229,7 +1268,7 @@ public class UserBusinessLogicTests
         A.CallTo(() => _userBusinessPartnerRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersAsync(companyUserId, _adminCompanyId, businessPartnerNumber.ToUpper()))
             .Returns((true, false, false));
         A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
-        var sut = new UserBusinessLogic(null!, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(null!, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         async Task Act() => await sut.DeleteOwnUserBusinessPartnerNumbersAsync(companyUserId, businessPartnerNumber);
@@ -1252,7 +1291,7 @@ public class UserBusinessLogicTests
         A.CallTo(() => _userBusinessPartnerRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersAsync(companyUserId, _adminCompanyId, businessPartnerNumber.ToUpper()))
             .Returns((true, true, true));
         A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         async Task Act() => await sut.DeleteOwnUserBusinessPartnerNumbersAsync(companyUserId, businessPartnerNumber);
@@ -1273,7 +1312,7 @@ public class UserBusinessLogicTests
         A.CallTo(() => _userBusinessPartnerRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersAsync(companyUserId, _adminCompanyId, businessPartnerNumber.ToUpper()))
             .Returns((true, true, false));
         A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
-        var sut = new UserBusinessLogic(null!, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(null!, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         async Task Act() => await sut.DeleteOwnUserBusinessPartnerNumbersAsync(companyUserId, businessPartnerNumber);
@@ -1296,7 +1335,7 @@ public class UserBusinessLogicTests
             .Returns((true, true, true));
         A.CallTo(() => _portalRepositories.GetInstance<IUserBusinessPartnerRepository>()).Returns(_userBusinessPartnerRepository);
         A.CallTo(() => _provisioningManager.GetUserByUserName(companyUserId.ToString())).Returns(iamUserId);
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, null!, A.Fake<IOptions<UserSettings>>());
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, null!, null!, A.Fake<IOptions<UserSettings>>());
 
         // Act
         await sut.DeleteOwnUserBusinessPartnerNumbersAsync(companyUserId, businessPartnerNumber.ToUpper());
@@ -1325,7 +1364,7 @@ public class UserBusinessLogicTests
             .Returns(userRoleIds.ToAsyncEnumerable());
         A.CallTo(() => _userRepository.GetUserDetailsUntrackedAsync(A<Guid>._, A<IEnumerable<Guid>>._))
             .Returns(companyOwnUserDetails);
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, _logger, _options);
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, null!, _options);
 
         // Act
         var result = await sut.GetOwnUserDetails();
@@ -1353,8 +1392,8 @@ public class UserBusinessLogicTests
         A.CallTo(() => _identity.IdentityId).Returns(userId);
         A.CallTo(() => _identity.CompanyId).Returns(companyId);
         A.CallTo(() => _userRepository.GetUserDetailsUntrackedAsync(userId, A<IEnumerable<Guid>>._))
-            .Returns(default(CompanyOwnUserTransferDetails));
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, _logger, _options);
+            .Returns<CompanyOwnUserTransferDetails?>(default);
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, null!, _options);
 
         // Act
         async Task Act() => await sut.GetOwnUserDetails();
@@ -1379,7 +1418,7 @@ public class UserBusinessLogicTests
 
         A.CallTo(() => _userRepository.GetOwnCompanyUserDetailsUntrackedAsync(A<Guid>._, A<Guid>._))
             .Returns(companyOwnUserDetails);
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, _logger, _options);
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, null!, _options);
 
         // Act
         var result = await sut.GetOwnCompanyUserDetailsAsync(userId);
@@ -1404,8 +1443,8 @@ public class UserBusinessLogicTests
         var companyId = Guid.NewGuid();
         A.CallTo(() => _identity.CompanyId).Returns(companyId);
         A.CallTo(() => _userRepository.GetOwnCompanyUserDetailsUntrackedAsync(A<Guid>._, A<Guid>._))
-            .Returns(default(CompanyUserDetailTransferData));
-        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, _portalRepositories, _identityService, _mailingProcessCreation, _logger, _options);
+            .Returns<CompanyUserDetailTransferData?>(default);
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, null!, _options);
 
         // Act
         async Task Act() => await sut.GetOwnCompanyUserDetailsAsync(userId);
@@ -1414,6 +1453,112 @@ public class UserBusinessLogicTests
         var error = await Assert.ThrowsAsync<NotFoundException>(Act);
         error.Message.Should().Be($"no company-user data found for user {userId} in company {companyId}");
         A.CallTo(() => _userRepository.GetOwnCompanyUserDetailsUntrackedAsync(userId, companyId)).MustHaveHappenedOnceExactly();
+    }
+
+    #endregion
+
+    #region AddOwnCompanyUsersBusinessPartnerNumber
+
+    [Fact]
+    public async Task AddOwnCompanyUsersBusinessPartnerNumbers_ReturnsExpected()
+    {
+        // Arrange
+        var userId = _identity.IdentityId;
+        var companyId = _identity.CompanyId;
+        var assignedBusinessPartnerNumbers = new[] { "THISBPNISVALID18" };
+        var businessPartnerNumbers = new[] {
+            "THISBPNISVALID11",
+            "THISBPNISVALID12",
+            "THISBPNISVALID13",
+            "THISBPNISVALID14",
+            "THISBPNISVALID15",
+            "THISBPNISVALID16",
+            "THISBPNISVALID17",
+            "THISBPNISVALID18",
+            "THISISINVALIDBPNID111" };
+        var successfullBpns = new[] {
+            "THISBPNISVALID12",
+            "THISBPNISVALID13",
+            "THISBPNISVALID14",
+            "THISBPNISVALID16",
+            "THISBPNISVALID18" };
+        var token = _fixture.Create<string>();
+        foreach (var bpns in successfullBpns)
+        {
+            var legalEntity = _fixture.Build<BpdmLegalEntityDto>()
+                .With(x => x.Bpn, bpns)
+                .Create();
+            A.CallTo(() => _bpnAccess.FetchLegalEntityByBpn(bpns, token, A<CancellationToken>._))
+                .Returns(legalEntity);
+        }
+
+        A.CallTo(() => _userRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersUntrackedAsync(userId, companyId))
+            .Returns((assignedBusinessPartnerNumbers, true));
+        A.CallTo(() => _provisioningManager.GetUserByUserName(userId.ToString()))
+            .Returns(_iamUserId);
+
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, _bpnAccess, _options);
+
+        // Act
+        var result = await sut.AddOwnCompanyUsersBusinessPartnerNumbersAsync(userId, token, businessPartnerNumbers, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _userRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersUntrackedAsync(A<Guid>._, A<Guid>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _provisioningManager.GetUserByUserName(A<string>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _provisioningManager.AddBpnAttributetoUserAsync(A<string>._, A<IEnumerable<string>>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _userBusinessPartnerRepository.CreateCompanyUserAssignedBusinessPartners(A<IEnumerable<(Guid, string)>>.That.Matches(x => x.Count() == 4))).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _bpnAccess.FetchLegalEntityByBpn(A<string>._, A<string>._, CancellationToken.None)).MustHaveHappened(8, Times.Exactly);
+        result.Should().NotBeNull();
+        result.SuccessfulBpns.Should().HaveCount(successfullBpns.Count());
+        result.UnsuccessfulBpns.Should().HaveCount(4).And.Satisfy(
+            x => x.Bpns == "THISBPNISVALID11" && x.ErrorMessage == "Bpdm did return incorrect bpn legal-entity-data",
+            x => x.Bpns == "THISBPNISVALID15" && x.ErrorMessage == "Bpdm did return incorrect bpn legal-entity-data",
+            x => x.Bpns == "THISBPNISVALID17" && x.ErrorMessage == "Bpdm did return incorrect bpn legal-entity-data",
+            x => x.Bpns == "THISISINVALIDBPNID111" && x.ErrorMessage == "BusinessPartnerNumbers must not exceed 20 characters"
+        );
+    }
+
+    [Fact]
+    public async Task AddOwnCompanyUsersBusinessPartnerNumbers_NotFoundException()
+    {
+        // Arrange
+        var userId = _identity.IdentityId;
+        var companyId = _identity.CompanyId;
+        var businessPartnerNumbers = _fixture.CreateMany<string>();
+        var token = _fixture.Create<string>();
+        A.CallTo(() => _userRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersUntrackedAsync(userId, companyId))
+            .Returns((Enumerable.Empty<string>(), false));
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, _bpnAccess, _options);
+
+        // Act
+        async Task Act() => await sut.AddOwnCompanyUsersBusinessPartnerNumbersAsync(userId, token, businessPartnerNumbers, CancellationToken.None);
+
+        // Assert
+        var error = await Assert.ThrowsAsync<NotFoundException>(Act);
+        error.Message.Should().Be($"user {userId} not found in company {companyId}");
+    }
+
+    [Fact]
+    public async Task AddOwnCompanyUsersBusinessPartnerNumbers_ConflictException()
+    {
+        // Arrange
+        var userId = _identity.IdentityId;
+        var companyId = _identity.CompanyId;
+        var assignedBusinessPartnerNumbers = _fixture.CreateMany<string>();
+        var businessPartnerNumbers = _fixture.CreateMany<string>();
+        var token = _fixture.Create<string>();
+        A.CallTo(() => _userRepository.GetOwnCompanyUserWithAssignedBusinessPartnerNumbersUntrackedAsync(userId, companyId))
+            .Returns((assignedBusinessPartnerNumbers, true));
+        A.CallTo(() => _provisioningManager.GetUserByUserName(userId.ToString()))
+            .Returns((string)null!);
+        var sut = new UserBusinessLogic(_provisioningManager, null!, null!, null!, _portalRepositories, _identityService, null!, _logger, _bpnAccess, _options);
+
+        // Act
+        async Task Act() => await sut.AddOwnCompanyUsersBusinessPartnerNumbersAsync(userId, token, businessPartnerNumbers, CancellationToken.None);
+
+        // Assert
+        var error = await Assert.ThrowsAsync<ConflictException>(Act);
+        error.Message.Should().Be($"user {userId} not found in keycloak");
     }
 
     #endregion
@@ -1437,7 +1582,7 @@ public class UserBusinessLogicTests
             .ReturnsLazily((CompanyNameIdpAliasData idpAliasData, IAsyncEnumerable<UserCreationRoleDataIdpInfo> userCreationInfos, Action<UserCreationCallbackData>? onSuccess, CancellationToken _) =>
                 userCreationInfos.Select(userCreationInfo => _processLine(idpAliasData, userCreationInfo, onSuccess)));
 
-        A.CallTo(() => _userProvisioningService.GetIdentityProviderDisplayName(A<string>._)).Returns(_displayName);
+        A.CallTo(() => _identityProviderProvisioningService.GetIdentityProviderDisplayName(A<string>._)).Returns(_displayName);
 
         A.CallTo(() => _processLine(A<CompanyNameIdpAliasData>._, A<UserCreationRoleDataIdpInfo>._, A<Action<UserCreationCallbackData>>._))
             .ReturnsLazily((CompanyNameIdpAliasData aliasData, UserCreationRoleDataIdpInfo creationInfo, Action<UserCreationCallbackData>? onSucess) =>
@@ -1531,7 +1676,7 @@ public class UserBusinessLogicTests
             .Invokes((Guid companyUserId, Guid companyUserRoleId) =>
                 _addedRoles.Add(new IdentityAssignedRole(companyUserId, companyUserRoleId)));
 
-        A.CallTo(() => _portalRepositories.RemoveRange(A<IEnumerable<IdentityAssignedRole>>._))
+        A.CallTo(() => _userRolesRepository.RemoveIdentityAssignedRoles(A<IEnumerable<IdentityAssignedRole>>._))
             .Invokes((IEnumerable<IdentityAssignedRole> roles) =>
             {
                 foreach (var role in roles)

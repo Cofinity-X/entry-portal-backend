@@ -32,11 +32,14 @@ public record UserRoleData(
 /// <summary>
 /// Basic model for user role data needed to display user roles with description.
 /// </summary>
-public record UserRoleWithDescription(
-        [property: JsonPropertyName("roleId")] Guid UserRoleId,
-        [property: JsonPropertyName("roleName")] string UserRoleText,
-        [property: JsonPropertyName("roleDescription")] string? RoleDescription);
+public record UserRoleWithDescriptionTransferData(
+    Guid UserRoleId,
+    string UserRoleText,
+    string? RoleDescription
+);
 
-public record UserRoleInformation(
-    [property: JsonPropertyName("roleId")] Guid UserRoleId,
-    [property: JsonPropertyName("roleName")] string UserRoleText);
+public enum UserRoleType
+{
+    Internal = 1,
+    External = 2
+}

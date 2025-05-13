@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -20,7 +19,14 @@
 
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 
-public record TechnicalUserProfileInformation(
+public record TechnicalUserProfileInformationTransferData(
     Guid TechnicalUserProfileId,
-    IEnumerable<UserRoleInformation> UserRoles
+    IEnumerable<UserRoleInformationTransferData> UserRoles
+);
+
+public record UserRoleInformationTransferData(
+    Guid UserRoleId,
+    string UserRoleText,
+    bool IsExternal,
+    bool IsProviderOnly
 );

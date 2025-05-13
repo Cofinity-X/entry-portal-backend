@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
@@ -29,7 +30,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.DimUserCreationProcess.Executor.Te
 public class DimUserProcessTypeExecutorTests
 {
     private readonly Guid _dimServiceAccountId = Guid.NewGuid();
-    private readonly IServiceAccountRepository _serviceAccountRepository;
+    private readonly ITechnicalUserRepository _technicalUserRepository;
     private readonly IDimUserProcessService _dimUserProcessService;
     private readonly DimUserProcessTypeExecutor _executor;
     private readonly IFixture _fixture;
@@ -43,12 +44,12 @@ public class DimUserProcessTypeExecutorTests
         _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
         var portalRepositories = A.Fake<IPortalRepositories>();
-        _serviceAccountRepository = A.Fake<IServiceAccountRepository>();
+        _technicalUserRepository = A.Fake<ITechnicalUserRepository>();
 
         _dimUserProcessService = A.Fake<IDimUserProcessService>();
 
-        A.CallTo(() => portalRepositories.GetInstance<IServiceAccountRepository>())
-            .Returns(_serviceAccountRepository);
+        A.CallTo(() => portalRepositories.GetInstance<ITechnicalUserRepository>())
+            .Returns(_technicalUserRepository);
 
         _executor = new DimUserProcessTypeExecutor(
             portalRepositories,
@@ -68,7 +69,7 @@ public class DimUserProcessTypeExecutorTests
         // Arrange
         var processId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(_dimServiceAccountId);
 
         // Act
@@ -86,7 +87,7 @@ public class DimUserProcessTypeExecutorTests
         // Arrange
         var processId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(Guid.Empty);
 
         // Act
@@ -123,7 +124,7 @@ public class DimUserProcessTypeExecutorTests
         // Arrange initialize
         var processId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(_dimServiceAccountId);
 
         // Act initialize
@@ -153,7 +154,7 @@ public class DimUserProcessTypeExecutorTests
         // Arrange initialize
         var processId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(_dimServiceAccountId);
 
         // Act initialize
@@ -173,7 +174,7 @@ public class DimUserProcessTypeExecutorTests
         // Assert execute
         executionResult.Modified.Should().BeTrue();
         executionResult.ProcessStepStatusId.Should().Be(ProcessStepStatusId.DONE);
-        executionResult.ScheduleStepTypeIds.Should().ContainSingle().And.Satisfy(x => x == ProcessStepTypeId.AWAIT_DELETE_DIM_TECHNICAL_USER);
+        executionResult.ScheduleStepTypeIds.Should().ContainSingle().And.Satisfy(x => x == ProcessStepTypeId.AWAIT_DELETE_DIM_TECHNICAL_USER_RESPONSE);
         executionResult.SkipStepTypeIds.Should().BeNull();
     }
 
@@ -184,7 +185,7 @@ public class DimUserProcessTypeExecutorTests
         var processId = Guid.NewGuid();
         var dimServiceAccountId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(dimServiceAccountId);
 
         // Act initialize
@@ -221,7 +222,7 @@ public class DimUserProcessTypeExecutorTests
         var processId = Guid.NewGuid();
         var dimServiceAccountId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(dimServiceAccountId);
 
         // Act initialize
@@ -257,7 +258,7 @@ public class DimUserProcessTypeExecutorTests
         var processId = Guid.NewGuid();
         var dimServiceAccountId = Guid.NewGuid();
 
-        A.CallTo(() => _serviceAccountRepository.GetDimServiceAccountIdForProcess(processId))
+        A.CallTo(() => _technicalUserRepository.GetExternalTechnicalUserIdForProcess(processId))
             .Returns(dimServiceAccountId);
 
         // Act initialize
@@ -305,7 +306,7 @@ public class DimUserProcessTypeExecutorTests
     public void IsExecutableProcessStep_ReturnsExpected(bool checklistHandlerReturnValue)
     {
         // Arrange
-        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.CREATE_DIM_TECHNICAL_USER : ProcessStepTypeId.START_AUTOSETUP;
+        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.CREATE_DIM_TECHNICAL_USER : ProcessStepTypeId.AWAIT_START_AUTOSETUP;
 
         // Act
         var result = _executor.IsExecutableStepTypeId(processStepTypeId);
@@ -354,7 +355,7 @@ public class DimUserProcessTypeExecutorTests
             .Returns(new ValueTuple<IEnumerable<ProcessStepTypeId>?, ProcessStepStatusId, bool, string?>(Enumerable.Repeat(ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE, 1), ProcessStepStatusId.DONE, true, null));
 
         A.CallTo(() => _dimUserProcessService.DeleteDimUser(A<Guid>._, _dimServiceAccountId, A<CancellationToken>._))
-            .Returns(new ValueTuple<IEnumerable<ProcessStepTypeId>?, ProcessStepStatusId, bool, string?>(Enumerable.Repeat(ProcessStepTypeId.AWAIT_DELETE_DIM_TECHNICAL_USER, 1), ProcessStepStatusId.DONE, true, null));
+            .Returns(new ValueTuple<IEnumerable<ProcessStepTypeId>?, ProcessStepStatusId, bool, string?>(Enumerable.Repeat(ProcessStepTypeId.AWAIT_DELETE_DIM_TECHNICAL_USER_RESPONSE, 1), ProcessStepStatusId.DONE, true, null));
     }
 
     #endregion

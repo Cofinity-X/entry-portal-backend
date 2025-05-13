@@ -22,7 +22,7 @@
   <PropertyGroup>
     <AssemblyName>Org.Eclipse.TractusX.Portal.Backend.Processes.NetworkRegistration.Executor</AssemblyName>
     <RootNamespace>Org.Eclipse.TractusX.Portal.Backend.Processes.NetworkRegistration.Executor</RootNamespace>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -30,7 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\externalsystems\OnboardingServiceProvider.Library\OnboardingServiceProvider.Library.csproj" />
     <ProjectReference Include="..\NetworkRegistration.Library\NetworkRegistration.Library.csproj" />
-    <ProjectReference Include="..\Processes.Worker.Library\Processes.Worker.Library.csproj" />
+    <ProjectReference Include="..\..\framework\Framework.Processes.Worker.Library\Framework.Processes.Worker.Library.csproj" />
   </ItemGroup>
 
 </Project>

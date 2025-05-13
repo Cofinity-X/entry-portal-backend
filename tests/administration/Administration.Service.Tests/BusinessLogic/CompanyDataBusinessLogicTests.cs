@@ -19,10 +19,16 @@
 
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
+using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DateTimeProvider;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.IssuerComponent.Library.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Extensions;
@@ -30,7 +36,6 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 
@@ -46,7 +51,7 @@ public class CompanyDataBusinessLogicTests
     private readonly IConsentRepository _consentRepository;
     private readonly ICompanyRepository _companyRepository;
     private readonly ICompanyRolesRepository _companyRolesRepository;
-    private readonly IProcessStepRepository _processStepRepository;
+    private readonly IPortalProcessStepRepository _portalProcessStepRepository;
     private readonly IDocumentRepository _documentRepository;
     private readonly ILanguageRepository _languageRepository;
     private readonly ICompanyCertificateRepository _companyCertificateRepository;
@@ -66,7 +71,7 @@ public class CompanyDataBusinessLogicTests
         _documentRepository = A.Fake<IDocumentRepository>();
         _languageRepository = A.Fake<ILanguageRepository>();
         _companyCertificateRepository = A.Fake<ICompanyCertificateRepository>();
-        _processStepRepository = A.Fake<IProcessStepRepository>();
+        _portalProcessStepRepository = A.Fake<IPortalProcessStepRepository>();
         var issuerComponentBusinessLogic = A.Fake<IIssuerComponentBusinessLogic>();
 
         _now = _fixture.Create<DateTimeOffset>();
@@ -82,7 +87,8 @@ public class CompanyDataBusinessLogicTests
         A.CallTo(() => _portalRepositories.GetInstance<IDocumentRepository>()).Returns(_documentRepository);
         A.CallTo(() => _portalRepositories.GetInstance<ILanguageRepository>()).Returns(_languageRepository);
         A.CallTo(() => _portalRepositories.GetInstance<ICompanyCertificateRepository>()).Returns(_companyCertificateRepository);
-        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IPortalProcessStepRepository>()).Returns(_portalProcessStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository<ProcessTypeId, ProcessStepTypeId>>()).Returns(_portalProcessStepRepository);
 
         A.CallTo(() => _identity.IdentityId).Returns(Guid.NewGuid());
         A.CallTo(() => _identity.IdentityTypeId).Returns(IdentityTypeId.COMPANY_USER);
@@ -123,7 +129,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"company {_identity.CompanyId} is not a valid company");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_INVALID_COMPANY.ToString());
     }
 
     #endregion
@@ -198,8 +204,8 @@ public class CompanyDataBusinessLogicTests
         async Task Act() => await _sut.GetCompanyRoleAndConsentAgreementDetailsAsync(languageShortName).ToListAsync();
 
         // Assert
-        var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"company {companyId} does not exist");
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_NOT_COMPANY_NOT_EXIST.ToString());
         A.CallTo(() => _companyRepository.GetCompanyStatusDataAsync(companyId)).MustHaveHappenedOnceExactly();
     }
 
@@ -222,7 +228,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Company Status is Incorrect");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_INCORR_COMPANY_STATUS.ToString());
         A.CallTo(() => _companyRepository.GetCompanyStatusDataAsync(companyId)).MustHaveHappenedOnceExactly();
     }
 
@@ -241,7 +247,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"language {languageShortName} is not a valid languagecode");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_LANG_CODE_NOT_VALID.ToString());
 
     }
 
@@ -370,7 +376,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Company Status is Incorrect");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_INCORR_COMPANY_STATUS.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -421,7 +427,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"All agreements need to get signed as Active or InActive. Missing consents: [ACTIVE_PARTICIPANT: [{agreementId2}, {agreementId3}], APP_PROVIDER: [{agreementId3}]]");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_AGREEMENT_ACTIVE_INACTIVE_MISSING.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -477,7 +483,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"Agreements not associated with requested companyRoles: [ACTIVE_PARTICIPANT: [{agreementId4}], APP_PROVIDER: [{agreementId1}, {agreementId2}]]");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_AGREEMENT_NOT_ASSOCIATE_COMPANY_ROLES.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -504,7 +510,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Company can't unassign from all roles, Atleast one Company role need to signed as active");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_NOT_UNASSIGN_ALL_ROLES_ATLEAST_ONE_ACTIVE_NEEDED.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -521,7 +527,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"company {_identity.CompanyId} does not exist");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_NOT_COMPANY_NOT_EXIST.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -538,7 +544,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<UnexpectedConditionException>(Act);
-        ex.Message.Should().Be($"neither CompanyRoleIds nor ConsentStatusDetails should ever be null here");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_UNEXP_COMP_ROLES_NOR_DETAILS_NULL.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -555,7 +561,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<UnexpectedConditionException>(Act);
-        ex.Message.Should().Be($"neither CompanyRoleIds nor ConsentStatusDetails should ever be null here");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_UNEXP_COMP_ROLES_NOR_DETAILS_NULL.ToString());
         A.CallTo(() => _companyRepository.GetCompanyRolesDataAsync(_identity.CompanyId, A<IEnumerable<CompanyRoleId>>._)).MustHaveHappenedOnceExactly();
     }
 
@@ -641,7 +647,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Company Status is Incorrect");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_INCORR_COMPANY_STATUS.ToString());
         A.CallTo(() => _companyRepository.GetCompanyStatusAndUseCaseIdAsync(companyId, useCaseId)).MustHaveHappenedOnceExactly();
     }
 
@@ -681,7 +687,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Company Status is Incorrect");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_INCORR_COMPANY_STATUS.ToString());
         A.CallTo(() => _companyRepository.GetCompanyStatusAndUseCaseIdAsync(companyId, useCaseId)).MustHaveHappenedOnceExactly();
     }
 
@@ -701,7 +707,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"UseCaseId {useCaseId} is not available");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_USECASEID_NOT_AVAL.ToString());
         A.CallTo(() => _companyRepository.GetCompanyStatusAndUseCaseIdAsync(companyId, useCaseId)).MustHaveHappenedOnceExactly();
     }
 
@@ -746,20 +752,20 @@ public class CompanyDataBusinessLogicTests
                 setOptionalFields?.Invoke(companyCertificateData);
                 companyCertificates.Add(companyCertificateData);
             });
-        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, MediaTypeId.PDF, DocumentTypeId.COMPANY_CERTIFICATE, A<Action<Document>>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields) =>
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, MediaTypeId.PDF, DocumentTypeId.COMPANY_CERTIFICATE, A<long>._, A<Action<Document>>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
             {
-                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.LOCKED, documentTypeId);
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.LOCKED, documentTypeId, documentSize);
                 setupOptionalFields?.Invoke(document);
                 documents.Add(document);
             })
-            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default));
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
 
         // Act
         await _sut.CreateCompanyCertificate(data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, MediaTypeId.PDF, DocumentTypeId.COMPANY_CERTIFICATE, A<Action<Document>>._))
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, MediaTypeId.PDF, DocumentTypeId.COMPANY_CERTIFICATE, A<long>._, A<Action<Document>>._))
             .MustHaveHappenedOnceExactly();
         documents.Should().ContainSingle();
         var document = documents.Single();
@@ -791,7 +797,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"{CompanyCertificateTypeId.IATF} is not assigned to a certificate");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_CERT_TYPE_NOT_ASSIGN_CERTIFICATE.ToString());
     }
 
     [Fact]
@@ -811,7 +817,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"ExternalCertificateNumber must be alphanumeric and length should not be greater than 36");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_EXTER_CERT_APLHA_LENGTH.ToString());
     }
 
     [Fact]
@@ -832,7 +838,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"BPN must contain exactly 16 characters and must be prefixed with BPNS");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_PREFIXED_BPNS_SIXTEEN_CHAR.ToString());
     }
 
     [Fact]
@@ -853,7 +859,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"ValidFrom date should not be greater than current date");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_NOT_GREATER_CURR_DATE.ToString());
     }
 
     [Fact]
@@ -874,7 +880,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"ValidTill date should be greater than current date");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_SHOULD_GREATER_THAN_CURR_DATE.ToString());
     }
 
     [Fact]
@@ -910,7 +916,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var error = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        error.Message.Should().StartWith("businessPartnerNumber must not be empty");
+        error.Message.Should().StartWith(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_BPN_NOT_EMPTY.ToString());
     }
 
     [Fact]
@@ -928,7 +934,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var error = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        error.Message.Should().StartWith($"company does not exist for {businessPartnerNumber}");
+        error.Message.Should().StartWith(AdministrationCompanyDataErrors.COMPANY_DATA_ARGUMENT_COMP_NOT_EXISTS_FOR_BPN.ToString());
     }
 
     [Fact]
@@ -1021,7 +1027,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"Company certificate document {documentId} does not exist");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_NOT_COMP_CERT_DOC_NOT_EXIST.ToString());
     }
 
     #endregion
@@ -1055,7 +1061,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"Company certificate document {documentId} does not exist");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_NOT_COMP_CERT_DOC_NOT_EXIST.ToString());
     }
 
     [Fact]
@@ -1070,7 +1076,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ForbiddenException>(Act);
-        ex.Message.Should().Be($"Document {documentId} status is not locked");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_FORBIDDEN_DOC_STATUS_NOT_LOCKED.ToString());
     }
 
     #endregion
@@ -1121,7 +1127,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"Document is not existing");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_NOT_DOC_NOT_EXIST.ToString());
     }
 
     [Fact]
@@ -1137,7 +1143,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ForbiddenException>(Act);
-        ex.Message.Should().Be($"User is not allowed to delete this document");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_FORBIDDEN_USER_NOT_ALLOW_DEL_DOC.ToString());
     }
 
     [Fact]
@@ -1153,7 +1159,7 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"There must not be multiple active certificates for document {documentId}");
+        ex.Message.Should().Be(AdministrationCompanyDataErrors.COMPANY_DATA_CONFLICT_MULTIPLE_ACTIVE_CERT_NOT_ALLOWED_ONE_DOC.ToString());
     }
 
     [Fact]
@@ -1184,17 +1190,17 @@ public class CompanyDataBusinessLogicTests
         // Arrange
         var processId = Guid.NewGuid();
         var processes = new List<Process>();
-        var processSteps = new List<ProcessStep>();
-        A.CallTo(() => _processStepRepository.CreateProcess(A<ProcessTypeId>._))
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        A.CallTo(() => _portalProcessStepRepository.CreateProcess(A<ProcessTypeId>._))
             .Invokes((ProcessTypeId processTypeId) =>
             {
                 processes.Add(new Process(processId, processTypeId, Guid.NewGuid()));
             })
             .Returns(new Process(processId, default, default));
-        A.CallTo(() => _processStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
             .Invokes((ProcessStepTypeId processStepTypeId, ProcessStepStatusId processStepStatusId, Guid _) =>
             {
-                processSteps.Add(new ProcessStep(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
+                processSteps.Add(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
             });
         A.CallTo(() => _companyRepository.GetCompanyIdsWithMissingSelfDescription())
             .Returns(new[] { Guid.NewGuid(), Guid.NewGuid() }.ToAsyncEnumerable());
@@ -1222,17 +1228,17 @@ public class CompanyDataBusinessLogicTests
         // Arrange
         var processId = Guid.NewGuid();
         var processes = new List<Process>();
-        var processSteps = new List<ProcessStep>();
-        A.CallTo(() => _processStepRepository.CreateProcess(A<ProcessTypeId>._))
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        A.CallTo(() => _portalProcessStepRepository.CreateProcess(A<ProcessTypeId>._))
             .Invokes((ProcessTypeId processTypeId) =>
             {
                 processes.Add(new Process(processId, processTypeId, Guid.NewGuid()));
             })
             .Returns(new Process(processId, default, default));
-        A.CallTo(() => _processStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStep(A<ProcessStepTypeId>._, A<ProcessStepStatusId>._, processId))
             .Invokes((ProcessStepTypeId processStepTypeId, ProcessStepStatusId processStepStatusId, Guid _) =>
             {
-                processSteps.Add(new ProcessStep(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
+                processSteps.Add(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), processStepTypeId, processStepStatusId, processId, DateTimeOffset.UtcNow));
             });
         A.CallTo(() => _companyRepository.GetCompanyIdsWithMissingSelfDescription())
             .Returns(Enumerable.Empty<Guid>().ToAsyncEnumerable());
@@ -1306,6 +1312,53 @@ public class CompanyDataBusinessLogicTests
 
         // Assert
         result.DecentralIdentityManagementAuthUrl.Should().BeNull();
+    }
+
+    #endregion
+
+    #region RetriggerSelfDescriptionResponseCreation
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseCreation_CallsExpected()
+    {
+        // Arrange
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        A.CallTo(() => _portalProcessStepRepository.IsValidProcess(process.Id, ProcessTypeId.SELF_DESCRIPTION_CREATION, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns((true, new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.RETRIGGER_AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow), 1))));
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId, ProcessStepStatusId, Guid)>>._))
+            .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> ps) =>
+            {
+                processSteps.AddRange(ps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+            });
+
+        // Act
+        await _sut.RetriggerSelfDescriptionResponseCreation(process.Id);
+
+        // Assert
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+        processSteps.Should().ContainSingle().And.Satisfy(
+            x => x.ProcessStepTypeId == ProcessStepTypeId.SELF_DESCRIPTION_COMPANY_CREATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO);
+    }
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseCreation_WithInvalidProcess_ThrowsNotFoundException()
+    {
+        // Arrange
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        A.CallTo(() => _portalProcessStepRepository.IsValidProcess(process.Id, ProcessTypeId.SELF_DESCRIPTION_CREATION, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns((false, new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.RETRIGGER_AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow), 1))));
+        Task Act() => _sut.RetriggerSelfDescriptionResponseCreation(process.Id);
+
+        // Act
+        var result = await Assert.ThrowsAsync<NotFoundException>(Act);
+
+        // Assert
+        result.Message.Should().Be("COMPANY_DATA_NOT_PROCESSID_NOT_EXIST");
+        result.Parameters.Should().ContainSingle().Which.Should().Match<ErrorParameter>(x =>
+            x.Name == "processId" &&
+            x.Value == process.Id.ToString()
+        );
     }
 
     #endregion

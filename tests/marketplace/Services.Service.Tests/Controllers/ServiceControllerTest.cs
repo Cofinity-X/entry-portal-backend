@@ -21,11 +21,11 @@ using AutoFixture;
 using FakeItEasy;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ViewModels;
@@ -90,6 +90,21 @@ public class ServiceControllerTest
         A.CallTo(() => _logic.AddServiceSubscription(serviceId, consentData)).MustHaveHappenedOnceExactly();
         Assert.IsType<CreatedAtRouteResult>(result);
         result.Value.Should().Be(offerSubscriptionId);
+    }
+
+    [Fact]
+    public async Task DeclineServiceSubscriptionAsync_ReturnsExpected()
+    {
+        //Arrange
+        var offerSubscriptionId = Guid.NewGuid();
+        A.CallTo(() => _logic.DeclineServiceSubscriptionAsync(A<Guid>._));
+
+        //Act
+        var result = await _controller.DeclineServiceSubscriptionAsync(offerSubscriptionId);
+
+        //Assert
+        A.CallTo(() => _logic.DeclineServiceSubscriptionAsync(offerSubscriptionId)).MustHaveHappenedOnceExactly();
+        Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]
@@ -268,7 +283,7 @@ public class ServiceControllerTest
         // Arrange
         var serviceId = _fixture.Create<Guid>();
         var subscriptionId = _fixture.Create<Guid>();
-        var data = _fixture.Create<OfferProviderSubscriptionDetailData>();
+        var data = _fixture.Create<ProviderSubscriptionDetailData>();
         A.CallTo(() => _logic.GetSubscriptionDetailForProvider(serviceId, subscriptionId))
             .Returns(data);
 

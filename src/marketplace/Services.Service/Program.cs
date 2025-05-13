@@ -20,8 +20,10 @@
 using Org.Eclipse.TractusX.Portal.Backend.Dim.Library.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling.Service;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Notifications.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.DependencyInjection;
+using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Web.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.Mailing.Library.DependencyInjection;
@@ -29,13 +31,14 @@ using Org.Eclipse.TractusX.Portal.Backend.Provisioning.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.DependencyInjection;
+using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Web.Initialization;
 using Org.Eclipse.TractusX.Portal.Backend.Web.PublicInfos.DependencyInjection;
 
-var VERSION = "v2";
+var version = AssemblyExtension.GetApplicationVersion();
 
 await WebAppHelper
-    .BuildAndRunWebApplicationAsync<Program>(args, "services", VERSION, builder =>
+    .BuildAndRunWebApplicationAsync<Program>(args, "services", version, builder =>
     {
         builder.Services
             .AddPublicInfos();
@@ -51,6 +54,9 @@ await WebAppHelper
             .AddTransient<IServiceReleaseBusinessLogic, ServiceReleaseBusinessLogic>()
             .AddTransient<IServiceChangeBusinessLogic, ServiceChangeBusinessLogic>()
             .AddSingleton<IErrorMessageService, ErrorMessageService>()
+            .AddSingleton<IErrorMessageContainer, ServicesServiceErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, ServicesServiceReleaseErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, OfferServiceErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, ValidationExpressionErrorMessageContainer>()
             .AddTechnicalUserProfile()
             .AddOfferDocumentServices();

@@ -21,10 +21,9 @@ using Microsoft.AspNetCore.Mvc;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.SdFactory.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Collections.Immutable;
@@ -219,10 +218,10 @@ public class ConnectorsControllerTests
         var data = new ConnectorUpdateRequest("https://test.com");
 
         // Act
-        var result = await _controller.UpdateConnectorUrl(connectorId, data);
+        var result = await _controller.UpdateConnectorUrl(connectorId, data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _logic.UpdateConnectorUrl(connectorId, data)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _logic.UpdateConnectorUrl(connectorId, data, CancellationToken.None)).MustHaveHappenedOnceExactly();
         result.Should().BeOfType<NoContentResult>();
     }
 
@@ -279,6 +278,20 @@ public class ConnectorsControllerTests
 
         // Assert
         A.CallTo(() => _logic.RetriggerSelfDescriptionCreation(processId)).MustHaveHappenedOnceExactly();
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [Fact]
+    public async Task RetriggerSelfDescriptionResponseProcess_CallsExpected()
+    {
+        // Arrange
+        var processId = Guid.NewGuid();
+
+        // Act
+        var result = await _controller.RetriggerSelfDescriptionResponseProcess(processId);
+
+        // Assert
+        A.CallTo(() => _logic.RetriggerSelfDescriptionResponseCreation(processId)).MustHaveHappenedOnceExactly();
         result.Should().BeOfType<NoContentResult>();
     }
 }

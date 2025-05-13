@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2023 BMW Group AG
  * Copyright (c) 2023 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -24,7 +23,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Seeding.BusinessLogic;
 
 public interface ISeedDataHandler
 {
-    Task Import(string path, CancellationToken cancellationToken);
+    Task Import(KeycloakRealmSettings realmSettings, CancellationToken cancellationToken);
 
     string Realm { get; }
 
@@ -32,7 +31,7 @@ public interface ISeedDataHandler
 
     IEnumerable<ClientModel> Clients { get; }
 
-    IReadOnlyDictionary<string, IEnumerable<RoleModel>> ClientRoles { get; }
+    IEnumerable<(string ClientId, IEnumerable<RoleModel> RoleModels)> ClientRoles { get; }
 
     IEnumerable<RoleModel> RealmRoles { get; }
 
@@ -48,7 +47,10 @@ public interface ISeedDataHandler
 
     IReadOnlyDictionary<string, string> ClientsDictionary { get; }
 
-    IReadOnlyDictionary<string, IEnumerable<ClientScopeMappingModel>> ClientScopeMappings { get; }
+    IEnumerable<(string ClientId, IEnumerable<ClientScopeMappingModel> ClientScopeMappingModels)> ClientScopeMappings { get; }
+
+    IEnumerable<(string ProviderType, ComponentModel ComponentModel)> RealmComponents { get; }
+    IEnumerable<(string Locale, IEnumerable<KeyValuePair<string, string>> Translations)> RealmLocalizations { get; }
 
     Task SetClientInternalIds(IAsyncEnumerable<(string ClientId, string Id)> clientInternalIds);
 
@@ -59,4 +61,6 @@ public interface ISeedDataHandler
     IEnumerable<AuthenticationExecutionModel> GetAuthenticationExecutions(string? alias);
 
     AuthenticatorConfigModel GetAuthenticatorConfig(string? alias);
+    KeycloakSeederConfigModel GetSpecificConfiguration(ConfigurationKey configKey);
+    bool IsModificationAllowed(ConfigurationKey configKey);
 }

@@ -23,11 +23,11 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using System.Collections.Immutable;
@@ -96,7 +96,7 @@ public class AppReleaseProcessControllerTest
     {
         //Arrange
         var data = _fixture.CreateMany<AgreementDocumentData>(5).ToAsyncEnumerable();
-        A.CallTo(() => _logic.GetOfferAgreementDataAsync())
+        A.CallTo(() => _logic.GetOfferAgreementDataAsync(Constants.DefaultLanguage))
             .Returns(data);
 
         //Act
@@ -149,7 +149,7 @@ public class AppReleaseProcessControllerTest
         //Arrange
         var appId = Guid.NewGuid();
         var data = _fixture.Create<AppProviderResponse>();
-        A.CallTo(() => _logic.GetAppDetailsForStatusAsync(A<Guid>._))
+        A.CallTo(() => _logic.GetAppDetailsForStatusAsync(A<Guid>._, Constants.DefaultLanguage))
             .Returns(data);
 
         //Act
@@ -157,7 +157,7 @@ public class AppReleaseProcessControllerTest
 
         // Assert 
         result.Should().Be(data);
-        A.CallTo(() => _logic.GetAppDetailsForStatusAsync(appId))
+        A.CallTo(() => _logic.GetAppDetailsForStatusAsync(appId, Constants.DefaultLanguage))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -239,8 +239,7 @@ public class AppReleaseProcessControllerTest
             },
             "https://test.provider.com",
             "test@gmail.com",
-            "9456321678"
-            );
+            "9456321678");
 
         // Act
         var result = await _controller.UpdateAppRelease(appId, data);

@@ -24,6 +24,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Framework.Cors;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DateTimeProvider.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling.Web;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Validation;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Swagger;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
@@ -35,6 +36,7 @@ public static class StartupServiceExtensions
     public static IServiceCollection AddDefaultServices<TProgram>(this IServiceCollection services, IConfigurationRoot configuration, string version, string cookieName)
     {
         services.AddCors(options => options.SetupCors(configuration));
+        services.AddScoped<CustomAuthorizationMiddleware>();
 
         services.AddDistributedMemoryCache();
         services.AddSession(options =>
@@ -43,7 +45,7 @@ public static class StartupServiceExtensions
             options.IdleTimeout = TimeSpan.FromMinutes(10);
         });
 
-        services.AddControllers().ConfigureApiBehaviorOptions(options =>
+        services.AddControllers(options => options.Filters.Add<GeneralHttpExceptionFilter>()).ConfigureApiBehaviorOptions(options =>
             {
                 options.InvalidModelStateResponseFactory = ModelBindingErrorHandler.CreateInvalidModelStateResponse;
             })
@@ -71,10 +73,14 @@ public static class StartupServiceExtensions
         });
         JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-        services
+        var options = services
             .AddOptions<JwtBearerOptions>()
-            .Bind(configuration.GetSection("JwtBearerOptions"))
-            .ValidateOnStart();
+            .Bind(configuration.GetSection("JwtBearerOptions"));
+
+        if (!EnvironmentExtensions.SkipValidation())
+        {
+            options.ValidateOnStart();
+        }
 
         services.AddHealthChecks()
             .AddCheck<JwtBearerConfigurationHealthCheck>("JwtBearerConfiguration", tags: ["keycloak"]);

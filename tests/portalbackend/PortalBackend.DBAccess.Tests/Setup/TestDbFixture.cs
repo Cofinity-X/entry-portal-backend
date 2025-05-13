@@ -90,8 +90,8 @@ public class TestDbFixture : IAsyncLifetime
 
         var seederOptions = Options.Create(new SeederSettings
         {
-            TestDataEnvironments = new[] { "test" },
-            DataPaths = new[] { "Seeder/Data" }
+            TestDataEnvironments = new[] { "unittest" },
+            DataPaths = new[] { "Seeder/Data", "Seeder/Data/overwrite" }
         });
         var insertSeeder = new BatchInsertSeeder(context,
             LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<BatchInsertSeeder>(),

@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.ExtendedRegistration.Service.Model;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using PdfSharp.Pdf;
 using PdfSharp.Pdf.IO;
 using System.Net.Mime;

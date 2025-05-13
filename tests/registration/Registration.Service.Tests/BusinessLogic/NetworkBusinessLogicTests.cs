@@ -22,16 +22,22 @@ using AutoFixture.AutoFakeItEasy;
 using FakeItEasy;
 using FluentAssertions;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Processes.ApplicationChecklist.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Service;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic;
+using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Model;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using Xunit;
@@ -57,7 +63,7 @@ public class NetworkBusinessLogicTests
 
     private readonly IPortalRepositories _portalRepositories;
     private readonly ICompanyRepository _companyRepository;
-    private readonly IProcessStepRepository _processStepRepository;
+    private readonly IPortalProcessStepRepository _processStepRepository;
     private readonly IApplicationRepository _applicationRepository;
     private readonly INetworkRepository _networkRepository;
     private readonly IIdentityProviderRepository _identityProviderRepository;
@@ -76,7 +82,7 @@ public class NetworkBusinessLogicTests
         _checklistService = A.Fake<IApplicationChecklistCreationService>();
 
         _companyRepository = A.Fake<ICompanyRepository>();
-        _processStepRepository = A.Fake<IProcessStepRepository>();
+        _processStepRepository = A.Fake<IPortalProcessStepRepository>();
         _applicationRepository = A.Fake<IApplicationRepository>();
         _networkRepository = A.Fake<INetworkRepository>();
         _identityProviderRepository = A.Fake<IIdentityProviderRepository>();
@@ -93,7 +99,8 @@ public class NetworkBusinessLogicTests
 
         A.CallTo(() => _portalRepositories.GetInstance<ICompanyRepository>()).Returns(_companyRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IConsentRepository>()).Returns(_consentRepository);
-        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IPortalProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository<ProcessTypeId, ProcessStepTypeId>>()).Returns(_processStepRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IApplicationRepository>()).Returns(_applicationRepository);
         A.CallTo(() => _portalRepositories.GetInstance<INetworkRepository>()).Returns(_networkRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IIdentityProviderRepository>()).Returns(_identityProviderRepository);
@@ -120,7 +127,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"Company {_identity.CompanyId} not found");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_COMPANY_NOT_FOUND.ToString());
     }
 
     [Fact]
@@ -136,7 +143,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"Company {_identity.CompanyId} has no or more than one application");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_ONLY_ONE_APPLICATION_PER_COMPANY.ToString());
     }
 
     [Fact]
@@ -152,7 +159,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"Company {_identity.CompanyId} has no or more than one application");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_ONLY_ONE_APPLICATION_PER_COMPANY.ToString());
     }
 
     [Fact]
@@ -169,7 +176,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"Application {applicationId} is not in state CREATED");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_APP_NOT_CREATED_STATE.ToString());
     }
 
     [Fact]
@@ -194,7 +201,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"All Agreements for the company roles must be agreed to, missing agreementIds: {notExistingAgreementId} (Parameter 'Agreements')");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_ARG_ALL_AGREEMNTS_COMPANY_SHOULD_AGREED.ToString());
     }
 
     [Fact]
@@ -223,7 +230,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be($"All agreements must be agreed to. Agreements that are not active: {inactiveAgreementId} (Parameter 'Agreements')");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_ARG_NOT_ACTIVE_AGREEMENTS.ToString());
     }
 
     [Fact]
@@ -252,7 +259,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("There must be an process");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_PROCESS_MUST_EXIST.ToString());
     }
 
     [Fact]
@@ -264,7 +271,7 @@ public class NetworkBusinessLogicTests
         var agreementId1 = Guid.NewGuid();
         var processId = Guid.NewGuid();
         var submitProcessId = Guid.NewGuid();
-        var processSteps = new List<ProcessStep>();
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
         var application = new CompanyApplication(applicationId, _identity.CompanyId, CompanyApplicationStatusId.CREATED, CompanyApplicationTypeId.EXTERNAL, DateTimeOffset.UtcNow);
 
         var data = new PartnerSubmitData(
@@ -288,7 +295,7 @@ public class NetworkBusinessLogicTests
         A.CallTo(() => _processStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)>>._))
             .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> steps) =>
                 {
-                    processSteps.AddRange(steps.Select(x => new ProcessStep(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+                    processSteps.AddRange(steps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
                 });
         var consents = new List<Consent>();
         var now = DateTimeOffset.UtcNow;
@@ -313,7 +320,7 @@ public class NetworkBusinessLogicTests
                 (ApplicationChecklistEntryTypeId.APPLICATION_ACTIVATION, ApplicationChecklistEntryStatusId.TO_DO),
             });
         A.CallTo(() => _checklistService.GetInitialProcessStepTypeIds(A<IEnumerable<(ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId)>>._))
-            .Returns(new[] { ProcessStepTypeId.VERIFY_REGISTRATION, ProcessStepTypeId.DECLINE_APPLICATION });
+            .Returns(new[] { ProcessStepTypeId.MANUAL_VERIFY_REGISTRATION, ProcessStepTypeId.MANUAL_DECLINE_APPLICATION });
 
         // Act
         await _sut.Submit(data);
@@ -335,8 +342,8 @@ public class NetworkBusinessLogicTests
         A.CallTo(() => _processStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)>>._))
             .MustHaveHappenedOnceExactly();
         processSteps.Should().Satisfy(
-            x => x.ProcessId == processId && x.ProcessStepTypeId == ProcessStepTypeId.VERIFY_REGISTRATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO,
-            x => x.ProcessId == processId && x.ProcessStepTypeId == ProcessStepTypeId.DECLINE_APPLICATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO,
+            x => x.ProcessId == processId && x.ProcessStepTypeId == ProcessStepTypeId.MANUAL_VERIFY_REGISTRATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO,
+            x => x.ProcessId == processId && x.ProcessStepTypeId == ProcessStepTypeId.MANUAL_DECLINE_APPLICATION && x.ProcessStepStatusId == ProcessStepStatusId.TODO,
             x => x.ProcessId == submitProcessId && x.ProcessStepTypeId == ProcessStepTypeId.TRIGGER_CALLBACK_OSP_SUBMITTED && x.ProcessStepStatusId == ProcessStepStatusId.TODO);
     }
 
@@ -355,7 +362,7 @@ public class NetworkBusinessLogicTests
                 (
                     (CompanyStatusId, IEnumerable<(Guid, UserStatusId)>),
                     IEnumerable<(Guid, InvitationStatusId)>,
-                    VerifyProcessData
+                    VerifyProcessData<ProcessTypeId, ProcessStepTypeId>
                 )?)>(default);
 
         // Act
@@ -363,7 +370,7 @@ public class NetworkBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
-        ex.Message.Should().Be($"CompanyApplication {notExistingId} does not exist");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_COMPANY_APPLICATION_NOT_EXIST.ToString());
     }
 
     [Fact]
@@ -377,14 +384,14 @@ public class NetworkBusinessLogicTests
                 default(
                     ((CompanyStatusId, IEnumerable<(Guid, UserStatusId)>),
                      IEnumerable<(Guid, InvitationStatusId)>,
-                     VerifyProcessData))));
+                     VerifyProcessData<ProcessTypeId, ProcessStepTypeId>))));
 
         // Act
         async Task Act() => await _sut.DeclineOsp(applcationId, data);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ForbiddenException>(Act);
-        ex.Message.Should().Be($"User is not allowed to decline application {applcationId}");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_FORBIDDEN_USER_NOT_ALLOWED_DECLINE_APPLICATION.ToString());
     }
 
     [Fact]
@@ -398,14 +405,14 @@ public class NetworkBusinessLogicTests
                 default(
                     ((CompanyStatusId, IEnumerable<(Guid, UserStatusId)>),
                      IEnumerable<(Guid, InvitationStatusId)>,
-                     VerifyProcessData))));
+                     VerifyProcessData<ProcessTypeId, ProcessStepTypeId>))));
 
         // Act
         async Task Act() => await _sut.DeclineOsp(applicationId, data);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Only external registrations can be declined");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_EXTERNAL_REGISTRATIONS_DECLINED.ToString());
     }
 
     [Fact]
@@ -419,14 +426,14 @@ public class NetworkBusinessLogicTests
                 default(
                     ((CompanyStatusId, IEnumerable<(Guid, UserStatusId)>),
                       IEnumerable<(Guid, InvitationStatusId)>,
-                      VerifyProcessData))));
+                      VerifyProcessData<ProcessTypeId, ProcessStepTypeId>))));
 
         // Act
         async Task Act() => await _sut.DeclineOsp(applicationId, data);
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be($"The status of the application {applicationId} must be one of the following: CREATED,ADD_COMPANY_DATA,INVITE_USER,SELECT_COMPANY_ROLE,UPLOAD_DOCUMENTS,VERIFY");
+        ex.Message.Should().Be(NetworkErrors.NETWORK_CONFLICT_CHECK_APPLICATION_STATUS.ToString());
     }
 
     [Fact]
@@ -441,9 +448,9 @@ public class NetworkBusinessLogicTests
         var process = _fixture.Build<Process>()
             .With(x => x.LockExpiryDate, default(DateTimeOffset?))
             .With(x => x.Version, currentVersion).Create();
-        var currentProcessStep = new ProcessStep(Guid.NewGuid(), ProcessStepTypeId.MANUAL_DECLINE_OSP, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
-        var removeUsersProcessStep = new ProcessStep(Guid.NewGuid(), ProcessStepTypeId.REMOVE_KEYCLOAK_USERS, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
-        var otherProcessStep = new ProcessStep(Guid.NewGuid(), ProcessStepTypeId.SYNCHRONIZE_USER, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
+        var currentProcessStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.MANUAL_DECLINE_OSP, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
+        var removeUsersProcessStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.REMOVE_KEYCLOAK_USERS, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
+        var otherProcessStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.SYNCHRONIZE_USER, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
         var existingProcessSteps = new[] { currentProcessStep, removeUsersProcessStep, otherProcessStep };
         var data = _fixture.Create<DeclineOspData>();
         A.CallTo(() => _networkRepository.GetDeclineDataForApplicationId(application.Id, CompanyApplicationTypeId.EXTERNAL, A<IEnumerable<CompanyApplicationStatusId>>._, IdentityCompanyId))
@@ -451,7 +458,7 @@ public class NetworkBusinessLogicTests
                 (
                     (company.CompanyStatusId, Enumerable.Repeat((identityId, UserStatusId.ACTIVE), 1)),
                     Enumerable.Repeat((invitation.Id, invitation.InvitationStatusId), 1),
-                    new VerifyProcessData(process, existingProcessSteps)
+                    new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, existingProcessSteps)
                 )
             ));
         A.CallTo(() => _applicationRepository.AttachAndModifyCompanyApplication(application.Id, A<Action<CompanyApplication>>._))
@@ -476,8 +483,8 @@ public class NetworkBusinessLogicTests
                 ).ToList();
                 initial.ForEach(x => x.modify(x.Invitation));
             });
-        A.CallTo(() => _processStepRepository.AttachAndModifyProcessSteps(A<IEnumerable<(Guid, Action<ProcessStep>?, Action<ProcessStep>)>>._))
-            .Invokes((IEnumerable<(Guid ProcessStepId, Action<ProcessStep>? Initialize, Action<ProcessStep> Modify)> processSteps) =>
+        A.CallTo(() => _processStepRepository.AttachAndModifyProcessSteps(A<IEnumerable<(Guid, Action<IProcessStep<ProcessStepTypeId>>?, Action<IProcessStep<ProcessStepTypeId>>)>>._))
+            .Invokes((IEnumerable<(Guid ProcessStepId, Action<IProcessStep<ProcessStepTypeId>>? Initialize, Action<IProcessStep<ProcessStepTypeId>> Modify)> processSteps) =>
             {
                 var initial = processSteps.Select(x =>
                     {

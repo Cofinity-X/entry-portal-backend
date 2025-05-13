@@ -17,9 +17,10 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.Framework.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Auditing;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Base;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -64,7 +65,7 @@ public class Identity : IBaseEntity, IAuditableV1
 
     // Navigation properties
     public virtual CompanyUser? CompanyUser { get; set; }
-    public virtual CompanyServiceAccount? CompanyServiceAccount { get; set; }
+    public virtual TechnicalUser? TechnicalUser { get; set; }
     public virtual Company? Company { get; set; }
     public virtual IdentityUserStatus? IdentityStatus { get; set; }
     public virtual IdentityType? IdentityType { get; set; }

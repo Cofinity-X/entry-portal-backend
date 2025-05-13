@@ -28,23 +28,12 @@ using Xunit.Extensions.AssemblyFixture;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Tests;
 
-public class ApplicationRepositoryTests : IAssemblyFixture<TestDbFixture>
+public class ApplicationRepositoryTests(TestDbFixture testDbFixture)
+    : IAssemblyFixture<TestDbFixture>
 {
     private static readonly Guid SubmittedApplicationWithBpn = new("6b2d1263-c073-4a48-bfaf-704dc154ca9f");
     private static readonly Guid ApplicationWithoutBpn = new("4829b64c-de6a-426c-81fc-c0bcf95bcb76");
     private static readonly Guid CompanyId = new("2dc4249f-b5ca-4d42-bef1-7a7a950a4f88");
-    private readonly IFixture _fixture;
-    private readonly TestDbFixture _dbTestDbFixture;
-
-    public ApplicationRepositoryTests(TestDbFixture testDbFixture)
-    {
-        _fixture = new Fixture().Customize(new AutoFakeItEasyCustomization { ConfigureMembers = true });
-        _fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
-            .ForEach(b => _fixture.Behaviors.Remove(b));
-
-        _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-        _dbTestDbFixture = testDbFixture;
-    }
 
     #region GetCompanyUserRoleWithAddressUntrackedAsync
 
@@ -70,7 +59,7 @@ public class ApplicationRepositoryTests : IAssemblyFixture<TestDbFixture>
         result.StreetName.Should().Be("Street");
         result.Streetadditional.Should().BeNull();
         result.Streetnumber.Should().Be("2");
-        result.Region.Should().BeNull();
+        result.Region.Should().Be("BY");
         result.Zipcode.Should().Be("00001");
 
         result.AgreementsData.Should().HaveCount(4);
@@ -337,8 +326,10 @@ public class ApplicationRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         data.CompanyId.Should().Be(CompanyId);
+        data.legalName.Should().Be("CX-Test-Access");
         data.BusinessPartnerNumber.Should().NotBeNullOrEmpty().And.Be("BPNL00000003CRHL");
         data.Alpha2Code.Should().Be("DE");
+        data.Region.Should().Be("BY");
         data.UniqueIdentifiers.Should().HaveCount(1);
     }
 
@@ -662,15 +653,55 @@ public class ApplicationRepositoryTests : IAssemblyFixture<TestDbFixture>
 
     #endregion
 
+    #region GetInvitedUsersWithoutInitialRoles
+
+    [Fact]
+    public async Task GetInvitedUsersWithoutInitialRoles_WithAllRoles_ReturnsEmpty()
+    {
+        // Arrange
+        var userRoles = new[]
+        {
+            new Guid("58f897ec-0aad-4588-8ffa-5f45d6638632"),
+            new Guid("efc20368-9e82-46ff-b88f-6495b9810253"),
+            new Guid("aabcdfeb-6669-4c74-89f0-19cda090873f")
+        };
+        var sut = await CreateSut().ConfigureAwait(false);
+
+        // Act
+        var result = await sut.GetInvitedUsersWithoutInitialRoles(SubmittedApplicationWithBpn, userRoles).ToListAsync().ConfigureAwait(false);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetInvitedUsersWithoutInitialRoles_WithNotExistingRole_ReturnsExpected()
+    {
+        // Arrange
+        var userRoleId = Guid.NewGuid();
+        var sut = await CreateSut().ConfigureAwait(false);
+
+        // Act
+        var result = await sut.GetInvitedUsersWithoutInitialRoles(SubmittedApplicationWithBpn, new[] { userRoleId }).ToListAsync().ConfigureAwait(false);
+
+        // Assert
+        result.Should().ContainSingle().And.Satisfy(x =>
+            x.CompanyUserId == new Guid("ac1cf001-7fbc-1f2f-817f-bce058020001") &&
+            x.RoleIds.Count() == 3);
+    }
+
+    #endregion
+
     private async Task<(IApplicationRepository sut, PortalDbContext context)> CreateSutWithContext()
     {
-        var context = await _dbTestDbFixture.GetPortalDbContext();
+        var context = await testDbFixture.GetPortalDbContext();
         var sut = new ApplicationRepository(context);
         return (sut, context);
     }
+
     private async Task<IApplicationRepository> CreateSut()
     {
-        var context = await _dbTestDbFixture.GetPortalDbContext();
+        var context = await testDbFixture.GetPortalDbContext();
         var sut = new ApplicationRepository(context);
         return sut;
     }

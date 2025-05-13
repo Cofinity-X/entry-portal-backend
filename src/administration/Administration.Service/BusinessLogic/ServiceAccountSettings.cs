@@ -40,6 +40,17 @@ public class ServiceAccountSettings
     [Required]
     [DistinctValues("x => x.Index")]
     public IEnumerable<EncryptionModeConfig> EncryptionConfigs { get; set; } = null!;
+
+    [Required]
+    public string AuthServiceUrl { get; set; } = null!;
+
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> DimUserRoles { get; set; } = null!;
+
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> UserRolesAccessibleByProviderOnly { get; set; } = null!;
 }
 
 public static class ServiceAccountSettingsExtensions
@@ -50,9 +61,7 @@ public static class ServiceAccountSettingsExtensions
     {
         services.AddOptions<ServiceAccountSettings>()
             .Bind(section)
-            .ValidateDataAnnotations()
-            .ValidateDistinctValues(section)
-            .ValidateOnStart();
+            .EnvironmentalValidation(section);
         return services;
     }
 }

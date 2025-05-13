@@ -36,12 +36,12 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 {
     private readonly TestDbFixture _dbTestDbFixture;
     private readonly Guid _userCompanyId = new("2dc4249f-b5ca-4d42-bef1-7a7a950a4f87");
-    private readonly IEnumerable<ProcessStepTypeId> _processStepsToFilter = new[]
-    {
-        ProcessStepTypeId.CREATE_DIM_TECHNICAL_USER, ProcessStepTypeId.RETRIGGER_CREATE_DIM_TECHNICAL_USER,
-        ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE,
-        ProcessStepTypeId.RETRIGGER_AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE
-    };
+    private readonly Guid _providerCompanyId = new("41fd2ab8-71cd-4546-9bef-a388d91b2542");
+    private readonly IEnumerable<ProcessStepTypeId> _processStepsToFilter = [
+        ProcessStepTypeId.CREATE_DIM_TECHNICAL_USER,
+        ProcessStepTypeId.RETRIGGER_CREATE_DIM_TECHNICAL_USER,
+        ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE
+    ];
 
     public ConnectorRepositoryTests(TestDbFixture testDbFixture)
     {
@@ -74,10 +74,10 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
             x => x.Name == "Test Connector 6"
                 && x.TechnicalUser!.Id == new Guid("cd436931-8399-4c1d-bd81-7dffb298c7ca")
                 && x.TechnicalUser.Name == "test-user-service-accounts"
-                && x.ConnectorUrl == "www.google.de",
+                && x.ConnectorUrl == "www.connector6.de",
             x => x.Name == "Test Connector 1"
                 && x.TechnicalUser == null
-                && x.ConnectorUrl == "www.google.de");
+                && x.ConnectorUrl == "www.connector1.de");
     }
 
     #endregion
@@ -160,21 +160,24 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
     #region GetConnectorByIdForIamUser
 
-    [Fact]
-    public async Task GetConnectorByIdForIamUser_ReturnsExpectedAppCount()
+    [Theory]
+    [InlineData("7e86a0b8-6903-496b-96d1-0ef508206839", "41fd2ab8-71cd-4546-9bef-a388d91b2542", true)]
+    [InlineData("7e86a0b8-6903-496b-96d1-0ef508206839", "2dc4249f-b5ca-4d42-bef1-7a7a950a4f87", true)]
+    [InlineData("7e86a0b8-6903-496b-96d1-0ef508206839", "deadbeef-dead-beef-dead-beefdeadbeef", false)]
+    public async Task GetConnectorByIdForIamUser_ReturnsExpected(Guid connectorId, Guid companyId, bool isProviderOrHost)
     {
         // Arrange
         var (sut, _) = await CreateSut();
 
         // Act
-        var result = await sut.GetConnectorByIdForCompany(new Guid("7e86a0b8-6903-496b-96d1-0ef508206833"), _userCompanyId);
+        var result = await sut.GetConnectorByIdForCompany(connectorId, companyId);
 
         // Assert
         result.Should().NotBeNull();
-        result.IsProvidingOrHostCompany.Should().BeTrue();
-        result.ConnectorData.Name.Should().Be("Test Connector 1");
+        result.IsProvidingOrHostCompany.Should().Be(isProviderOrHost);
+        result.ConnectorData.Name.Should().Be("Test Connector 2");
         result.ConnectorData.TechnicalUser.Should().BeNull();
-        result.ConnectorData.ConnectorUrl.Should().Be("www.google.de");
+        result.ConnectorData.ConnectorUrl.Should().Be("www.connector2.de");
     }
 
     [Fact]
@@ -188,20 +191,6 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().Be(default);
-    }
-
-    [Fact]
-    public async Task GetConnectorByIdForIamUser_WithoutMatchingUser_ReturnsIsProviderUserFalse()
-    {
-        // Arrange
-        var (sut, _) = await CreateSut();
-
-        // Act
-        var result = await sut.GetConnectorByIdForCompany(new Guid("5aea3711-cc54-47b4-b7eb-ba9f3bf1cb15"), Guid.NewGuid());
-
-        // Assert
-        result.Should().NotBeNull();
-        result.IsProvidingOrHostCompany.Should().BeFalse();
     }
 
     #endregion
@@ -383,7 +372,7 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
                 x.TechnicalUser!.Id == new Guid("d0c8ae19-d4f3-49cc-9cb4-6c766d4680f4") &&
                 x.TechnicalUser.Name == "sa-test" &&
                 x.TechnicalUser.Description == "SA with connector" &&
-                x.ConnectorUrl == "www.google.de");
+                x.ConnectorUrl == "www.connector3.de");
     }
 
     [Fact]
@@ -431,13 +420,41 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task GetConnectorUpdateInformation_ReturnIsProviderTrue()
+    {
+        // Arrange
+        var (sut, _) = await CreateSut();
+
+        // Act
+        var result = await sut.GetConnectorUpdateInformation(new Guid("7e86a0b8-6903-496b-96d1-0ef508206839"), _providerCompanyId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.IsProviderCompany.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetConnectorUpdateInformation_ReturnIsProviderFalse()
+    {
+        // Arrange
+        var (sut, _) = await CreateSut();
+
+        // Act
+        var result = await sut.GetConnectorUpdateInformation(new Guid("7e86a0b8-6903-496b-96d1-0ef508206839"), _userCompanyId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.IsProviderCompany.Should().BeFalse();
+    }
+
     #endregion
 
     #region GetConnectorEndPointDataAsync
 
     [Theory]
     [InlineData(new[] { "BPNL00000003AYRE", "BPNL00000003CRHK" }, 3, 2)]
-    [InlineData(new string[] { }, 4, 3)]
+    [InlineData(new string[] { }, 5, 3)]
     [InlineData(new[] { "not a bpn" }, 0, 0)]
     public async Task GetConnectorEndPointDataAsync_WithExistingConnector_ReturnsExpectedResult(IEnumerable<string> bpns, int numResults, int numGroups)
     {
@@ -463,6 +480,25 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
                 grouped.Select(x => x.Key).Should().HaveSameCount(bpns).And.AllSatisfy(x => bpns.Should().Contain(x));
             }
         }
+    }
+
+    [Fact]
+    public async Task GetConnectorEndPointDataAsync_CheckHostBPN_ReturnsExpectedResult()
+    {
+        // Arrange
+        var (sut, _) = await CreateSut();
+        var hostBpn = new[] { "BPNL00000003LLHA", "BPNL00000003CRHK" };
+
+        // Act
+        var result = await sut.GetConnectorEndPointDataAsync(hostBpn).ToListAsync();
+
+        // Assert
+        result.Should().NotBeNull().And.HaveCount(3);
+        result.Where(x => x.BusinessPartnerNumber == "BPNL00000003LLHA").Should().HaveCount(2).And.Satisfy(
+            x => x.ConnectorEndpoint == "www.connector7.de",
+            x => x.ConnectorEndpoint == "www.connector43.de");
+        result.Where(x => x.BusinessPartnerNumber == "BPNL00000003CRHK").Should().HaveCount(1).And.Satisfy(
+            x => x.ConnectorEndpoint == "www.connector6.de");
     }
 
     #endregion
@@ -570,11 +606,12 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result.Content.Should().HaveCount(4).And.Satisfy(
+        result.Content.Should().HaveCount(5).And.Satisfy(
             x => x.Name == "Test Connector 7",
             x => x.Name == "Test Connector 6",
             x => x.Name == "Test Connector 5",
-            x => x.Name == "Test Connector 4");
+            x => x.Name == "Test Connector 4",
+            x => x.Name == "Test Connector 43");
     }
 
     #endregion
@@ -592,6 +629,36 @@ public class ConnectorRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.BusinessPartnerNumber.Should().Be("BPNL000000001OSP");
+    }
+
+    #endregion
+
+    #region CheckConnectorExists
+
+    [Fact]
+    public async Task CheckConnectorExists_WithExisting_ReturnsTrue()
+    {
+        // Arrange
+        var (sut, _) = await CreateSut();
+
+        // Act
+        var result = await sut.CheckConnectorExists("Test Connector 6", "www.connector6.de").ConfigureAwait(false);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CheckConnectorExists_WithoutExisting_ReturnsFalse()
+    {
+        // Arrange
+        var (sut, _) = await CreateSut();
+
+        // Act
+        var result = await sut.CheckConnectorExists("not existing", "www.google.de").ConfigureAwait(false);
+
+        // Assert
+        result.Should().BeFalse();
     }
 
     #endregion

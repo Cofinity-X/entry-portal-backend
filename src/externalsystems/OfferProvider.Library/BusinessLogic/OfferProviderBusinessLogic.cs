@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.OfferProvider.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
@@ -85,7 +86,7 @@ public class OfferProviderBusinessLogic : IOfferProviderBusinessLogic
             [
                 data.IsSingleInstance ?
                     ProcessStepTypeId.SINGLE_INSTANCE_SUBSCRIPTION_DETAILS_CREATION :
-                    ProcessStepTypeId.START_AUTOSETUP
+                    ProcessStepTypeId.AWAIT_START_AUTOSETUP
             ],
             triggerProvider ? ProcessStepStatusId.DONE : ProcessStepStatusId.SKIPPED,
             true,
@@ -120,38 +121,35 @@ public class OfferProviderBusinessLogic : IOfferProviderBusinessLogic
             throw new ConflictException("Client should be set");
         }
 
-        IEnumerable<CallbackTechnicalUserInfoData>? technicalUsersInfoData = null;
-
-        if (data.ServiceAccounts?.Any() == true)
+        if (data.ServiceAccounts.Count() > 1)
         {
+            throw new ConflictException("There should be not more than one service account for the offer subscription");
+        }
+
+        CallbackTechnicalUserInfoData? technicalUserInfoData = null;
+        if (data.ServiceAccounts.Count() == 1)
+        {
+            var serviceAccount = data.ServiceAccounts.First();
+            if (serviceAccount.TechnicalClientId == null)
+            {
+                throw new ConflictException($"ClientId of serviceAccount {serviceAccount.TechnicalUserId} should be set");
+            }
             async Task<string?> GetServiceAccountSecret(string technicalClientId)
             {
                 var internalClientId = await _provisioningManager.GetIdOfCentralClientAsync(technicalClientId).ConfigureAwait(ConfigureAwaitOptions.None);
                 var authData = await _provisioningManager.GetCentralClientAuthDataAsync(internalClientId).ConfigureAwait(ConfigureAwaitOptions.None);
                 return authData.Secret;
             }
-
-            var tasks = data.ServiceAccounts.Select(async serviceAccount =>
-                        {
-                            if (serviceAccount.TechnicalClientId == null)
-                            {
-                                throw new ConflictException($"ClientId of serviceAccount {serviceAccount.TechnicalUserId} should be set");
-                            }
-
-                            var secret = serviceAccount.CompanyServiceAccountKindId == CompanyServiceAccountKindId.INTERNAL
-                                ? await GetServiceAccountSecret(serviceAccount.TechnicalClientId).ConfigureAwait(ConfigureAwaitOptions.None)
-                                : null;
-
-                            return new CallbackTechnicalUserInfoData(
-                                serviceAccount.TechnicalUserId,
-                                secret,
-                                serviceAccount.TechnicalClientId);
-                        });
-            technicalUsersInfoData = await Task.WhenAll(tasks).ConfigureAwait(ConfigureAwaitOptions.None);
+            technicalUserInfoData = new CallbackTechnicalUserInfoData(
+                serviceAccount.TechnicalUserId,
+                serviceAccount.TechnicalUserKindId == TechnicalUserKindId.INTERNAL
+                    ? await GetServiceAccountSecret(serviceAccount.TechnicalClientId).ConfigureAwait(ConfigureAwaitOptions.None)
+                    : null,
+                serviceAccount.TechnicalClientId);
         }
 
         var callbackData = new OfferProviderCallbackData(
-            technicalUsersInfoData,
+            technicalUserInfoData,
             new CallbackClientInfoData(data.ClientId)
         );
         await _offerProviderService

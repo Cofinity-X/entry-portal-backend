@@ -18,8 +18,10 @@
  ********************************************************************************/
 
 using Microsoft.Extensions.Options;
+using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -29,7 +31,6 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Apps.Service.BusinessLogic;
 
@@ -103,7 +104,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
             .GetOfferDetailsByIdAsync(appId, _identityData.CompanyId, languageShortName, Constants.DefaultLanguage, OfferTypeId.APP).ConfigureAwait(ConfigureAwaitOptions.None);
         if (result == null)
         {
-            throw new NotFoundException($"appId {appId} does not exist");
+            throw NotFoundException.Create(AppErrors.APP_NOT_EXIST, new ErrorParameter[] { new("appId", appId.ToString()) });
         }
 
         return new AppDetailResponse(
@@ -158,7 +159,7 @@ public class AppsBusinessLogic : IAppsBusinessLogic
     {
         if (companyName != null && !companyName.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "CompanyName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", "CompanyName")]);
         }
 
         async Task<Pagination.Source<OfferCompanySubscriptionStatusResponse>?> GetCompanyProvidedAppSubscriptionStatusData(int skip, int take)
@@ -183,6 +184,10 @@ public class AppsBusinessLogic : IAppsBusinessLogic
     /// <inheritdoc/>
     public Task<Guid> AddOwnCompanyAppSubscriptionAsync(Guid appId, IEnumerable<OfferAgreementConsentData> offerAgreementConsentData) =>
         _offerSubscriptionService.AddOfferSubscriptionAsync(appId, offerAgreementConsentData, OfferTypeId.APP, _settings.BasePortalAddress, _settings.SubscriptionManagerRoles, _settings.ServiceManagerRoles);
+
+    /// <inheritdoc/>
+    public Task DeclineAppSubscriptionAsync(Guid subscriptionId) =>
+        _offerSubscriptionService.RemoveOfferSubscriptionAsync(subscriptionId, OfferTypeId.APP, _settings.BasePortalAddress);
 
     /// <inheritdoc/>
     public Task TriggerActivateOfferSubscription(Guid subscriptionId) =>

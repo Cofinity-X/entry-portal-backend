@@ -35,4 +35,7 @@ public class ClearinghouseSettings : KeyVaultAuthSettings
     public string CallbackUrl { get; set; } = null!;
 
     public bool UseDimWallet { get; set; }
+
+    [Required]
+    public int RetriggerEndClearinghouseIntervalInDays { get; set; }
 }

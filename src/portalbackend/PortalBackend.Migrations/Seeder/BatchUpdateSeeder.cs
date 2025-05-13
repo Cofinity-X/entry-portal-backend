@@ -21,6 +21,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Seeding;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 
@@ -132,7 +133,7 @@ public class BatchUpdateSeeder : ICustomSeeder
                 dbEntry.Value = entry.Value;
             }, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
-        await SeedTable<CompanyServiceAccount>("company_service_accounts",
+        await SeedTable<TechnicalUser>("technical_users",
             x => x.Id,
             x => x.dataEntity.Description != x.dbEntity.Description || x.dataEntity.Name != x.dbEntity.Name || x.dataEntity.ClientClientId != x.dbEntity.ClientClientId,
             (dbEntry, entry) =>
@@ -144,11 +145,13 @@ public class BatchUpdateSeeder : ICustomSeeder
 
         await SeedTable<Company>("companies",
             x => x.Id,
-            x => x.dbEntity.SelfDescriptionDocumentId == null && x.dataEntity.SelfDescriptionDocumentId != x.dbEntity.SelfDescriptionDocumentId,
-            (dbEntry, entry) =>
-            {
-                dbEntry.SelfDescriptionDocumentId = entry.SelfDescriptionDocumentId;
-            }, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+            SeedingExtensions.UpdateCompanyNeeded,
+            (dbEntry, entry) => dbEntry.UpdateCompany(entry), cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
+
+        await SeedTable<Address>("addresses",
+            x => x.Id,
+            SeedingExtensions.UpdateAddressNeeded,
+            (dbEntry, entry) => dbEntry.UpdateAddress(entry), cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
 
         await SeedTable<CompanyApplication>("company_applications",
             x => x.Id,

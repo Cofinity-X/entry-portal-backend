@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using FluentAssertions;
+using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Linq;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -31,7 +32,7 @@ using Xunit.Abstractions;
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 [assembly: TestCollectionOrderer(
     ordererTypeName: "Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests.DisplayNameOrderer",
-    ordererAssemblyName: "EndToEnd.Tests")]
+    ordererAssemblyName: "Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests")]
 
 namespace Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests;
 

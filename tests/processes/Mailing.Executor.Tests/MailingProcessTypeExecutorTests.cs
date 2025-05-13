@@ -20,6 +20,7 @@
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Encryption;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Mailing.SendMail;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
@@ -221,7 +222,7 @@ public class MailingProcessTypeExecutorTests
     public void IsExecutableProcessStep_ReturnsExpected(bool checklistHandlerReturnValue)
     {
         // Arrange
-        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.SEND_MAIL : ProcessStepTypeId.START_AUTOSETUP;
+        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.SEND_MAIL : ProcessStepTypeId.AWAIT_START_AUTOSETUP;
 
         // Act
         var result = _executor.IsExecutableStepTypeId(processStepTypeId);

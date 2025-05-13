@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using Microsoft.EntityFrameworkCore;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Tests.Setup;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
@@ -29,7 +30,7 @@ using Xunit.Extensions.AssemblyFixture;
 namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Tests;
 
 /// <summary>
-/// Tests the functionality of the <see cref="ServiceAccountRepository"/>
+/// Tests the functionality of the <see cref="TechnicalUserRepository"/>
 /// </summary>
 public class TechnicalUserProfileRepositoryTests : IAssemblyFixture<TestDbFixture>
 {
@@ -249,14 +250,61 @@ public class TechnicalUserProfileRepositoryTests : IAssemblyFixture<TestDbFixtur
     {
         // Arrange
         var sut = await CreateSut();
+        var externalRoleConfig = new[]{
+            new UserRoleConfig("Cl2-CX-Portal", new []
+            {
+                "test"
+            })};
+        var providerOnlyRoleConfig = new[]{
+            new UserRoleConfig("https://catenax-int-dismantler-s66pftcc.authentication.eu10.hana.ondemand.com", new []
+            {
+                "EarthCommerce.Advanced.BuyerRC_QAS2"
+            })};
 
         // Act
-        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, _validCompanyId, OfferTypeId.SERVICE);
+        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, _validCompanyId, OfferTypeId.SERVICE, externalRoleConfig, providerOnlyRoleConfig);
 
         // Assert
         result.Should().NotBeNull();
         result.IsUserOfProvidingCompany.Should().BeTrue();
-        result.Information.Should().HaveCount(2);
+        result.Information.Should().HaveCount(2).And.Satisfy(
+            x => x.UserRoles.Count() == 2 &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873e")).All(ur => ur.IsExternal && !ur.IsProviderOnly) &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873f")).All(ur => !ur.IsExternal && ur.IsProviderOnly),
+            x => x.UserRoles.Count() == 1 &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873e")).All(ur => ur.IsExternal && !ur.IsProviderOnly)
+        );
+    }
+
+    [Fact]
+    public async Task GetTechnicalUserProfileInformation_NoMatchingRoleConfig_ReturnsExpectedResult()
+    {
+        // Arrange
+        var sut = await CreateSut();
+        var externalRoleConfig = new[]{
+            new UserRoleConfig("Foo", new []
+            {
+                "deadbeef"
+            })};
+        var providerOnlyRoleConfig = new[]{
+            new UserRoleConfig("Bar", new []
+            {
+                "deadbeef"
+            })};
+
+        // Act
+        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, _validCompanyId, OfferTypeId.SERVICE, externalRoleConfig, providerOnlyRoleConfig);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsUserOfProvidingCompany.Should().BeTrue();
+        result.Information.Should().HaveCount(2).And.Satisfy(
+            x => x.UserRoles.Count() == 2 &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873e")).All(ur => !ur.IsExternal && !ur.IsProviderOnly) &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873f")).All(ur => !ur.IsExternal && !ur.IsProviderOnly),
+            x => x.UserRoles.Count() == 1 &&
+                x.UserRoles.Where(ur => ur.UserRoleId == new Guid("aabcdfeb-6669-4c74-89f0-19cda090873e")).All(ur => !ur.IsExternal && !ur.IsProviderOnly)
+        );
     }
 
     [Fact]
@@ -265,8 +313,19 @@ public class TechnicalUserProfileRepositoryTests : IAssemblyFixture<TestDbFixtur
         // Arrange
         var sut = await CreateSut();
 
+        var externalRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Identity Wallet Management"
+            })};
+        var providerOnlyRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Registration External"
+            })};
+
         // Act
-        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, Guid.NewGuid(), OfferTypeId.SERVICE);
+        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, Guid.NewGuid(), OfferTypeId.SERVICE, externalRoleConfig, providerOnlyRoleConfig);
 
         // Assert
         result.Should().NotBeNull();
@@ -279,8 +338,19 @@ public class TechnicalUserProfileRepositoryTests : IAssemblyFixture<TestDbFixtur
         // Arrange
         var sut = await CreateSut();
 
+        var externalRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Identity Wallet Management"
+            })};
+        var providerOnlyRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Registration External"
+            })};
+
         // Act
-        var result = await sut.GetTechnicalUserProfileInformation(Guid.NewGuid(), _validCompanyId, OfferTypeId.SERVICE);
+        var result = await sut.GetTechnicalUserProfileInformation(Guid.NewGuid(), _validCompanyId, OfferTypeId.SERVICE, externalRoleConfig, providerOnlyRoleConfig);
 
         // Assert
         result.Should().Be(default);
@@ -292,8 +362,19 @@ public class TechnicalUserProfileRepositoryTests : IAssemblyFixture<TestDbFixtur
         // Arrange
         var sut = await CreateSut();
 
+        var externalRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Identity Wallet Management"
+            })};
+        var providerOnlyRoleConfig = new[]{
+            new UserRoleConfig("technical_roles_management", new []
+            {
+                "Registration External"
+            })};
+
         // Act
-        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, _validCompanyId, OfferTypeId.APP);
+        var result = await sut.GetTechnicalUserProfileInformation(_validServiceId, _validCompanyId, OfferTypeId.APP, externalRoleConfig, providerOnlyRoleConfig);
 
         // Assert
         result.Should().Be(default);

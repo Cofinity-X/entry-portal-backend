@@ -19,6 +19,11 @@
 
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.DBAccess;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Entities;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -37,6 +42,8 @@ public class SdFactoryBusinessLogicTests
     #region Initialization
 
     private const string CountryCode = "DE";
+    private const string Region = "NW";
+    private const string LegalName = "Legal Participant Company Name";
     private const string Bpn = "BPNL000000000009";
     private static readonly Guid ApplicationId = new("ac1cf001-7fbc-1f2f-817f-bce058020001");
     private readonly Process _process;
@@ -51,6 +58,7 @@ public class SdFactoryBusinessLogicTests
     private readonly ICompanyRepository _companyRepository;
     private readonly IDocumentRepository _documentRepository;
     private readonly IConnectorsRepository _connectorsRepository;
+    private readonly IProcessStepRepository<ProcessTypeId, ProcessStepTypeId> _portalProcessStepRepository;
     private readonly ISdFactoryService _service;
     private readonly ICollection<Document> _documents;
 
@@ -73,6 +81,7 @@ public class SdFactoryBusinessLogicTests
         _documentRepository = A.Fake<IDocumentRepository>();
         _connectorsRepository = A.Fake<IConnectorsRepository>();
         _portalRepositories = A.Fake<IPortalRepositories>();
+        _portalProcessStepRepository = A.Fake<IProcessStepRepository<ProcessTypeId, ProcessStepTypeId>>();
         _checklistService = A.Fake<IApplicationChecklistService>();
         _service = A.Fake<ISdFactoryService>();
 
@@ -80,11 +89,11 @@ public class SdFactoryBusinessLogicTests
         A.CallTo(() => _portalRepositories.GetInstance<ICompanyRepository>()).Returns(_companyRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IConnectorsRepository>()).Returns(_connectorsRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IDocumentRepository>()).Returns(_documentRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IProcessStepRepository<ProcessTypeId, ProcessStepTypeId>>()).Returns(_portalProcessStepRepository);
 
         _options = Options.Create(new SdFactorySettings
         {
-            SdFactoryUrl = "https://www.api.sdfactory.com",
-            SdFactoryIssuerBpn = "BPNL00000003CRHK"
+            SdFactoryUrl = "https://www.api.sdfactory.com"
         });
         _sut = new SdFactoryBusinessLogic(_service, _portalRepositories, _checklistService, _options);
     }
@@ -118,21 +127,19 @@ public class SdFactoryBusinessLogicTests
     public async Task StartSelfDescriptionRegistration_WithValidData_CompanyIsUpdated(bool clearinghouseConnectDisabled)
     {
         // Arrange
-        var checklist = new Dictionary<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>
-            {
-                { ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE },
-            }
-            .ToImmutableDictionary();
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE)
+            ]);
         var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
         var entry = new ApplicationChecklistEntry(Guid.NewGuid(), ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP, ApplicationChecklistEntryStatusId.TO_DO, DateTimeOffset.UtcNow);
         A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
-            .Returns((CompanyId, Bpn, CountryCode, UniqueIdentifiers));
+            .Returns((CompanyId, LegalName, Bpn, CountryCode, Region, UniqueIdentifiers));
         var sut = new SdFactoryBusinessLogic(_service, _portalRepositories, _checklistService, Options.Create(new SdFactorySettings
         {
             SdFactoryUrl = "https://www.api.sdfactory.com",
-            SdFactoryIssuerBpn = "BPNL00000003CRHK",
             ClearinghouseConnectDisabled = clearinghouseConnectDisabled
         }));
 
@@ -140,14 +147,14 @@ public class SdFactoryBusinessLogicTests
         var result = await sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, UniqueIdentifiers, CountryCode, Bpn, A<CancellationToken>._))
+        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, A<CancellationToken>._))
             .MustHaveHappened(clearinghouseConnectDisabled ? 0 : 1, Times.Exactly);
         result.Should().NotBeNull();
         result.ModifyChecklistEntry.Should().NotBeNull();
         result.ModifyChecklistEntry!.Invoke(entry);
         result.ProcessMessage.Should().Be(clearinghouseConnectDisabled ? "Self description was skipped due to clearinghouse trigger is disabled" : null);
         entry.ApplicationChecklistEntryStatusId.Should().Be(clearinghouseConnectDisabled ? ApplicationChecklistEntryStatusId.SKIPPED : ApplicationChecklistEntryStatusId.IN_PROGRESS);
-        result.ScheduleStepTypeIds.Should().ContainSingle().And.Match(x => clearinghouseConnectDisabled ? x.Single() == ProcessStepTypeId.ACTIVATE_APPLICATION : x.Single() == ProcessStepTypeId.FINISH_SELF_DESCRIPTION_LP);
+        result.ScheduleStepTypeIds.Should().ContainSingle().And.Match(x => clearinghouseConnectDisabled ? x.Single() == ProcessStepTypeId.ASSIGN_INITIAL_ROLES : x.Single() == ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_LP_RESPONSE);
         result.SkipStepTypeIds.Should().BeNull();
         result.Modified.Should().BeTrue();
         result.StepStatusId.Should().Be(clearinghouseConnectDisabled ? ProcessStepStatusId.SKIPPED : ProcessStepStatusId.DONE);
@@ -157,16 +164,15 @@ public class SdFactoryBusinessLogicTests
     public async Task StartSelfDescriptionRegistration_WithNoApplication_ThrowsConflictException()
     {
         // Arrange
-        var checklist = new Dictionary<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>
-            {
-                { ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE },
-            }
-            .ToImmutableDictionary();
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE)
+            ]);
         var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
         A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
-            .Returns<(Guid, string?, string, IEnumerable<(UniqueIdentifierId, string)>)>(default);
+            .Returns<(Guid, string, string?, string?, string?, IEnumerable<(UniqueIdentifierId, string)>)>(default);
 
         // Act
         async Task Act() => await _sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
@@ -174,7 +180,7 @@ public class SdFactoryBusinessLogicTests
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
         ex.Message.Should().Be($"CompanyApplication {ApplicationId} is not in status SUBMITTED");
-        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, UniqueIdentifiers, CountryCode, Bpn, A<CancellationToken>._))
+        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, A<CancellationToken>._))
             .MustNotHaveHappened();
     }
 
@@ -182,16 +188,15 @@ public class SdFactoryBusinessLogicTests
     public async Task StartSelfDescriptionRegistration_WithBpnNotSet_ThrowsConflictException()
     {
         // Arrange
-        var checklist = new Dictionary<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>
-            {
-                { ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE },
-            }
-            .ToImmutableDictionary();
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE)
+            ]);
         var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
         A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
-            .Returns((CompanyId, null, CountryCode, Enumerable.Empty<(UniqueIdentifierId Id, string Value)>()));
+            .Returns((CompanyId, LegalName, null, CountryCode, Region, Enumerable.Empty<(UniqueIdentifierId Id, string Value)>()));
 
         // Act
         async Task Act() => await _sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
@@ -199,7 +204,34 @@ public class SdFactoryBusinessLogicTests
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
         ex.Message.Should().Be($"BusinessPartnerNumber (bpn) for CompanyApplications {ApplicationId} company {CompanyId} is empty");
-        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, UniqueIdentifiers, CountryCode, Bpn, A<CancellationToken>._))
+        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData(CountryCode, null)]
+    [InlineData(null, Region)]
+    [InlineData(null, null)]
+    public async Task StartSelfDescriptionRegistration_WithCountryOrRegionNotSet_ThrowsConflictException(string? countryCode, string? region)
+    {
+        // Arrange
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE),
+            ]);
+        var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
+        A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
+            .Returns((CompanyId, LegalName, Bpn, countryCode, region, Enumerable.Empty<(UniqueIdentifierId Id, string Value)>()));
+
+        // Act
+        async Task Act() => await _sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
+
+        // Assert
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+        ex.Message.Should().Be($"CountryCode or Region for CompanyApplications {ApplicationId} and Company {CompanyId} is empty. Expected value: DE-NW and Current value: {countryCode}-{region}");
+        A.CallTo(() => _service.RegisterSelfDescriptionAsync(ApplicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, A<CancellationToken>._))
             .MustNotHaveHappened();
     }
 
@@ -215,7 +247,7 @@ public class SdFactoryBusinessLogicTests
         var company = _fixture.Build<Company>()
             .With(x => x.SelfDescriptionDocumentId, default(Guid?))
             .Create();
-        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/catenax-ng/tx-sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
         var data = new SelfDescriptionResponseData(ApplicationId, SelfDescriptionStatus.Confirm, null, contentJson);
         SetupForProcessFinish(company, applicationChecklistEntry);
 
@@ -223,8 +255,8 @@ public class SdFactoryBusinessLogicTests
         await _sut.ProcessFinishSelfDescriptionLpForApplication(data, company.Id, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(A<IApplicationChecklistService.ManualChecklistProcessStepData>._, A<Action<ApplicationChecklistEntry>>._, A<Action<ApplicationChecklistEntry>>._, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count(y => y == ProcessStepTypeId.ACTIVATE_APPLICATION) == 1))).MustHaveHappenedOnceExactly();
-        A.CallTo(() => _documentRepository.CreateDocument($"SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, MediaTypeId.JSON, DocumentTypeId.SELF_DESCRIPTION, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(A<IApplicationChecklistService.ManualChecklistProcessStepData>._, A<Action<ApplicationChecklistEntry>>._, A<Action<ApplicationChecklistEntry>>._, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count(y => y == ProcessStepTypeId.ASSIGN_INITIAL_ROLES) == 1))).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _documentRepository.CreateDocument($"SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, MediaTypeId.JSON, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _companyRepository.AttachAndModifyCompany(company.Id, null, A<Action<Company>>._)).MustHaveHappenedOnceExactly();
 
         applicationChecklistEntry.Comment.Should().BeNull();
@@ -269,7 +301,7 @@ public class SdFactoryBusinessLogicTests
 
         // Assert
         A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(A<IApplicationChecklistService.ManualChecklistProcessStepData>._, A<Action<ApplicationChecklistEntry>>._, A<Action<ApplicationChecklistEntry>>._, null)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, MediaTypeId.JSON, DocumentTypeId.SELF_DESCRIPTION, A<Action<Document>?>._)).MustNotHaveHappened();
+        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, MediaTypeId.JSON, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustNotHaveHappened();
         A.CallTo(() => _companyRepository.AttachAndModifyCompany(company.Id, null, A<Action<Company>>._)).MustNotHaveHappened();
 
         applicationChecklistEntry.Comment.Should().Be("test message");
@@ -292,23 +324,22 @@ public class SdFactoryBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Please provide a messsage");
+        ex.Message.Should().Be("Please provide a message");
     }
 
     [Fact]
     public async Task RegisterSelfDescriptionAsync_WithNoApplication_ThrowsConflictException()
     {
         // Arrange
-        var checklist = new Dictionary<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>
-            {
-                { ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE },
-            }
-            .ToImmutableDictionary();
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE)
+            ]);
         var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
         A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
-            .Returns<(Guid, string?, string, IEnumerable<(UniqueIdentifierId, string)>)>(default);
+            .Returns<(Guid, string, string?, string?, string?, IEnumerable<(UniqueIdentifierId, string)>)>(default);
 
         // Act
         async Task Act() => await _sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
@@ -322,16 +353,15 @@ public class SdFactoryBusinessLogicTests
     public async Task RegisterSelfDescriptionAsync_WithBpnNotSet_ThrowsConflictException()
     {
         // Arrange
-        var checklist = new Dictionary<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>
-            {
-                { ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE },
-                { ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE },
-            }
-            .ToImmutableDictionary();
+        var checklist = ImmutableDictionary.CreateRange<ApplicationChecklistEntryTypeId, ApplicationChecklistEntryStatusId>(
+            [
+                new(ApplicationChecklistEntryTypeId.REGISTRATION_VERIFICATION, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.BUSINESS_PARTNER_NUMBER, ApplicationChecklistEntryStatusId.DONE),
+                new(ApplicationChecklistEntryTypeId.IDENTITY_WALLET, ApplicationChecklistEntryStatusId.DONE)
+            ]);
         var context = new IApplicationChecklistService.WorkerChecklistProcessStepData(ApplicationId, default, checklist, Enumerable.Empty<ProcessStepTypeId>());
         A.CallTo(() => _applicationRepository.GetCompanyAndApplicationDetailsWithUniqueIdentifiersAsync(ApplicationId))
-            .Returns((CompanyId, null, CountryCode, Enumerable.Empty<(UniqueIdentifierId Id, string Value)>()));
+            .Returns((CompanyId, LegalName, null, CountryCode, Region, Enumerable.Empty<(UniqueIdentifierId Id, string Value)>()));
 
         // Act
         async Task Act() => await _sut.StartSelfDescriptionRegistration(context, CancellationToken.None);
@@ -346,19 +376,24 @@ public class SdFactoryBusinessLogicTests
     #region ProcessFinishSelfDescriptionLp
 
     [Fact]
-    public async Task ProcessFinishSelfDescriptionLpForConnector_ConfirmWithValidData_CompanyIsUpdated()
+    public async Task ProcessFinishSelfDescriptionLpForConnector_ConfirmWithValidDataAndWithoutProcess_CompanyIsUpdated()
     {
         // Arrange
         var connector = new Connector(Guid.NewGuid(), "con-air", "de", "https://one-url.com");
-        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/catenax-ng/tx-sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
         var data = new SelfDescriptionResponseData(connector.Id, SelfDescriptionStatus.Confirm, null, contentJson);
-        SetupForProcessFinishForConnector(connector);
+        var processId = Guid.NewGuid();
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, processId, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        SetupForProcessFinishForConnector(processId, connector, processStep, processSteps);
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(A<Guid>._))
+            .Returns<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?>(null);
 
         // Act
         await _sut.ProcessFinishSelfDescriptionLpForConnector(data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_Connector.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_Connector.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
 
         _documents.Should().HaveCount(1);
         var document = _documents.Single();
@@ -366,6 +401,63 @@ public class SdFactoryBusinessLogicTests
             .MustHaveHappenedOnceExactly();
         document.DocumentName.Should().Be("SelfDescription_Connector.json");
         connector.SelfDescriptionDocumentId.Should().Be(document.Id);
+    }
+
+    [Fact]
+    public async Task ProcessFinishSelfDescriptionLpForConnector_ConfirmWithValidData_CompanyIsUpdated()
+    {
+        // Arrange
+        var connector = new Connector(Guid.NewGuid(), "con-air", "de", "https://one-url.com");
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        var data = new SelfDescriptionResponseData(connector.Id, SelfDescriptionStatus.Confirm, null, contentJson);
+        var processId = Guid.NewGuid();
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, processId, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        SetupForProcessFinishForConnector(processId, connector, processStep, processSteps);
+
+        // Act
+        await _sut.ProcessFinishSelfDescriptionLpForConnector(data, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_Connector.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
+
+        _documents.Should().HaveCount(1);
+        var document = _documents.Single();
+        A.CallTo(() => _connectorsRepository.AttachAndModifyConnector(connector.Id, null, A<Action<Connector>>._))
+            .MustHaveHappenedOnceExactly();
+        document.DocumentName.Should().Be("SelfDescription_Connector.json");
+        connector.SelfDescriptionDocumentId.Should().Be(document.Id);
+        processStep.ProcessStepStatusId.Should().Be(ProcessStepStatusId.DONE);
+        processSteps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessFinishSelfDescriptionLpForConnector_ReceiveExpectedErrorMessage_NoDocumentCreated_ConnectorIsActivated()
+    {
+        // Arrange
+        var connector = new Connector(Guid.NewGuid(), "con-air", "de", "https://one-url.com");
+        var data = new SelfDescriptionResponseData(connector.Id, SelfDescriptionStatus.Failed, "Error Code: E2010", null);
+        var processId = Guid.NewGuid();
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, processId, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        SetupForProcessFinishForConnector(processId, connector, processStep, processSteps);
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(A<Guid>._))
+            .Returns<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?>(null);
+        var sut = new SdFactoryBusinessLogic(_service, _portalRepositories, _checklistService, Options.Create(new SdFactorySettings
+        {
+            ConnectorAllowSdDocumentSkipErrorCode = "E2010",
+        }));
+
+        // Act
+        await sut.ProcessFinishSelfDescriptionLpForConnector(data, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _connectorsRepository.AttachAndModifyConnector(connector.Id, null, A<Action<Connector>>._))
+            .MustHaveHappenedOnceExactly();
+        connector.Should().NotBeNull();
+        connector.Name.Should().Be("con-air");
+        connector.StatusId.Should().Be(ConnectorStatusId.ACTIVE);
+        connector.SelfDescriptionDocumentId.Should().Be(null);
     }
 
     [Fact]
@@ -388,7 +480,10 @@ public class SdFactoryBusinessLogicTests
         // Arrange
         var connector = new Connector(Guid.NewGuid(), "con-air", "de", "https://one-url.com");
         var data = new SelfDescriptionResponseData(connector.Id, SelfDescriptionStatus.Failed, "test message", null);
-        SetupForProcessFinishForConnector(connector);
+        var processId = Guid.NewGuid();
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE, ProcessStepStatusId.TODO, processId, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+        SetupForProcessFinishForConnector(processId, connector, processStep, processSteps);
 
         // Act
         await _sut.ProcessFinishSelfDescriptionLpForConnector(data, CancellationToken.None);
@@ -411,7 +506,7 @@ public class SdFactoryBusinessLogicTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
-        ex.Message.Should().Be("Please provide a messsage");
+        ex.Message.Should().Be("Please provide a message");
     }
 
     #endregion
@@ -419,7 +514,7 @@ public class SdFactoryBusinessLogicTests
     #region ProcessFinishSelfDescriptionLpForCompany
 
     [Fact]
-    public async Task ProcessFinishSelfDescriptionLpForCompany_ConfirmWithValidData_CompanyIsUpdated()
+    public async Task ProcessFinishSelfDescriptionLpForCompany_ConfirmWithValidDataAndNoProcess_CompanyIsUpdated()
     {
         // Arrange
         var documentId = Guid.NewGuid();
@@ -430,23 +525,25 @@ public class SdFactoryBusinessLogicTests
                 modify(company);
             });
         A.CallTo(() =>
-                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<Action<Document>?>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields) =>
+                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
             {
-                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId);
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
                 setupOptionalFields?.Invoke(document);
                 _documents.Add(document);
             })
-            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default));
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(company.Id))
+            .Returns<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?>(null);
 
-        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/catenax-ng/tx-sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
         var data = new SelfDescriptionResponseData(company.Id, SelfDescriptionStatus.Confirm, null, contentJson);
 
         // Act
         await _sut.ProcessFinishSelfDescriptionLpForCompany(data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
 
         _documents.Should().HaveCount(1);
         var document = _documents.Single();
@@ -457,7 +554,7 @@ public class SdFactoryBusinessLogicTests
     }
 
     [Fact]
-    public async Task ProcessFinishSelfDescriptionLpForCompany_Decline_DoesNothing()
+    public async Task ProcessFinishSelfDescriptionLpForCompany_DeclineWithoutProcess_DoesNothing()
     {
         // Arrange
         var documentId = Guid.NewGuid();
@@ -468,27 +565,151 @@ public class SdFactoryBusinessLogicTests
                 modify(company);
             });
         A.CallTo(() =>
-                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<Action<Document>?>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields) =>
+                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
             {
-                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId);
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
                 setupOptionalFields?.Invoke(document);
                 _documents.Add(document);
             })
-            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default));
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(company.Id))
+            .Returns<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?>(null);
 
-        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/catenax-ng/tx-sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
         var data = new SelfDescriptionResponseData(company.Id, SelfDescriptionStatus.Failed, null, contentJson);
 
         // Act
         await _sut.ProcessFinishSelfDescriptionLpForCompany(data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<Action<Document>?>._))
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._))
             .MustNotHaveHappened();
         _documents.Should().BeEmpty();
         A.CallTo(() => _companyRepository.AttachAndModifyCompany(company.Id, null, A<Action<Company>>._))
             .MustNotHaveHappened();
+        company.SelfDescriptionDocumentId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ProcessFinishSelfDescriptionLpForCompany_ConfirmWithValidDataAndExistingProcess_CompanyIsUpdatedAndProcessStepUpdated()
+    {
+        // Arrange
+        var documentId = Guid.NewGuid();
+        var company = new Company(Guid.NewGuid(), "con-air", CompanyStatusId.ACTIVE, DateTimeOffset.UtcNow);
+        A.CallTo(() => _companyRepository.AttachAndModifyCompany(A<Guid>._, null, A<Action<Company>>._))
+            .Invokes((Guid _, Action<Company>? _, Action<Company> modify) =>
+            {
+                modify(company);
+            });
+        A.CallTo(() =>
+                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
+            {
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
+                setupOptionalFields?.Invoke(document);
+                _documents.Add(document);
+            })
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(A<Guid>._))
+            .Returns(new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(processStep, 1)));
+        A.CallTo(() => _portalProcessStepRepository.AttachAndModifyProcessSteps(A<IEnumerable<ValueTuple<Guid, Action<IProcessStep<ProcessStepTypeId>>?, Action<IProcessStep<ProcessStepTypeId>>>>>._))
+            .Invokes((IEnumerable<(Guid ProcessStepId, Action<IProcessStep<ProcessStepTypeId>>? Initialize, Action<IProcessStep<ProcessStepTypeId>> Modify)> processStepIdsInitializeModifyData) =>
+            {
+                var modify = processStepIdsInitializeModifyData.SingleOrDefault(x => processStep.Id == x.ProcessStepId);
+                if (modify == default)
+                    return;
+
+                modify.Initialize?.Invoke(processStep);
+                modify.Modify.Invoke(processStep);
+            });
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId, ProcessStepStatusId, Guid)>>._))
+            .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> ps) =>
+            {
+                processSteps.AddRange(ps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+            });
+
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        var data = new SelfDescriptionResponseData(company.Id, SelfDescriptionStatus.Confirm, null, contentJson);
+
+        // Act
+        await _sut.ProcessFinishSelfDescriptionLpForCompany(data, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _documentRepository.CreateDocument("SelfDescription_LegalPerson.json", A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._)).MustHaveHappenedOnceExactly();
+
+        _documents.Should().HaveCount(1);
+        var document = _documents.Single();
+        A.CallTo(() => _companyRepository.AttachAndModifyCompany(company.Id, null, A<Action<Company>>._))
+            .MustHaveHappenedOnceExactly();
+        processStep.ProcessStepStatusId.Should().Be(ProcessStepStatusId.DONE);
+        processSteps.Should().BeEmpty();
+        document.DocumentName.Should().Be("SelfDescription_LegalPerson.json");
+        company.SelfDescriptionDocumentId.Should().Be(document.Id);
+    }
+
+    [Fact]
+    public async Task ProcessFinishSelfDescriptionLpForCompany_DeclineWithProcess_CreatesRetrigger()
+    {
+        // Arrange
+        var documentId = Guid.NewGuid();
+        var company = new Company(Guid.NewGuid(), "con-air", CompanyStatusId.ACTIVE, DateTimeOffset.UtcNow);
+        A.CallTo(() => _companyRepository.AttachAndModifyCompany(A<Guid>._, null, A<Action<Company>>._))
+            .Invokes((Guid _, Action<Company>? _, Action<Company> modify) =>
+            {
+                modify(company);
+            });
+        A.CallTo(() =>
+                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
+            {
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
+                setupOptionalFields?.Invoke(document);
+                _documents.Add(document);
+            })
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+        var processStep = new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow);
+        var processSteps = new List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>();
+
+        A.CallTo(() => _companyRepository.GetProcessDataForCompanyIdId(A<Guid>._))
+            .Returns(new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(processStep, 1)));
+        A.CallTo(() => _portalProcessStepRepository.AttachAndModifyProcessSteps(A<IEnumerable<ValueTuple<Guid, Action<IProcessStep<ProcessStepTypeId>>?, Action<IProcessStep<ProcessStepTypeId>>>>>._))
+            .Invokes((IEnumerable<(Guid ProcessStepId, Action<IProcessStep<ProcessStepTypeId>>? Initialize, Action<IProcessStep<ProcessStepTypeId>> Modify)> processStepIdsInitializeModifyData) =>
+            {
+                var modify = processStepIdsInitializeModifyData.SingleOrDefault(x => processStep.Id == x.ProcessStepId);
+                if (modify == default)
+                    return;
+
+                modify.Initialize?.Invoke(processStep);
+                modify.Modify.Invoke(processStep);
+            });
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId, ProcessStepStatusId, Guid)>>._))
+            .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> ps) =>
+            {
+                processSteps.AddRange(ps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+            });
+
+        const string contentJson = "{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://github.com/eclipse-tractusx/sd-factory/raw/clearing-house/src/main/resources/verifiablecredentials.jsonld/sd-document-v22.10.jsonld\",\"https://w3id.org/vc/status-list/2021/v1\"],\"type\":[\"VerifiableCredential\",\"LegalPerson\"],\"issuer\":\"did:sov:12345\",\"issuanceDate\":\"2023-02-18T23:03:16Z\",\"expirationDate\":\"2023-05-19T23:03:16Z\",\"credentialSubject\":{\"bpn\":\"BPNL000000000000\",\"registrationNumber\":[{\"type\":\"local\",\"value\":\"o12345678\"}],\"headquarterAddress\":{\"countryCode\":\"DE\"},\"type\":\"LegalPerson\",\"legalAddress\":{\"countryCode\":\"DE\"},\"id\":\"did:sov:12345\"},\"credentialStatus\":{\"id\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":\"58\",\"statusListCredential\":\"https://managed-identity-wallets.int.demo.catena-x.net/api/credentials/status/123\"},\"proof\":{\"type\":\"Ed25519Signature2018\",\"created\":\"2023-02-18T23:03:18Z\",\"proofPurpose\":\"assertionMethod\",\"verificationMethod\":\"did:sov:12345#key-1\",\"jws\":\"test\"}}";
+        var data = new SelfDescriptionResponseData(company.Id, SelfDescriptionStatus.Failed, null, contentJson);
+
+        // Act
+        await _sut.ProcessFinishSelfDescriptionLpForCompany(data, CancellationToken.None);
+
+        // Assert
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, DocumentTypeId.SELF_DESCRIPTION, A<long>._, A<Action<Document>?>._))
+            .MustNotHaveHappened();
+        _documents.Should().BeEmpty();
+        A.CallTo(() => _companyRepository.AttachAndModifyCompany(company.Id, null, A<Action<Company>>._))
+            .MustNotHaveHappened();
+        processStep.ProcessStepStatusId.Should().Be(ProcessStepStatusId.FAILED);
+        processSteps.Should().ContainSingle().And.Satisfy(ps =>
+            ps.ProcessStepTypeId == ProcessStepTypeId.RETRIGGER_AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE &&
+            ps.ProcessStepStatusId == ProcessStepStatusId.TODO);
         company.SelfDescriptionDocumentId.Should().BeNull();
     }
 
@@ -540,13 +761,13 @@ public class SdFactoryBusinessLogicTests
         A.CallTo(() => _checklistService.VerifyChecklistEntryAndProcessSteps(ApplicationId,
                 ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP,
                 new[] { ApplicationChecklistEntryStatusId.IN_PROGRESS },
-                ProcessStepTypeId.FINISH_SELF_DESCRIPTION_LP,
+                ProcessStepTypeId.AWAIT_SELF_DESCRIPTION_LP_RESPONSE,
                 null,
                 new[] { ProcessStepTypeId.START_SELF_DESCRIPTION_LP }))
             .Returns(new IApplicationChecklistService.ManualChecklistProcessStepData(ApplicationId, _process, Guid.NewGuid(),
                 ApplicationChecklistEntryTypeId.SELF_DESCRIPTION_LP,
                 ImmutableDictionary<ApplicationChecklistEntryTypeId, (ApplicationChecklistEntryStatusId, string?)>.Empty,
-                Enumerable.Empty<ProcessStep>()));
+                Enumerable.Empty<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>>()));
         A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(
                 A<IApplicationChecklistService.ManualChecklistProcessStepData>._, A<Action<ApplicationChecklistEntry>>._, A<Action<ApplicationChecklistEntry>>._,
                 A<IEnumerable<ProcessStepTypeId>>._))
@@ -557,14 +778,14 @@ public class SdFactoryBusinessLogicTests
                 modifyApplicationChecklistEntry.Invoke(applicationChecklistEntry);
             });
         var documentId = Guid.NewGuid();
-        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<Action<Document>?>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields) =>
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
             {
-                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId);
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
                 setupOptionalFields?.Invoke(document);
                 _documents.Add(document);
             })
-            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default));
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
 
         A.CallTo(() =>
                 _companyRepository.AttachAndModifyCompany(A<Guid>._, null, A<Action<Company>>._))
@@ -575,7 +796,7 @@ public class SdFactoryBusinessLogicTests
             });
     }
 
-    private void SetupForProcessFinishForConnector(Connector connector)
+    private void SetupForProcessFinishForConnector(Guid processId, Connector connector, ProcessStep<Process, ProcessTypeId, ProcessStepTypeId> processStep, List<ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>> processSteps)
     {
         A.CallTo(() => _connectorsRepository.AttachAndModifyConnector(connector.Id, null, A<Action<Connector>>._))
             .Invokes((Guid _, Action<Connector>? initialize, Action<Connector> modify) =>
@@ -585,14 +806,33 @@ public class SdFactoryBusinessLogicTests
             });
         var documentId = Guid.NewGuid();
         A.CallTo(() =>
-                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<Action<Document>?>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? setupOptionalFields) =>
+                _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? setupOptionalFields) =>
             {
-                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId);
+                var document = new Document(documentId, documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
                 setupOptionalFields?.Invoke(document);
                 _documents.Add(document);
             })
-            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default));
+            .Returns(new Document(documentId, null!, null!, null!, default, default, default, default, default));
+        var process = new Process(processId, ProcessTypeId.SELF_DESCRIPTION_CREATION, Guid.NewGuid());
+
+        A.CallTo(() => _connectorsRepository.GetProcessDataForConnectorId(A<Guid>._))
+            .Returns(new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, Enumerable.Repeat(processStep, 1)));
+        A.CallTo(() => _portalProcessStepRepository.AttachAndModifyProcessSteps(A<IEnumerable<ValueTuple<Guid, Action<IProcessStep<ProcessStepTypeId>>?, Action<IProcessStep<ProcessStepTypeId>>>>>._))
+            .Invokes((IEnumerable<(Guid ProcessStepId, Action<IProcessStep<ProcessStepTypeId>>? Initialize, Action<IProcessStep<ProcessStepTypeId>> Modify)> processStepIdsInitializeModifyData) =>
+            {
+                var modify = processStepIdsInitializeModifyData.SingleOrDefault(x => processStep.Id == x.ProcessStepId);
+                if (modify == default)
+                    return;
+
+                modify.Initialize?.Invoke(processStep);
+                modify.Modify.Invoke(processStep);
+            });
+        A.CallTo(() => _portalProcessStepRepository.CreateProcessStepRange(A<IEnumerable<(ProcessStepTypeId, ProcessStepStatusId, Guid)>>._))
+            .Invokes((IEnumerable<(ProcessStepTypeId ProcessStepTypeId, ProcessStepStatusId ProcessStepStatusId, Guid ProcessId)> ps) =>
+            {
+                processSteps.AddRange(ps.Select(x => new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), x.ProcessStepTypeId, x.ProcessStepStatusId, x.ProcessId, DateTimeOffset.UtcNow)));
+            });
     }
 
     #endregion

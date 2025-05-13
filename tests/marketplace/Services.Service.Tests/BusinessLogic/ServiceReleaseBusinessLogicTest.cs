@@ -23,6 +23,7 @@ using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -33,8 +34,8 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.BusinessLogic;
+using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ViewModels;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
@@ -113,14 +114,14 @@ public class ServiceReleaseBusinessLogicTest
     {
         //Arrange
         var data = _fixture.CreateMany<AgreementDocumentData>(5).ToAsyncEnumerable();
-        A.CallTo(() => _offerService.GetOfferTypeAgreements(OfferTypeId.SERVICE))
+        A.CallTo(() => _offerService.GetOfferTypeAgreements(OfferTypeId.SERVICE, Constants.DefaultLanguage))
             .Returns(data);
 
         //Act
-        var result = await _sut.GetServiceAgreementDataAsync().ToListAsync();
+        var result = await _sut.GetServiceAgreementDataAsync(Constants.DefaultLanguage).ToListAsync();
 
         // Assert 
-        A.CallTo(() => _offerService.GetOfferTypeAgreements(OfferTypeId.SERVICE))
+        A.CallTo(() => _offerService.GetOfferTypeAgreements(OfferTypeId.SERVICE, Constants.DefaultLanguage))
             .MustHaveHappenedOnceExactly();
         result.Should().HaveCount(5);
     }
@@ -197,7 +198,7 @@ public class ServiceReleaseBusinessLogicTest
 
         // Assert
         var error = await Assert.ThrowsAsync<NotFoundException>(Act);
-        error.Message.Should().Be($"serviceId {invalidServiceId} not found or Incorrect Status");
+        error.Message.Should().Be(ServicesServiceReleaseErrors.SERVICES_NOT_SERVICEID_NOT_FOUND_OR_INCORR.ToString());
     }
 
     [Fact]
@@ -257,10 +258,10 @@ public class ServiceReleaseBusinessLogicTest
             .With(x => x.ServiceTypeIds, new[] { ServiceTypeId.DATASPACE_SERVICE, ServiceTypeId.CONSULTANCY_SERVICE })
             .Create();
 
-        A.CallTo(() => _offerService.GetProviderOfferDetailsForStatusAsync(serviceId, OfferTypeId.SERVICE, DocumentTypeId.SERVICE_LEADIMAGE))
+        A.CallTo(() => _offerService.GetProviderOfferDetailsForStatusAsync(serviceId, OfferTypeId.SERVICE, DocumentTypeId.SERVICE_LEADIMAGE, Constants.DefaultLanguage))
             .Returns(data);
 
-        var result = await _sut.GetServiceDetailsForStatusAsync(serviceId);
+        var result = await _sut.GetServiceDetailsForStatusAsync(serviceId, Constants.DefaultLanguage);
 
         result.Should().NotBeNull();
         result.Title.Should().Be("test title");
@@ -338,7 +339,7 @@ public class ServiceReleaseBusinessLogicTest
         async Task Act() => await _sut.SubmitOfferConsentAsync(Guid.Empty, data);
 
         var ex = await Assert.ThrowsAsync<ControllerArgumentException>(Act);
-        ex.Message.Should().Be("ServiceId must not be empty");
+        ex.Message.Should().Be(ServicesServiceReleaseErrors.SERVICES_ARGUMENT_NOT_EMPTY.ToString());
     }
 
     #endregion
@@ -396,7 +397,7 @@ public class ServiceReleaseBusinessLogicTest
 
         // Assert
         var error = await Assert.ThrowsAsync<NotFoundException>(Act);
-        error.Message.Should().Be($"Service {_notExistingServiceId} does not exists");
+        error.Message.Should().Be(ServicesServiceReleaseErrors.SERVICES_NOT_EXIST.ToString());
     }
 
     [Fact]
@@ -411,7 +412,7 @@ public class ServiceReleaseBusinessLogicTest
 
         // Assert
         var error = await Assert.ThrowsAsync<ConflictException>(Act);
-        error.Message.Should().Be("Service in State ACTIVE can't be updated");
+        error.Message.Should().Be(ServicesServiceReleaseErrors.SERVICES_CONFLICT_STATE_NOT_UPDATED.ToString());
     }
 
     [Fact]
@@ -426,7 +427,7 @@ public class ServiceReleaseBusinessLogicTest
 
         // Assert
         var error = await Assert.ThrowsAsync<ForbiddenException>(Act);
-        error.Message.Should().Be($"Company {_identity.CompanyId} is not the service provider.");
+        error.Message.Should().Be(ServicesServiceReleaseErrors.SERVICES_FORBIDDEN_COMPANY_NOT_SERVICE_PROVIDER.ToString());
     }
 
     [Fact]
@@ -585,7 +586,7 @@ public class ServiceReleaseBusinessLogicTest
     public async Task GetTechnicalUserProfilesForOffer_ReturnsExpected()
     {
         // Arrange
-        A.CallTo(() => _offerService.GetTechnicalUserProfilesForOffer(_existingServiceId, OfferTypeId.SERVICE))
+        A.CallTo(() => _offerService.GetTechnicalUserProfilesForOffer(_existingServiceId, OfferTypeId.SERVICE, A<IEnumerable<UserRoleConfig>>._, A<IEnumerable<UserRoleConfig>>._))
             .Returns(_fixture.CreateMany<TechnicalUserProfileInformation>(5));
         var sut = new ServiceReleaseBusinessLogic(null!, _offerService, _offerDocumentService, _identityService, Options.Create(new ServiceSettings()));
 
@@ -612,7 +613,7 @@ public class ServiceReleaseBusinessLogicTest
             .UpdateTechnicalUserProfiles(_existingServiceId, data);
 
         A.CallTo(() => _offerService.UpdateTechnicalUserProfiles(_existingServiceId, OfferTypeId.SERVICE,
-                A<IEnumerable<TechnicalUserProfileData>>.That.Matches(x => x.Count() == 5), clientProfile))
+                A<IEnumerable<TechnicalUserProfileData>>.That.Matches(x => x.Count() == 5), clientProfile, A<IEnumerable<UserRoleConfig>>._))
             .MustHaveHappenedOnceExactly();
     }
 

@@ -41,7 +41,7 @@ jobs:
       framework: ${{ steps.changes.outputs.framework }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -54,13 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet-version: ['8.0']
+        dotnet-version: ['9.0']
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee # v4.0.1
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
       - name: Install dotnet-format
@@ -69,10 +69,19 @@ jobs:
         run: dotnet restore src
       - name: Build
         run: dotnet build src --configuration Release --no-restore
+      - name: Check for uncommitted files in working directory # refers to updated api specifications, please refer to /docs/api/README.md
+        run: |
+          git_status=$(git status --porcelain)
+          if [ -n "$git_status" ]; then
+            echo "Please commit the file(s) in your working directory after executing the build command"
+            exit 1
+          else
+            echo "No modified files found in the working directory."
+          fi
       - name: Check Format
         run: dotnet format src --verify-no-changes --no-restore
       - name: Test
-        run: dotnet test src --filter FullyQualifiedName\!~Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests --no-restore --verbosity normal
+        run: dotnet test src --filter FullyQualifiedName\!~Org.Eclipse.TractusX.Portal.Backend.EndToEnd.Tests --no-build --no-restore --configuration Release --verbosity normal
 
   checkFramework:
     name: Check nuget packages
@@ -81,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - name: Check Package Versions

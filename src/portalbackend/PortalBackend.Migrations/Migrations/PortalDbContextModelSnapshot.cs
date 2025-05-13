@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (c) 2024 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -36,10 +36,766 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
             modelBuilder
                 .HasDefaultSchema("portal")
                 .UseCollation("en_US.utf8")
-                .HasAnnotation("ProductVersion", "8.0.7")
+                .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStep<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<Guid>("ProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("process_id");
+
+                    b.Property<int>("ProcessStepStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("process_step_status_id");
+
+                    b.Property<int>("ProcessStepTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("process_step_type_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_process_steps");
+
+                    b.HasIndex("ProcessId")
+                        .HasDatabaseName("ix_process_steps_process_id");
+
+                    b.HasIndex("ProcessStepStatusId")
+                        .HasDatabaseName("ix_process_steps_process_step_status_id");
+
+                    b.HasIndex("ProcessStepTypeId")
+                        .HasDatabaseName("ix_process_steps_process_step_type_id");
+
+                    b.ToTable("process_steps", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepStatus<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.HasKey("Id")
+                        .HasName("pk_process_step_statuses");
+
+                    b.ToTable("process_step_statuses", "portal");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Label = "TODO"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Label = "DONE"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Label = "SKIPPED"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Label = "FAILED"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Label = "DUPLICATE"
+                        });
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.HasKey("Id")
+                        .HasName("pk_process_step_types");
+
+                    b.ToTable("process_step_types", "portal");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Label = "MANUAL_VERIFY_REGISTRATION"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_PUSH"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_PULL"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_MANUAL"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Label = "CREATE_IDENTITY_WALLET"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Label = "RETRIGGER_IDENTITY_WALLET"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Label = "START_CLEARING_HOUSE"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Label = "RETRIGGER_CLEARING_HOUSE"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Label = "AWAIT_CLEARING_HOUSE_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Label = "START_SELF_DESCRIPTION_LP"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Label = "RETRIGGER_SELF_DESCRIPTION_LP"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Label = "START_APPLICATION_ACTIVATION"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Label = "RETRIGGER_BUSINESS_PARTNER_NUMBER_PUSH"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Label = "RETRIGGER_BUSINESS_PARTNER_NUMBER_PULL"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Label = "MANUAL_TRIGGER_OVERRIDE_CLEARING_HOUSE"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Label = "START_OVERRIDE_CLEARING_HOUSE"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Label = "AWAIT_SELF_DESCRIPTION_LP_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Label = "MANUAL_DECLINE_APPLICATION"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Label = "CREATE_DIM_WALLET"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Label = "AWAIT_DIM_RESPONSE_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Label = "RETRIGGER_CREATE_DIM_WALLET"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Label = "VALIDATE_DID_DOCUMENT"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Label = "RETRIGGER_VALIDATE_DID_DOCUMENT"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Label = "REQUEST_BPN_CREDENTIAL"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Label = "AWAIT_BPN_CREDENTIAL_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Label = "REQUEST_MEMBERSHIP_CREDENTIAL"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Label = "AWAIT_MEMBERSHIP_CREDENTIAL_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Label = "TRANSMIT_BPN_DID"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Label = "RETRIGGER_TRANSMIT_DID_BPN"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Label = "RETRIGGER_REQUEST_BPN_CREDENTIAL"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Label = "RETRIGGER_REQUEST_MEMBERSHIP_CREDENTIAL"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Label = "ASSIGN_INITIAL_ROLES"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Label = "ASSIGN_BPN_TO_USERS"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Label = "REMOVE_REGISTRATION_ROLES"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Label = "SET_THEME"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Label = "SET_MEMBERSHIP"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Label = "FINISH_APPLICATION_ACTIVATION"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Label = "RETRIGGER_ASSIGN_INITIAL_ROLES"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Label = "RETRIGGER_ASSIGN_BPN_TO_USERS"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Label = "RETRIGGER_REMOVE_REGISTRATION_ROLES"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Label = "RETRIGGER_SET_THEME"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Label = "RETRIGGER_SET_MEMBERSHIP"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Label = "SET_CX_MEMBERSHIP_IN_BPDM"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Label = "RETRIGGER_SET_CX_MEMBERSHIP_IN_BPDM"
+                        },
+                        new
+                        {
+                            Id = 100,
+                            Label = "TRIGGER_PROVIDER"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Label = "AWAIT_START_AUTOSETUP"
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Label = "OFFERSUBSCRIPTION_CLIENT_CREATION"
+                        },
+                        new
+                        {
+                            Id = 103,
+                            Label = "SINGLE_INSTANCE_SUBSCRIPTION_DETAILS_CREATION"
+                        },
+                        new
+                        {
+                            Id = 104,
+                            Label = "OFFERSUBSCRIPTION_TECHNICALUSER_CREATION"
+                        },
+                        new
+                        {
+                            Id = 105,
+                            Label = "ACTIVATE_SUBSCRIPTION"
+                        },
+                        new
+                        {
+                            Id = 106,
+                            Label = "TRIGGER_PROVIDER_CALLBACK"
+                        },
+                        new
+                        {
+                            Id = 107,
+                            Label = "RETRIGGER_PROVIDER"
+                        },
+                        new
+                        {
+                            Id = 108,
+                            Label = "RETRIGGER_OFFERSUBSCRIPTION_CLIENT_CREATION"
+                        },
+                        new
+                        {
+                            Id = 109,
+                            Label = "RETRIGGER_OFFERSUBSCRIPTION_TECHNICALUSER_CREATION"
+                        },
+                        new
+                        {
+                            Id = 110,
+                            Label = "RETRIGGER_PROVIDER_CALLBACK"
+                        },
+                        new
+                        {
+                            Id = 111,
+                            Label = "MANUAL_TRIGGER_ACTIVATE_SUBSCRIPTION"
+                        },
+                        new
+                        {
+                            Id = 112,
+                            Label = "OFFERSUBSCRIPTION_CREATE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 113,
+                            Label = "RETRIGGER_OFFERSUBSCRIPTION_CREATE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 200,
+                            Label = "SYNCHRONIZE_USER"
+                        },
+                        new
+                        {
+                            Id = 201,
+                            Label = "RETRIGGER_SYNCHRONIZE_USER"
+                        },
+                        new
+                        {
+                            Id = 202,
+                            Label = "TRIGGER_CALLBACK_OSP_SUBMITTED"
+                        },
+                        new
+                        {
+                            Id = 203,
+                            Label = "TRIGGER_CALLBACK_OSP_APPROVED"
+                        },
+                        new
+                        {
+                            Id = 204,
+                            Label = "TRIGGER_CALLBACK_OSP_DECLINED"
+                        },
+                        new
+                        {
+                            Id = 205,
+                            Label = "RETRIGGER_CALLBACK_OSP_SUBMITTED"
+                        },
+                        new
+                        {
+                            Id = 206,
+                            Label = "RETRIGGER_CALLBACK_OSP_APPROVED"
+                        },
+                        new
+                        {
+                            Id = 207,
+                            Label = "RETRIGGER_CALLBACK_OSP_DECLINED"
+                        },
+                        new
+                        {
+                            Id = 208,
+                            Label = "MANUAL_DECLINE_OSP"
+                        },
+                        new
+                        {
+                            Id = 209,
+                            Label = "REMOVE_KEYCLOAK_USERS"
+                        },
+                        new
+                        {
+                            Id = 210,
+                            Label = "RETRIGGER_REMOVE_KEYCLOAK_USERS"
+                        },
+                        new
+                        {
+                            Id = 301,
+                            Label = "SEND_MAIL"
+                        },
+                        new
+                        {
+                            Id = 302,
+                            Label = "RETRIGGER_SEND_MAIL"
+                        },
+                        new
+                        {
+                            Id = 400,
+                            Label = "INVITATION_CREATE_CENTRAL_IDP"
+                        },
+                        new
+                        {
+                            Id = 401,
+                            Label = "INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT"
+                        },
+                        new
+                        {
+                            Id = 402,
+                            Label = "INVITATION_ADD_REALM_ROLE"
+                        },
+                        new
+                        {
+                            Id = 403,
+                            Label = "INVITATION_CREATE_SHARED_REALM"
+                        },
+                        new
+                        {
+                            Id = 404,
+                            Label = "INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER"
+                        },
+                        new
+                        {
+                            Id = 405,
+                            Label = "INVITATION_UPDATE_CENTRAL_IDP_URLS"
+                        },
+                        new
+                        {
+                            Id = 406,
+                            Label = "INVITATION_CREATE_SHARED_CLIENT"
+                        },
+                        new
+                        {
+                            Id = 407,
+                            Label = "INVITATION_ENABLE_CENTRAL_IDP"
+                        },
+                        new
+                        {
+                            Id = 408,
+                            Label = "INVITATION_CREATE_DATABASE_IDP"
+                        },
+                        new
+                        {
+                            Id = 409,
+                            Label = "INVITATION_CREATE_USER"
+                        },
+                        new
+                        {
+                            Id = 410,
+                            Label = "RETRIGGER_INVITATION_CREATE_CENTRAL_IDP"
+                        },
+                        new
+                        {
+                            Id = 411,
+                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT"
+                        },
+                        new
+                        {
+                            Id = 412,
+                            Label = "RETRIGGER_INVITATION_ADD_REALM_ROLE"
+                        },
+                        new
+                        {
+                            Id = 413,
+                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_REALM"
+                        },
+                        new
+                        {
+                            Id = 414,
+                            Label = "RETRIGGER_INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER"
+                        },
+                        new
+                        {
+                            Id = 415,
+                            Label = "RETRIGGER_INVITATION_UPDATE_CENTRAL_IDP_URLS"
+                        },
+                        new
+                        {
+                            Id = 416,
+                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_CLIENT"
+                        },
+                        new
+                        {
+                            Id = 417,
+                            Label = "RETRIGGER_INVITATION_ENABLE_CENTRAL_IDP"
+                        },
+                        new
+                        {
+                            Id = 418,
+                            Label = "RETRIGGER_INVITATION_CREATE_USER"
+                        },
+                        new
+                        {
+                            Id = 419,
+                            Label = "RETRIGGER_INVITATION_CREATE_DATABASE_IDP"
+                        },
+                        new
+                        {
+                            Id = 500,
+                            Label = "CREATE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 501,
+                            Label = "RETRIGGER_CREATE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 502,
+                            Label = "AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 504,
+                            Label = "DELETE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 505,
+                            Label = "AWAIT_DELETE_DIM_TECHNICAL_USER_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 506,
+                            Label = "RETRIGGER_DELETE_DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 600,
+                            Label = "DELETE_CENTRAL_USER"
+                        },
+                        new
+                        {
+                            Id = 601,
+                            Label = "RETRIGGER_DELETE_CENTRAL_USER"
+                        },
+                        new
+                        {
+                            Id = 602,
+                            Label = "DELETE_COMPANYUSER_ASSIGNED_PROCESS"
+                        },
+                        new
+                        {
+                            Id = 700,
+                            Label = "DELETE_IDP_SHARED_REALM"
+                        },
+                        new
+                        {
+                            Id = 701,
+                            Label = "RETRIGGER_DELETE_IDP_SHARED_REALM"
+                        },
+                        new
+                        {
+                            Id = 702,
+                            Label = "DELETE_IDP_SHARED_SERVICEACCOUNT"
+                        },
+                        new
+                        {
+                            Id = 703,
+                            Label = "RETRIGGER_DELETE_IDP_SHARED_SERVICEACCOUNT"
+                        },
+                        new
+                        {
+                            Id = 704,
+                            Label = "DELETE_CENTRAL_IDENTITY_PROVIDER"
+                        },
+                        new
+                        {
+                            Id = 705,
+                            Label = "RETRIGGER_DELETE_CENTRAL_IDENTITY_PROVIDER"
+                        },
+                        new
+                        {
+                            Id = 706,
+                            Label = "DELETE_IDENTITY_PROVIDER"
+                        },
+                        new
+                        {
+                            Id = 800,
+                            Label = "SELF_DESCRIPTION_CONNECTOR_CREATION"
+                        },
+                        new
+                        {
+                            Id = 801,
+                            Label = "SELF_DESCRIPTION_COMPANY_CREATION"
+                        },
+                        new
+                        {
+                            Id = 802,
+                            Label = "RETRIGGER_SELF_DESCRIPTION_CONNECTOR_CREATION"
+                        },
+                        new
+                        {
+                            Id = 803,
+                            Label = "RETRIGGER_SELF_DESCRIPTION_COMPANY_CREATION"
+                        },
+                        new
+                        {
+                            Id = 804,
+                            Label = "AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 805,
+                            Label = "AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 806,
+                            Label = "RETRIGGER_AWAIT_SELF_DESCRIPTION_CONNECTOR_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 807,
+                            Label = "RETRIGGER_AWAIT_SELF_DESCRIPTION_COMPANY_RESPONSE"
+                        },
+                        new
+                        {
+                            Id = 808,
+                            Label = "RETRIGGER_CONNECTOR_SELF_DESCRIPTION_WITH_OUTDATED_LEGAL_PERSON"
+                        });
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId>", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.HasKey("Id")
+                        .HasName("pk_process_types");
+
+                    b.ToTable("process_types", "portal");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Label = "APPLICATION_CHECKLIST"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Label = "OFFER_SUBSCRIPTION"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Label = "PARTNER_REGISTRATION"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Label = "MAILING"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Label = "INVITATION"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Label = "DIM_TECHNICAL_USER"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Label = "USER_PROVISIONING"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Label = "IDENTITYPROVIDER_PROVISIONING"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Label = "SELF_DESCRIPTION_CREATION"
+                        });
+                });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditAppSubscriptionDetail20221118", b =>
                 {
@@ -1041,6 +1797,172 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("audit_connector20240814", "portal");
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditConnector20241008", b =>
+                {
+                    b.Property<Guid>("AuditV1Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1id");
+
+                    b.Property<DateTimeOffset>("AuditV1DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("audit_v1date_last_changed");
+
+                    b.Property<Guid?>("AuditV1LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1last_editor_id");
+
+                    b.Property<int>("AuditV1OperationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_v1operation_id");
+
+                    b.Property<string>("ConnectorUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("connector_url");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("host_id");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_editor_id");
+
+                    b.Property<string>("LocationId")
+                        .HasColumnType("text")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<Guid?>("SdCreationProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sd_creation_process_id");
+
+                    b.Property<Guid?>("SelfDescriptionDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("self_description_document_id");
+
+                    b.Property<string>("SelfDescriptionMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("self_description_message");
+
+                    b.Property<int?>("StatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_id");
+
+                    b.Property<Guid?>("TechnicalUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technical_user_id");
+
+                    b.Property<int?>("TypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("type_id");
+
+                    b.HasKey("AuditV1Id")
+                        .HasName("pk_audit_connector20241008");
+
+                    b.ToTable("audit_connector20241008", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditConnector20250113", b =>
+                {
+                    b.Property<Guid>("AuditV1Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1id");
+
+                    b.Property<DateTimeOffset>("AuditV1DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("audit_v1date_last_changed");
+
+                    b.Property<Guid?>("AuditV1LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1last_editor_id");
+
+                    b.Property<int>("AuditV1OperationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_v1operation_id");
+
+                    b.Property<string>("ConnectorUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("connector_url");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<Guid?>("HostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("host_id");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_editor_id");
+
+                    b.Property<string>("LocationId")
+                        .HasColumnType("text")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<Guid?>("SdCreationProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sd_creation_process_id");
+
+                    b.Property<DateTimeOffset?>("SdSkippedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sd_skipped_date");
+
+                    b.Property<Guid?>("SelfDescriptionDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("self_description_document_id");
+
+                    b.Property<string>("SelfDescriptionMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("self_description_message");
+
+                    b.Property<int?>("StatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_id");
+
+                    b.Property<Guid?>("TechnicalUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technical_user_id");
+
+                    b.Property<int?>("TypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("type_id");
+
+                    b.HasKey("AuditV1Id")
+                        .HasName("pk_audit_connector20250113");
+
+                    b.ToTable("audit_connector20250113", "portal");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditConsent20230412", b =>
                 {
                     b.Property<Guid>("AuditV1Id")
@@ -1313,6 +2235,79 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasName("pk_audit_document20231115");
 
                     b.ToTable("audit_document20231115", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditDocument20241120", b =>
+                {
+                    b.Property<Guid>("AuditV1Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1id");
+
+                    b.Property<DateTimeOffset>("AuditV1DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("audit_v1date_last_changed");
+
+                    b.Property<Guid?>("AuditV1LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1last_editor_id");
+
+                    b.Property<int>("AuditV1OperationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_v1operation_id");
+
+                    b.Property<Guid?>("CompanyUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_user_id");
+
+                    b.Property<DateTimeOffset?>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<byte[]>("DocumentContent")
+                        .HasColumnType("bytea")
+                        .HasColumnName("document_content");
+
+                    b.Property<byte[]>("DocumentHash")
+                        .HasColumnType("bytea")
+                        .HasColumnName("document_hash");
+
+                    b.Property<string>("DocumentName")
+                        .HasColumnType("text")
+                        .HasColumnName("document_name");
+
+                    b.Property<long?>("DocumentSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("document_size");
+
+                    b.Property<int?>("DocumentStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("document_status_id");
+
+                    b.Property<int?>("DocumentTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("document_type_id");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_editor_id");
+
+                    b.Property<int?>("MediaTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("media_type_id");
+
+                    b.HasKey("AuditV1Id")
+                        .HasName("pk_audit_document20241120");
+
+                    b.ToTable("audit_document20241120", "portal");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditIdentity20230526", b =>
@@ -1802,6 +2797,172 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("audit_offer20240911", "portal");
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditOffer20241219", b =>
+                {
+                    b.Property<Guid>("AuditV1Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1id");
+
+                    b.Property<DateTimeOffset>("AuditV1DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("audit_v1date_last_changed");
+
+                    b.Property<Guid?>("AuditV1LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1last_editor_id");
+
+                    b.Property<int>("AuditV1OperationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_v1operation_id");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("contact_email");
+
+                    b.Property<string>("ContactNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("contact_number");
+
+                    b.Property<DateTimeOffset?>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<DateTimeOffset?>("DateReleased")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_released");
+
+                    b.Property<bool?>("DisplayTechnicalUser")
+                        .HasColumnType("boolean")
+                        .HasColumnName("display_technical_user");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_editor_id");
+
+                    b.Property<int?>("LicenseTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("license_type_id");
+
+                    b.Property<string>("MarketingUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("marketing_url");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("OfferStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("offer_status_id");
+
+                    b.Property<int?>("OfferTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("offer_type_id");
+
+                    b.Property<Guid?>("ProviderCompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_company_id");
+
+                    b.Property<Guid?>("SalesManagerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sales_manager_id");
+
+                    b.HasKey("AuditV1Id")
+                        .HasName("pk_audit_offer20241219");
+
+                    b.ToTable("audit_offer20241219", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditOffer20250121", b =>
+                {
+                    b.Property<Guid>("AuditV1Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1id");
+
+                    b.Property<DateTimeOffset>("AuditV1DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("audit_v1date_last_changed");
+
+                    b.Property<Guid?>("AuditV1LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("audit_v1last_editor_id");
+
+                    b.Property<int>("AuditV1OperationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_v1operation_id");
+
+                    b.Property<string>("ContactEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("contact_email");
+
+                    b.Property<string>("ContactNumber")
+                        .HasColumnType("text")
+                        .HasColumnName("contact_number");
+
+                    b.Property<DateTimeOffset?>("DateCreated")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_created");
+
+                    b.Property<DateTimeOffset?>("DateLastChanged")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_last_changed");
+
+                    b.Property<DateTimeOffset?>("DateReleased")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_released");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("LastEditorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_editor_id");
+
+                    b.Property<int?>("LicenseTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("license_type_id");
+
+                    b.Property<string>("MarketingUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("marketing_url");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("OfferStatusId")
+                        .HasColumnType("integer")
+                        .HasColumnName("offer_status_id");
+
+                    b.Property<int?>("OfferTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("offer_type_id");
+
+                    b.Property<Guid?>("ProviderCompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_company_id");
+
+                    b.Property<Guid?>("SalesManagerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sales_manager_id");
+
+                    b.HasKey("AuditV1Id")
+                        .HasName("pk_audit_offer20250121");
+
+                    b.ToTable("audit_offer20250121", "portal");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.AuditEntities.AuditOfferSubscription20221005", b =>
                 {
                     b.Property<Guid>("AuditV1Id")
@@ -2269,8 +3430,11 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasColumnName("date_last_changed");
 
                     b.Property<string>("Region")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
+                        .HasDefaultValue("")
                         .HasColumnName("region");
 
                     b.Property<string>("Streetadditional")
@@ -2474,6 +3638,32 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         });
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AgreementDescription", b =>
+                {
+                    b.Property<Guid>("AgreementId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agreement_id");
+
+                    b.Property<string>("LanguageShortName")
+                        .HasMaxLength(2)
+                        .HasColumnType("character(2)")
+                        .HasColumnName("language_short_name");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.HasKey("AgreementId", "LanguageShortName")
+                        .HasName("pk_agreement_descriptions");
+
+                    b.HasIndex("LanguageShortName")
+                        .HasDatabaseName("ix_agreement_descriptions_language_short_name");
+
+                    b.ToTable("agreement_descriptions", "portal");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AgreementStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -2550,23 +3740,23 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("app_instances", "portal");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceAssignedCompanyServiceAccount", b =>
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceAssignedTechnicalUser", b =>
                 {
                     b.Property<Guid>("AppInstanceId")
                         .HasColumnType("uuid")
                         .HasColumnName("app_instance_id");
 
-                    b.Property<Guid>("CompanyServiceAccountId")
+                    b.Property<Guid>("TechnicalUserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("company_service_account_id");
+                        .HasColumnName("technical_user_id");
 
-                    b.HasKey("AppInstanceId", "CompanyServiceAccountId")
-                        .HasName("pk_app_instance_assigned_service_accounts");
+                    b.HasKey("AppInstanceId", "TechnicalUserId")
+                        .HasName("pk_app_instance_assigned_technical_users");
 
-                    b.HasIndex("CompanyServiceAccountId")
-                        .HasDatabaseName("ix_app_instance_assigned_service_accounts_company_service_acco");
+                    b.HasIndex("TechnicalUserId")
+                        .HasDatabaseName("ix_app_instance_assigned_technical_users_technical_user_id");
 
-                    b.ToTable("app_instance_assigned_service_accounts", "portal");
+                    b.ToTable("app_instance_assigned_technical_users", "portal");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceSetup", b =>
@@ -2962,6 +4152,26 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         {
                             Id = 20,
                             Label = "LEI_ID"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Label = "US_EIN_CD"
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Label = "KR_TIN_CD"
+                        },
+                        new
+                        {
+                            Id = 103,
+                            Label = "JP_CN_CD"
+                        },
+                        new
+                        {
+                            Id = 104,
+                            Label = "CN_CC_CD"
                         });
                 });
 
@@ -3762,124 +4972,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("company_role_registration_data", "portal");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ClientClientId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("client_client_id");
-
-                    b.Property<int>("CompanyServiceAccountKindId")
-                        .HasColumnType("integer")
-                        .HasColumnName("company_service_account_kind_id");
-
-                    b.Property<int>("CompanyServiceAccountTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("company_service_account_type_id");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("name");
-
-                    b.Property<Guid?>("OfferSubscriptionId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("offer_subscription_id");
-
-                    b.Property<Guid>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid")
-                        .HasColumnName("version");
-
-                    b.HasKey("Id")
-                        .HasName("pk_company_service_accounts");
-
-                    b.HasIndex("ClientClientId")
-                        .HasDatabaseName("ix_company_service_accounts_client_client_id")
-                        .HasFilter("client_client_id is not null AND company_service_account_kind_id = 1");
-
-                    b.HasIndex("CompanyServiceAccountKindId")
-                        .HasDatabaseName("ix_company_service_accounts_company_service_account_kind_id");
-
-                    b.HasIndex("CompanyServiceAccountTypeId")
-                        .HasDatabaseName("ix_company_service_accounts_company_service_account_type_id");
-
-                    b.HasIndex("OfferSubscriptionId")
-                        .HasDatabaseName("ix_company_service_accounts_offer_subscription_id");
-
-                    b.ToTable("company_service_accounts", "portal");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountKind", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("label");
-
-                    b.HasKey("Id")
-                        .HasName("pk_company_service_account_kindes");
-
-                    b.ToTable("company_service_account_kindes", "portal");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Label = "INTERNAL"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Label = "EXTERNAL"
-                        });
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountType", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("label");
-
-                    b.HasKey("Id")
-                        .HasName("pk_company_service_account_types");
-
-                    b.ToTable("company_service_account_types", "portal");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Label = "MANAGED"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Label = "OWN"
-                        });
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -4126,10 +5218,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("CompanyServiceAccountId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("company_service_account_id");
-
                     b.Property<string>("ConnectorUrl")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -4168,6 +5256,10 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasColumnType("uuid")
                         .HasColumnName("sd_creation_process_id");
 
+                    b.Property<DateTimeOffset?>("SdSkippedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sd_skipped_date");
+
                     b.Property<Guid?>("SelfDescriptionDocumentId")
                         .HasColumnType("uuid")
                         .HasColumnName("self_description_document_id");
@@ -4180,16 +5272,16 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasColumnType("integer")
                         .HasColumnName("status_id");
 
+                    b.Property<Guid?>("TechnicalUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technical_user_id");
+
                     b.Property<int>("TypeId")
                         .HasColumnType("integer")
                         .HasColumnName("type_id");
 
                     b.HasKey("Id")
                         .HasName("pk_connectors");
-
-                    b.HasIndex("CompanyServiceAccountId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_connectors_company_service_account_id");
 
                     b.HasIndex("HostId")
                         .HasDatabaseName("ix_connectors_host_id");
@@ -4214,6 +5306,10 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.HasIndex("StatusId")
                         .HasDatabaseName("ix_connectors_status_id");
 
+                    b.HasIndex("TechnicalUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_connectors_technical_user_id");
+
                     b.HasIndex("TypeId")
                         .HasDatabaseName("ix_connectors_type_id");
 
@@ -4225,8 +5321,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         });
 
                     b
-                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_CONNECTOR", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_CONNECTOR\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_CONNECTOR$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_connector20240814\" (\"id\", \"name\", \"connector_url\", \"type_id\", \"status_id\", \"provider_id\", \"host_id\", \"self_description_document_id\", \"location_id\", \"self_description_message\", \"date_last_changed\", \"company_service_account_id\", \"sd_creation_process_id\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"connector_url\", \r\n  NEW.\"type_id\", \r\n  NEW.\"status_id\", \r\n  NEW.\"provider_id\", \r\n  NEW.\"host_id\", \r\n  NEW.\"self_description_document_id\", \r\n  NEW.\"location_id\", \r\n  NEW.\"self_description_message\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"company_service_account_id\", \r\n  NEW.\"sd_creation_process_id\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_CONNECTOR$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_CONNECTOR AFTER INSERT\r\nON \"portal\".\"connectors\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_CONNECTOR\"();")
-                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_CONNECTOR", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_CONNECTOR\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_CONNECTOR$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_connector20240814\" (\"id\", \"name\", \"connector_url\", \"type_id\", \"status_id\", \"provider_id\", \"host_id\", \"self_description_document_id\", \"location_id\", \"self_description_message\", \"date_last_changed\", \"company_service_account_id\", \"sd_creation_process_id\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"connector_url\", \r\n  NEW.\"type_id\", \r\n  NEW.\"status_id\", \r\n  NEW.\"provider_id\", \r\n  NEW.\"host_id\", \r\n  NEW.\"self_description_document_id\", \r\n  NEW.\"location_id\", \r\n  NEW.\"self_description_message\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"company_service_account_id\", \r\n  NEW.\"sd_creation_process_id\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_CONNECTOR$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_CONNECTOR AFTER UPDATE\r\nON \"portal\".\"connectors\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_CONNECTOR\"();");
+                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_CONNECTOR", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_CONNECTOR\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_CONNECTOR$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_connector20250113\" (\"id\", \"name\", \"connector_url\", \"type_id\", \"status_id\", \"provider_id\", \"host_id\", \"self_description_document_id\", \"location_id\", \"self_description_message\", \"date_last_changed\", \"technical_user_id\", \"sd_creation_process_id\", \"sd_skipped_date\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"connector_url\", \r\n  NEW.\"type_id\", \r\n  NEW.\"status_id\", \r\n  NEW.\"provider_id\", \r\n  NEW.\"host_id\", \r\n  NEW.\"self_description_document_id\", \r\n  NEW.\"location_id\", \r\n  NEW.\"self_description_message\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"technical_user_id\", \r\n  NEW.\"sd_creation_process_id\", \r\n  NEW.\"sd_skipped_date\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_CONNECTOR$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_CONNECTOR AFTER INSERT\r\nON \"portal\".\"connectors\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_CONNECTOR\"();")
+                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_CONNECTOR", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_CONNECTOR\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_CONNECTOR$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_connector20250113\" (\"id\", \"name\", \"connector_url\", \"type_id\", \"status_id\", \"provider_id\", \"host_id\", \"self_description_document_id\", \"location_id\", \"self_description_message\", \"date_last_changed\", \"technical_user_id\", \"sd_creation_process_id\", \"sd_skipped_date\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"connector_url\", \r\n  NEW.\"type_id\", \r\n  NEW.\"status_id\", \r\n  NEW.\"provider_id\", \r\n  NEW.\"host_id\", \r\n  NEW.\"self_description_document_id\", \r\n  NEW.\"location_id\", \r\n  NEW.\"self_description_message\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"technical_user_id\", \r\n  NEW.\"sd_creation_process_id\", \r\n  NEW.\"sd_skipped_date\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_CONNECTOR$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_CONNECTOR AFTER UPDATE\r\nON \"portal\".\"connectors\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_CONNECTOR\"();");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ConnectorAssignedOfferSubscription", b =>
@@ -4536,65 +5632,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("country_long_names", "portal");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimCompanyServiceAccount", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("AuthenticationServiceUrl")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("authentication_service_url");
-
-                    b.Property<byte[]>("ClientSecret")
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("client_secret");
-
-                    b.Property<int>("EncryptionMode")
-                        .HasColumnType("integer")
-                        .HasColumnName("encryption_mode");
-
-                    b.Property<byte[]>("InitializationVector")
-                        .HasColumnType("bytea")
-                        .HasColumnName("initialization_vector");
-
-                    b.HasKey("Id")
-                        .HasName("pk_dim_company_service_accounts");
-
-                    b.ToTable("dim_company_service_accounts", "portal");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimUserCreationData", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ProcessId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("process_id");
-
-                    b.Property<Guid>("ServiceAccountId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("service_account_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_dim_user_creation_data");
-
-                    b.HasIndex("ProcessId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_dim_user_creation_data_process_id");
-
-                    b.HasIndex("ServiceAccountId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_dim_user_creation_data_service_account_id");
-
-                    b.ToTable("dim_user_creation_data", "portal");
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4629,6 +5666,10 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("document_name");
+
+                    b.Property<long>("DocumentSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("document_size");
 
                     b.Property<int>("DocumentStatusId")
                         .HasColumnType("integer")
@@ -4669,8 +5710,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         });
 
                     b
-                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_DOCUMENT", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_DOCUMENT\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_DOCUMENT$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_document20231115\" (\"id\", \"date_created\", \"document_hash\", \"document_content\", \"document_name\", \"media_type_id\", \"document_type_id\", \"document_status_id\", \"company_user_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"date_created\", \r\n  NEW.\"document_hash\", \r\n  NEW.\"document_content\", \r\n  NEW.\"document_name\", \r\n  NEW.\"media_type_id\", \r\n  NEW.\"document_type_id\", \r\n  NEW.\"document_status_id\", \r\n  NEW.\"company_user_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_DOCUMENT$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_DOCUMENT AFTER INSERT\r\nON \"portal\".\"documents\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_DOCUMENT\"();")
-                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_DOCUMENT", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_DOCUMENT\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_DOCUMENT$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_document20231115\" (\"id\", \"date_created\", \"document_hash\", \"document_content\", \"document_name\", \"media_type_id\", \"document_type_id\", \"document_status_id\", \"company_user_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"date_created\", \r\n  NEW.\"document_hash\", \r\n  NEW.\"document_content\", \r\n  NEW.\"document_name\", \r\n  NEW.\"media_type_id\", \r\n  NEW.\"document_type_id\", \r\n  NEW.\"document_status_id\", \r\n  NEW.\"company_user_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_DOCUMENT$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_DOCUMENT AFTER UPDATE\r\nON \"portal\".\"documents\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_DOCUMENT\"();");
+                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_DOCUMENT", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_DOCUMENT\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_DOCUMENT$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_document20241120\" (\"id\", \"date_created\", \"document_hash\", \"document_content\", \"document_name\", \"media_type_id\", \"document_type_id\", \"document_status_id\", \"company_user_id\", \"date_last_changed\", \"last_editor_id\", \"document_size\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"date_created\", \r\n  NEW.\"document_hash\", \r\n  NEW.\"document_content\", \r\n  NEW.\"document_name\", \r\n  NEW.\"media_type_id\", \r\n  NEW.\"document_type_id\", \r\n  NEW.\"document_status_id\", \r\n  NEW.\"company_user_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  NEW.\"document_size\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_DOCUMENT$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_DOCUMENT AFTER INSERT\r\nON \"portal\".\"documents\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_DOCUMENT\"();")
+                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_DOCUMENT", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_DOCUMENT\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_DOCUMENT$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_document20241120\" (\"id\", \"date_created\", \"document_hash\", \"document_content\", \"document_name\", \"media_type_id\", \"document_type_id\", \"document_status_id\", \"company_user_id\", \"date_last_changed\", \"last_editor_id\", \"document_size\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"date_created\", \r\n  NEW.\"document_hash\", \r\n  NEW.\"document_content\", \r\n  NEW.\"document_name\", \r\n  NEW.\"media_type_id\", \r\n  NEW.\"document_type_id\", \r\n  NEW.\"document_status_id\", \r\n  NEW.\"company_user_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  NEW.\"document_size\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_DOCUMENT$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_DOCUMENT AFTER UPDATE\r\nON \"portal\".\"documents\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_DOCUMENT\"();");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DocumentStatus", b =>
@@ -4801,6 +5842,65 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                             Id = 15,
                             Label = "COMPANY_CERTIFICATE"
                         });
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthenticationServiceUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("authentication_service_url");
+
+                    b.Property<byte[]>("ClientSecret")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("client_secret");
+
+                    b.Property<int>("EncryptionMode")
+                        .HasColumnType("integer")
+                        .HasColumnName("encryption_mode");
+
+                    b.Property<byte[]>("InitializationVector")
+                        .HasColumnType("bytea")
+                        .HasColumnName("initialization_vector");
+
+                    b.HasKey("Id")
+                        .HasName("pk_external_technical_users");
+
+                    b.ToTable("external_technical_users", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUserCreationData", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ProcessId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("process_id");
+
+                    b.Property<Guid>("TechnicalUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technical_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_external_technical_user_creation_data");
+
+                    b.HasIndex("ProcessId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_external_technical_user_creation_data_process_id");
+
+                    b.HasIndex("TechnicalUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_external_technical_user_creation_data_technical_user_id");
+
+                    b.ToTable("external_technical_user_creation_data", "portal");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.IamClient", b =>
@@ -5107,7 +6207,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         new
                         {
                             Id = 2,
-                            Label = "COMPANY_SERVICE_ACCOUNT"
+                            Label = "TECHNICAL_USER"
                         });
                 });
 
@@ -5756,6 +6856,16 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         {
                             Id = 26,
                             Label = "CREDENTIAL_EXPIRY"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Label = "APP_SUBSCRIPTION_DECLINE"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Label = "SERVICE_SUBSCRIPTION_DECLINE"
                         });
                 });
 
@@ -5874,8 +6984,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         });
 
                     b
-                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_OFFER", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_OFFER\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_OFFER$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_offer20240911\" (\"id\", \"name\", \"date_created\", \"date_released\", \"marketing_url\", \"contact_email\", \"contact_number\", \"offer_type_id\", \"sales_manager_id\", \"provider_company_id\", \"offer_status_id\", \"license_type_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"date_created\", \r\n  NEW.\"date_released\", \r\n  NEW.\"marketing_url\", \r\n  NEW.\"contact_email\", \r\n  NEW.\"contact_number\", \r\n  NEW.\"offer_type_id\", \r\n  NEW.\"sales_manager_id\", \r\n  NEW.\"provider_company_id\", \r\n  NEW.\"offer_status_id\", \r\n  NEW.\"license_type_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_OFFER$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_OFFER AFTER INSERT\r\nON \"portal\".\"offers\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_OFFER\"();")
-                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_OFFER", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_OFFER\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_OFFER$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_offer20240911\" (\"id\", \"name\", \"date_created\", \"date_released\", \"marketing_url\", \"contact_email\", \"contact_number\", \"offer_type_id\", \"sales_manager_id\", \"provider_company_id\", \"offer_status_id\", \"license_type_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"date_created\", \r\n  NEW.\"date_released\", \r\n  NEW.\"marketing_url\", \r\n  NEW.\"contact_email\", \r\n  NEW.\"contact_number\", \r\n  NEW.\"offer_type_id\", \r\n  NEW.\"sales_manager_id\", \r\n  NEW.\"provider_company_id\", \r\n  NEW.\"offer_status_id\", \r\n  NEW.\"license_type_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_OFFER$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_OFFER AFTER UPDATE\r\nON \"portal\".\"offers\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_OFFER\"();");
+                        .HasAnnotation("LC_TRIGGER_AFTER_INSERT_OFFER", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_INSERT_OFFER\"() RETURNS trigger as $LC_TRIGGER_AFTER_INSERT_OFFER$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_offer20250121\" (\"id\", \"name\", \"date_created\", \"date_released\", \"marketing_url\", \"contact_email\", \"contact_number\", \"offer_type_id\", \"sales_manager_id\", \"provider_company_id\", \"offer_status_id\", \"license_type_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"date_created\", \r\n  NEW.\"date_released\", \r\n  NEW.\"marketing_url\", \r\n  NEW.\"contact_email\", \r\n  NEW.\"contact_number\", \r\n  NEW.\"offer_type_id\", \r\n  NEW.\"sales_manager_id\", \r\n  NEW.\"provider_company_id\", \r\n  NEW.\"offer_status_id\", \r\n  NEW.\"license_type_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  1, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_INSERT_OFFER$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_INSERT_OFFER AFTER INSERT\r\nON \"portal\".\"offers\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_INSERT_OFFER\"();")
+                        .HasAnnotation("LC_TRIGGER_AFTER_UPDATE_OFFER", "CREATE FUNCTION \"portal\".\"LC_TRIGGER_AFTER_UPDATE_OFFER\"() RETURNS trigger as $LC_TRIGGER_AFTER_UPDATE_OFFER$\r\nBEGIN\r\n  INSERT INTO \"portal\".\"audit_offer20250121\" (\"id\", \"name\", \"date_created\", \"date_released\", \"marketing_url\", \"contact_email\", \"contact_number\", \"offer_type_id\", \"sales_manager_id\", \"provider_company_id\", \"offer_status_id\", \"license_type_id\", \"date_last_changed\", \"last_editor_id\", \"audit_v1id\", \"audit_v1operation_id\", \"audit_v1date_last_changed\", \"audit_v1last_editor_id\") SELECT NEW.\"id\", \r\n  NEW.\"name\", \r\n  NEW.\"date_created\", \r\n  NEW.\"date_released\", \r\n  NEW.\"marketing_url\", \r\n  NEW.\"contact_email\", \r\n  NEW.\"contact_number\", \r\n  NEW.\"offer_type_id\", \r\n  NEW.\"sales_manager_id\", \r\n  NEW.\"provider_company_id\", \r\n  NEW.\"offer_status_id\", \r\n  NEW.\"license_type_id\", \r\n  NEW.\"date_last_changed\", \r\n  NEW.\"last_editor_id\", \r\n  gen_random_uuid(), \r\n  2, \r\n  CURRENT_TIMESTAMP, \r\n  NEW.\"last_editor_id\";\r\nRETURN NEW;\r\nEND;\r\n$LC_TRIGGER_AFTER_UPDATE_OFFER$ LANGUAGE plpgsql;\r\nCREATE TRIGGER LC_TRIGGER_AFTER_UPDATE_OFFER AFTER UPDATE\r\nON \"portal\".\"offers\"\r\nFOR EACH ROW EXECUTE PROCEDURE \"portal\".\"LC_TRIGGER_AFTER_UPDATE_OFFER\"();");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.OfferAssignedDocument", b =>
@@ -6344,672 +7454,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToTable("processes", "portal");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStep", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTimeOffset?>("DateLastChanged")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_last_changed");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("text")
-                        .HasColumnName("message");
-
-                    b.Property<Guid>("ProcessId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("process_id");
-
-                    b.Property<int>("ProcessStepStatusId")
-                        .HasColumnType("integer")
-                        .HasColumnName("process_step_status_id");
-
-                    b.Property<int>("ProcessStepTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("process_step_type_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_process_steps");
-
-                    b.HasIndex("ProcessId")
-                        .HasDatabaseName("ix_process_steps_process_id");
-
-                    b.HasIndex("ProcessStepStatusId")
-                        .HasDatabaseName("ix_process_steps_process_step_status_id");
-
-                    b.HasIndex("ProcessStepTypeId")
-                        .HasDatabaseName("ix_process_steps_process_step_type_id");
-
-                    b.ToTable("process_steps", "portal");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepStatus", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("label");
-
-                    b.HasKey("Id")
-                        .HasName("pk_process_step_statuses");
-
-                    b.ToTable("process_step_statuses", "portal");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Label = "TODO"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Label = "DONE"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Label = "SKIPPED"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Label = "FAILED"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Label = "DUPLICATE"
-                        });
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepType", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("label");
-
-                    b.HasKey("Id")
-                        .HasName("pk_process_step_types");
-
-                    b.ToTable("process_step_types", "portal");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Label = "VERIFY_REGISTRATION"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_PUSH"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_PULL"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Label = "CREATE_BUSINESS_PARTNER_NUMBER_MANUAL"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Label = "CREATE_IDENTITY_WALLET"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Label = "RETRIGGER_IDENTITY_WALLET"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Label = "START_CLEARING_HOUSE"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Label = "RETRIGGER_CLEARING_HOUSE"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Label = "END_CLEARING_HOUSE"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Label = "START_SELF_DESCRIPTION_LP"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Label = "RETRIGGER_SELF_DESCRIPTION_LP"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Label = "ACTIVATE_APPLICATION"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Label = "RETRIGGER_BUSINESS_PARTNER_NUMBER_PUSH"
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Label = "RETRIGGER_BUSINESS_PARTNER_NUMBER_PULL"
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Label = "OVERRIDE_BUSINESS_PARTNER_NUMBER"
-                        },
-                        new
-                        {
-                            Id = 16,
-                            Label = "TRIGGER_OVERRIDE_CLEARING_HOUSE"
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Label = "START_OVERRIDE_CLEARING_HOUSE"
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Label = "FINISH_SELF_DESCRIPTION_LP"
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Label = "DECLINE_APPLICATION"
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Label = "CREATE_DIM_WALLET"
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Label = "AWAIT_DIM_RESPONSE"
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Label = "RETRIGGER_CREATE_DIM_WALLET"
-                        },
-                        new
-                        {
-                            Id = 23,
-                            Label = "VALIDATE_DID_DOCUMENT"
-                        },
-                        new
-                        {
-                            Id = 24,
-                            Label = "RETRIGGER_VALIDATE_DID_DOCUMENT"
-                        },
-                        new
-                        {
-                            Id = 25,
-                            Label = "REQUEST_BPN_CREDENTIAL"
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Label = "STORED_BPN_CREDENTIAL"
-                        },
-                        new
-                        {
-                            Id = 27,
-                            Label = "REQUEST_MEMBERSHIP_CREDENTIAL"
-                        },
-                        new
-                        {
-                            Id = 28,
-                            Label = "STORED_MEMBERSHIP_CREDENTIAL"
-                        },
-                        new
-                        {
-                            Id = 29,
-                            Label = "TRANSMIT_BPN_DID"
-                        },
-                        new
-                        {
-                            Id = 30,
-                            Label = "RETRIGGER_TRANSMIT_DID_BPN"
-                        },
-                        new
-                        {
-                            Id = 100,
-                            Label = "TRIGGER_PROVIDER"
-                        },
-                        new
-                        {
-                            Id = 101,
-                            Label = "START_AUTOSETUP"
-                        },
-                        new
-                        {
-                            Id = 102,
-                            Label = "OFFERSUBSCRIPTION_CLIENT_CREATION"
-                        },
-                        new
-                        {
-                            Id = 103,
-                            Label = "SINGLE_INSTANCE_SUBSCRIPTION_DETAILS_CREATION"
-                        },
-                        new
-                        {
-                            Id = 104,
-                            Label = "OFFERSUBSCRIPTION_TECHNICALUSER_CREATION"
-                        },
-                        new
-                        {
-                            Id = 105,
-                            Label = "ACTIVATE_SUBSCRIPTION"
-                        },
-                        new
-                        {
-                            Id = 106,
-                            Label = "TRIGGER_PROVIDER_CALLBACK"
-                        },
-                        new
-                        {
-                            Id = 107,
-                            Label = "RETRIGGER_PROVIDER"
-                        },
-                        new
-                        {
-                            Id = 108,
-                            Label = "RETRIGGER_OFFERSUBSCRIPTION_CLIENT_CREATION"
-                        },
-                        new
-                        {
-                            Id = 109,
-                            Label = "RETRIGGER_OFFERSUBSCRIPTION_TECHNICALUSER_CREATION"
-                        },
-                        new
-                        {
-                            Id = 110,
-                            Label = "RETRIGGER_PROVIDER_CALLBACK"
-                        },
-                        new
-                        {
-                            Id = 111,
-                            Label = "TRIGGER_ACTIVATE_SUBSCRIPTION"
-                        },
-                        new
-                        {
-                            Id = 112,
-                            Label = "OFFERSUBSCRIPTION_CREATE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 113,
-                            Label = "RETRIGGER_OFFERSUBSCRIPTION_CREATE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 200,
-                            Label = "SYNCHRONIZE_USER"
-                        },
-                        new
-                        {
-                            Id = 201,
-                            Label = "RETRIGGER_SYNCHRONIZE_USER"
-                        },
-                        new
-                        {
-                            Id = 202,
-                            Label = "TRIGGER_CALLBACK_OSP_SUBMITTED"
-                        },
-                        new
-                        {
-                            Id = 203,
-                            Label = "TRIGGER_CALLBACK_OSP_APPROVED"
-                        },
-                        new
-                        {
-                            Id = 204,
-                            Label = "TRIGGER_CALLBACK_OSP_DECLINED"
-                        },
-                        new
-                        {
-                            Id = 205,
-                            Label = "RETRIGGER_CALLBACK_OSP_SUBMITTED"
-                        },
-                        new
-                        {
-                            Id = 206,
-                            Label = "RETRIGGER_CALLBACK_OSP_APPROVED"
-                        },
-                        new
-                        {
-                            Id = 207,
-                            Label = "RETRIGGER_CALLBACK_OSP_DECLINED"
-                        },
-                        new
-                        {
-                            Id = 208,
-                            Label = "MANUAL_DECLINE_OSP"
-                        },
-                        new
-                        {
-                            Id = 209,
-                            Label = "REMOVE_KEYCLOAK_USERS"
-                        },
-                        new
-                        {
-                            Id = 210,
-                            Label = "RETRIGGER_REMOVE_KEYCLOAK_USERS"
-                        },
-                        new
-                        {
-                            Id = 301,
-                            Label = "SEND_MAIL"
-                        },
-                        new
-                        {
-                            Id = 302,
-                            Label = "RETRIGGER_SEND_MAIL"
-                        },
-                        new
-                        {
-                            Id = 400,
-                            Label = "INVITATION_CREATE_CENTRAL_IDP"
-                        },
-                        new
-                        {
-                            Id = 401,
-                            Label = "INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT"
-                        },
-                        new
-                        {
-                            Id = 402,
-                            Label = "INVITATION_ADD_REALM_ROLE"
-                        },
-                        new
-                        {
-                            Id = 403,
-                            Label = "INVITATION_CREATE_SHARED_REALM"
-                        },
-                        new
-                        {
-                            Id = 404,
-                            Label = "INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER"
-                        },
-                        new
-                        {
-                            Id = 405,
-                            Label = "INVITATION_UPDATE_CENTRAL_IDP_URLS"
-                        },
-                        new
-                        {
-                            Id = 406,
-                            Label = "INVITATION_CREATE_SHARED_CLIENT"
-                        },
-                        new
-                        {
-                            Id = 407,
-                            Label = "INVITATION_ENABLE_CENTRAL_IDP"
-                        },
-                        new
-                        {
-                            Id = 408,
-                            Label = "INVITATION_CREATE_DATABASE_IDP"
-                        },
-                        new
-                        {
-                            Id = 409,
-                            Label = "INVITATION_CREATE_USER"
-                        },
-                        new
-                        {
-                            Id = 410,
-                            Label = "RETRIGGER_INVITATION_CREATE_CENTRAL_IDP"
-                        },
-                        new
-                        {
-                            Id = 411,
-                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT"
-                        },
-                        new
-                        {
-                            Id = 412,
-                            Label = "RETRIGGER_INVITATION_ADD_REALM_ROLE"
-                        },
-                        new
-                        {
-                            Id = 413,
-                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_REALM"
-                        },
-                        new
-                        {
-                            Id = 414,
-                            Label = "RETRIGGER_INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER"
-                        },
-                        new
-                        {
-                            Id = 415,
-                            Label = "RETRIGGER_INVITATION_UPDATE_CENTRAL_IDP_URLS"
-                        },
-                        new
-                        {
-                            Id = 416,
-                            Label = "RETRIGGER_INVITATION_CREATE_SHARED_CLIENT"
-                        },
-                        new
-                        {
-                            Id = 417,
-                            Label = "RETRIGGER_INVITATION_ENABLE_CENTRAL_IDP"
-                        },
-                        new
-                        {
-                            Id = 418,
-                            Label = "RETRIGGER_INVITATION_CREATE_USER"
-                        },
-                        new
-                        {
-                            Id = 419,
-                            Label = "RETRIGGER_INVITATION_CREATE_DATABASE_IDP"
-                        },
-                        new
-                        {
-                            Id = 500,
-                            Label = "CREATE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 501,
-                            Label = "RETRIGGER_CREATE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 502,
-                            Label = "AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE"
-                        },
-                        new
-                        {
-                            Id = 503,
-                            Label = "RETRIGGER_AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE"
-                        },
-                        new
-                        {
-                            Id = 504,
-                            Label = "DELETE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 505,
-                            Label = "AWAIT_DELETE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 506,
-                            Label = "RETRIGGER_DELETE_DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 600,
-                            Label = "DELETE_CENTRAL_USER"
-                        },
-                        new
-                        {
-                            Id = 601,
-                            Label = "RETRIGGER_DELETE_CENTRAL_USER"
-                        },
-                        new
-                        {
-                            Id = 602,
-                            Label = "DELETE_COMPANYUSER_ASSIGNED_PROCESS"
-                        },
-                        new
-                        {
-                            Id = 700,
-                            Label = "DELETE_IDP_SHARED_REALM"
-                        },
-                        new
-                        {
-                            Id = 701,
-                            Label = "RETRIGGER_DELETE_IDP_SHARED_REALM"
-                        },
-                        new
-                        {
-                            Id = 702,
-                            Label = "DELETE_IDP_SHARED_SERVICEACCOUNT"
-                        },
-                        new
-                        {
-                            Id = 703,
-                            Label = "RETRIGGER_DELETE_IDP_SHARED_SERVICEACCOUNT"
-                        },
-                        new
-                        {
-                            Id = 704,
-                            Label = "DELETE_CENTRAL_IDENTITY_PROVIDER"
-                        },
-                        new
-                        {
-                            Id = 705,
-                            Label = "RETRIGGER_DELETE_CENTRAL_IDENTITY_PROVIDER"
-                        },
-                        new
-                        {
-                            Id = 706,
-                            Label = "DELETE_IDENTITY_PROVIDER"
-                        },
-                        new
-                        {
-                            Id = 800,
-                            Label = "SELF_DESCRIPTION_CONNECTOR_CREATION"
-                        },
-                        new
-                        {
-                            Id = 801,
-                            Label = "SELF_DESCRIPTION_COMPANY_CREATION"
-                        },
-                        new
-                        {
-                            Id = 802,
-                            Label = "RETRIGGER_SELF_DESCRIPTION_CONNECTOR_CREATION"
-                        },
-                        new
-                        {
-                            Id = 803,
-                            Label = "RETRIGGER_SELF_DESCRIPTION_COMPANY_CREATION"
-                        });
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessType", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("label");
-
-                    b.HasKey("Id")
-                        .HasName("pk_process_types");
-
-                    b.ToTable("process_types", "portal");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Label = "APPLICATION_CHECKLIST"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Label = "OFFER_SUBSCRIPTION"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Label = "PARTNER_REGISTRATION"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Label = "MAILING"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Label = "INVITATION"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Label = "DIM_TECHNICAL_USER"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Label = "USER_PROVISIONING"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Label = "IDENTITYPROVIDER_PROVISIONING"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Label = "SELF_DESCRIPTION_CREATION"
-                        });
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProviderCompanyDetail", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7113,6 +7557,94 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         });
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClientClientId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("client_client_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OfferSubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offer_subscription_id");
+
+                    b.Property<int>("TechnicalUserKindId")
+                        .HasColumnType("integer")
+                        .HasColumnName("technical_user_kind_id");
+
+                    b.Property<int>("TechnicalUserTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("technical_user_type_id");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_technical_users");
+
+                    b.HasIndex("ClientClientId")
+                        .HasDatabaseName("ix_technical_users_client_client_id")
+                        .HasFilter("client_client_id is not null AND technical_user_kind_id = 1");
+
+                    b.HasIndex("OfferSubscriptionId")
+                        .HasDatabaseName("ix_technical_users_offer_subscription_id");
+
+                    b.HasIndex("TechnicalUserKindId")
+                        .HasDatabaseName("ix_technical_users_technical_user_kind_id");
+
+                    b.HasIndex("TechnicalUserTypeId")
+                        .HasDatabaseName("ix_technical_users_technical_user_type_id");
+
+                    b.ToTable("technical_users", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserKind", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.HasKey("Id")
+                        .HasName("pk_technical_user_kinds");
+
+                    b.ToTable("technical_user_kinds", "portal");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Label = "INTERNAL"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Label = "EXTERNAL"
+                        });
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7150,6 +7682,41 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasDatabaseName("ix_technical_user_profile_assigned_user_roles_user_role_id");
 
                     b.ToTable("technical_user_profile_assigned_user_roles", "portal");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserType", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("label");
+
+                    b.HasKey("Id")
+                        .HasName("pk_technical_user_types");
+
+                    b.ToTable("technical_user_types", "portal");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Label = "MANAGED"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Label = "OWN"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Label = "PROVIDER_OWNED"
+                        });
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.UniqueIdentifier", b =>
@@ -7409,11 +7976,11 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToView("agreement_view", "portal");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedServiceAccount", b =>
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedTechnicalUser", b =>
                 {
-                    b.Property<Guid>("ServiceAccountId")
+                    b.Property<Guid>("TechnicalUserId")
                         .HasColumnType("uuid")
-                        .HasColumnName("service_account_id");
+                        .HasColumnName("technical_user_id");
 
                     b.Property<Guid>("Owners")
                         .HasColumnType("uuid")
@@ -7423,11 +7990,11 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .HasColumnType("uuid")
                         .HasColumnName("provider");
 
-                    b.HasKey("ServiceAccountId");
+                    b.HasKey("TechnicalUserId");
 
                     b.ToTable((string)null);
 
-                    b.ToView("company_linked_service_accounts", "portal");
+                    b.ToView("company_linked_technical_users", "portal");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompanyConnectorView", b =>
@@ -7559,6 +8126,34 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.ToView("offer_subscription_view", "portal");
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStep<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process", "Process")
+                        .WithMany("ProcessSteps")
+                        .HasForeignKey("ProcessId")
+                        .IsRequired()
+                        .HasConstraintName("fk_process_steps_processes_process_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepStatus<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", "ProcessStepStatus")
+                        .WithMany("ProcessSteps")
+                        .HasForeignKey("ProcessStepStatusId")
+                        .IsRequired()
+                        .HasConstraintName("fk_process_steps_process_step_statuses_process_step_status_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", "ProcessStepType")
+                        .WithMany("ProcessSteps")
+                        .HasForeignKey("ProcessStepTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_process_steps_process_step_types_process_step_type_id");
+
+                    b.Navigation("Process");
+
+                    b.Navigation("ProcessStepStatus");
+
+                    b.Navigation("ProcessStepType");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Address", b =>
                 {
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Country", "Country")
@@ -7668,6 +8263,25 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("OfferType");
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AgreementDescription", b =>
+                {
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Agreement", "Agreement")
+                        .WithMany("AgreementDescriptions")
+                        .HasForeignKey("AgreementId")
+                        .IsRequired()
+                        .HasConstraintName("fk_agreement_descriptions_agreements_agreement_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Language", "Language")
+                        .WithMany("AgreementDescriptions")
+                        .HasForeignKey("LanguageShortName")
+                        .IsRequired()
+                        .HasConstraintName("fk_agreement_descriptions_languages_language_short_name");
+
+                    b.Navigation("Agreement");
+
+                    b.Navigation("Language");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppAssignedUseCase", b =>
                 {
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Offer", "App")
@@ -7708,23 +8322,23 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("IamClient");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceAssignedCompanyServiceAccount", b =>
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceAssignedTechnicalUser", b =>
                 {
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstance", "AppInstance")
-                        .WithMany("ServiceAccounts")
+                        .WithMany("AppInstanceAssignedTechnicalUsers")
                         .HasForeignKey("AppInstanceId")
                         .IsRequired()
-                        .HasConstraintName("fk_app_instance_assigned_service_accounts_app_instances_app_in");
+                        .HasConstraintName("fk_app_instance_assigned_technical_users_app_instances_app_ins");
 
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "CompanyServiceAccount")
-                        .WithMany("AppInstances")
-                        .HasForeignKey("CompanyServiceAccountId")
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "TechnicalUser")
+                        .WithMany("AppInstanceAssignedTechnicalUsers")
+                        .HasForeignKey("TechnicalUserId")
                         .IsRequired()
-                        .HasConstraintName("fk_app_instance_assigned_service_accounts_company_service_acco");
+                        .HasConstraintName("fk_app_instance_assigned_technical_users_technical_users_techn");
 
                     b.Navigation("AppInstance");
 
-                    b.Navigation("CompanyServiceAccount");
+                    b.Navigation("TechnicalUser");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstanceSetup", b =>
@@ -8141,43 +8755,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("CompanyRole");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", b =>
-                {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountKind", "CompanyServiceAccountKind")
-                        .WithMany("CompanyServiceAccounts")
-                        .HasForeignKey("CompanyServiceAccountKindId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_company_service_accounts_company_service_account_kindes_com");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountType", "CompanyServiceAccountType")
-                        .WithMany("CompanyServiceAccounts")
-                        .HasForeignKey("CompanyServiceAccountTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_company_service_accounts_company_service_account_types_comp");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Identity", "Identity")
-                        .WithOne("CompanyServiceAccount")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_company_service_accounts_identities_id");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.OfferSubscription", "OfferSubscription")
-                        .WithMany("CompanyServiceAccounts")
-                        .HasForeignKey("OfferSubscriptionId")
-                        .HasConstraintName("fk_company_service_accounts_offer_subscriptions_offer_subscrip");
-
-                    b.Navigation("CompanyServiceAccountKind");
-
-                    b.Navigation("CompanyServiceAccountType");
-
-                    b.Navigation("Identity");
-
-                    b.Navigation("OfferSubscription");
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyUser", b =>
                 {
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Identity", "Identity")
@@ -8284,11 +8861,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Connector", b =>
                 {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "CompanyServiceAccount")
-                        .WithOne("Connector")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Connector", "CompanyServiceAccountId")
-                        .HasConstraintName("fk_connectors_company_service_accounts_company_service_account");
-
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Company", "Host")
                         .WithMany("HostedConnectors")
                         .HasForeignKey("HostId")
@@ -8329,13 +8901,16 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                         .IsRequired()
                         .HasConstraintName("fk_connectors_connector_statuses_status_id");
 
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "TechnicalUser")
+                        .WithOne("Connector")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Connector", "TechnicalUserId")
+                        .HasConstraintName("fk_connectors_technical_users_technical_user_id");
+
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ConnectorType", "Type")
                         .WithMany("Connectors")
                         .HasForeignKey("TypeId")
                         .IsRequired()
                         .HasConstraintName("fk_connectors_connector_types_type_id");
-
-                    b.Navigation("CompanyServiceAccount");
 
                     b.Navigation("Host");
 
@@ -8350,6 +8925,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("SelfDescriptionDocument");
 
                     b.Navigation("Status");
+
+                    b.Navigation("TechnicalUser");
 
                     b.Navigation("Type");
                 });
@@ -8505,37 +9082,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("Language");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimCompanyServiceAccount", b =>
-                {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "CompanyServiceAccount")
-                        .WithOne("DimCompanyServiceAccount")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimCompanyServiceAccount", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_dim_company_service_accounts_company_service_accounts_id");
-
-                    b.Navigation("CompanyServiceAccount");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimUserCreationData", b =>
-                {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process", "Process")
-                        .WithOne("DimUserCreationData")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimUserCreationData", "ProcessId")
-                        .IsRequired()
-                        .HasConstraintName("fk_dim_user_creation_data_processes_process_id");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "ServiceAccount")
-                        .WithOne("DimUserCreationData")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.DimUserCreationData", "ServiceAccountId")
-                        .IsRequired()
-                        .HasConstraintName("fk_dim_user_creation_data_company_service_accounts_service_acc");
-
-                    b.Navigation("Process");
-
-                    b.Navigation("ServiceAccount");
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Document", b =>
                 {
                     b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyUser", "CompanyUser")
@@ -8571,6 +9117,37 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("DocumentType");
 
                     b.Navigation("MediaType");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUser", b =>
+                {
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "TechnicalUser")
+                        .WithOne("ExternalTechnicalUser")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUser", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_external_technical_users_technical_users_id");
+
+                    b.Navigation("TechnicalUser");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUserCreationData", b =>
+                {
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process", "Process")
+                        .WithOne("ExternalTechnicalUserCreationData")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUserCreationData", "ProcessId")
+                        .IsRequired()
+                        .HasConstraintName("fk_external_technical_user_creation_data_processes_process_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "TechnicalUser")
+                        .WithOne("ExternalTechnicalUserCreationData")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ExternalTechnicalUserCreationData", "TechnicalUserId")
+                        .IsRequired()
+                        .HasConstraintName("fk_external_technical_user_creation_data_technical_users_techn");
+
+                    b.Navigation("Process");
+
+                    b.Navigation("TechnicalUser");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.IamIdentityProvider", b =>
@@ -9055,42 +9632,13 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process", b =>
                 {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessType", "ProcessType")
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId>", "ProcessType")
                         .WithMany("Processes")
                         .HasForeignKey("ProcessTypeId")
                         .IsRequired()
                         .HasConstraintName("fk_processes_process_types_process_type_id");
 
                     b.Navigation("ProcessType");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStep", b =>
-                {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process", "Process")
-                        .WithMany("ProcessSteps")
-                        .HasForeignKey("ProcessId")
-                        .IsRequired()
-                        .HasConstraintName("fk_process_steps_processes_process_id");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepStatus", "ProcessStepStatus")
-                        .WithMany("ProcessSteps")
-                        .HasForeignKey("ProcessStepStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_process_steps_process_step_statuses_process_step_status_id");
-
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepType", "ProcessStepType")
-                        .WithMany("ProcessSteps")
-                        .HasForeignKey("ProcessStepTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_process_steps_process_step_types_process_step_type_id");
-
-                    b.Navigation("Process");
-
-                    b.Navigation("ProcessStepStatus");
-
-                    b.Navigation("ProcessStepType");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProviderCompanyDetail", b =>
@@ -9128,6 +9676,43 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("Service");
 
                     b.Navigation("ServiceType");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", b =>
+                {
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Identity", "Identity")
+                        .WithOne("TechnicalUser")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_technical_users_identities_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.OfferSubscription", "OfferSubscription")
+                        .WithMany("Technicalusers")
+                        .HasForeignKey("OfferSubscriptionId")
+                        .HasConstraintName("fk_technical_users_offer_subscriptions_offer_subscription_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserKind", "TechnicalUserKind")
+                        .WithMany("TechnicalUsers")
+                        .HasForeignKey("TechnicalUserKindId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_technical_users_technical_user_kinds_technical_user_kind_id");
+
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserType", "TechnicalUserType")
+                        .WithMany("TechnicalUsers")
+                        .HasForeignKey("TechnicalUserTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_technical_users_technical_user_types_technical_user_type_id");
+
+                    b.Navigation("Identity");
+
+                    b.Navigation("OfferSubscription");
+
+                    b.Navigation("TechnicalUserKind");
+
+                    b.Navigation("TechnicalUserType");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserProfile", b =>
@@ -9259,16 +9844,31 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("UserRole");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedServiceAccount", b =>
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedTechnicalUser", b =>
                 {
-                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", "CompanyServiceAccount")
-                        .WithOne("CompaniesLinkedServiceAccount")
-                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedServiceAccount", "ServiceAccountId")
+                    b.HasOne("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", "TechnicalUser")
+                        .WithOne("CompaniesLinkedTechnicalUser")
+                        .HasForeignKey("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Views.CompaniesLinkedTechnicalUser", "TechnicalUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_company_linked_service_accounts_company_service_accounts_co");
+                        .HasConstraintName("fk_company_linked_technical_users_technical_users_technical_us");
 
-                    b.Navigation("CompanyServiceAccount");
+                    b.Navigation("TechnicalUser");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepStatus<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.Navigation("ProcessSteps");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessStepType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessStepTypeId>", b =>
+                {
+                    b.Navigation("ProcessSteps");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Concrete.Entities.ProcessType<Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Process, Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums.ProcessTypeId>", b =>
+                {
+                    b.Navigation("Processes");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Address", b =>
@@ -9283,6 +9883,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("AgreementAssignedOfferTypes");
 
                     b.Navigation("AgreementAssignedOffers");
+
+                    b.Navigation("AgreementDescriptions");
 
                     b.Navigation("Consents");
                 });
@@ -9299,9 +9901,9 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.AppInstance", b =>
                 {
-                    b.Navigation("AppSubscriptionDetails");
+                    b.Navigation("AppInstanceAssignedTechnicalUsers");
 
-                    b.Navigation("ServiceAccounts");
+                    b.Navigation("AppSubscriptionDetails");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ApplicationChecklistEntryStatus", b =>
@@ -9418,29 +10020,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("CompanyRoleRegistrationData");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccount", b =>
-                {
-                    b.Navigation("AppInstances");
-
-                    b.Navigation("CompaniesLinkedServiceAccount");
-
-                    b.Navigation("Connector");
-
-                    b.Navigation("DimCompanyServiceAccount");
-
-                    b.Navigation("DimUserCreationData");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountKind", b =>
-                {
-                    b.Navigation("CompanyServiceAccounts");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyServiceAccountType", b =>
-                {
-                    b.Navigation("CompanyServiceAccounts");
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.CompanyStatus", b =>
                 {
                     b.Navigation("Companies");
@@ -9535,13 +10114,13 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Identity", b =>
                 {
-                    b.Navigation("CompanyServiceAccount");
-
                     b.Navigation("CompanyUser");
 
                     b.Navigation("CreatedNotifications");
 
                     b.Navigation("IdentityAssignedRoles");
+
+                    b.Navigation("TechnicalUser");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.IdentityProvider", b =>
@@ -9582,6 +10161,8 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.Language", b =>
                 {
+                    b.Navigation("AgreementDescriptions");
+
                     b.Navigation("AppDescriptions");
 
                     b.Navigation("CompanyCertificateTypeDescriptions");
@@ -9660,13 +10241,13 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                 {
                     b.Navigation("AppSubscriptionDetail");
 
-                    b.Navigation("CompanyServiceAccounts");
-
                     b.Navigation("ConnectorAssignedOfferSubscriptions");
 
                     b.Navigation("ConsentAssignedOfferSubscriptions");
 
                     b.Navigation("OfferSubscriptionProcessData");
+
+                    b.Navigation("Technicalusers");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.OfferSubscriptionStatus", b =>
@@ -9694,7 +10275,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
 
                     b.Navigation("CompanyUserAssignedProcess");
 
-                    b.Navigation("DimUserCreationData");
+                    b.Navigation("ExternalTechnicalUserCreationData");
 
                     b.Navigation("IdentityProviderAssignedProcess");
 
@@ -9711,29 +10292,37 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.Migrations.Migration
                     b.Navigation("SdCreationConnector");
                 });
 
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepStatus", b =>
-                {
-                    b.Navigation("ProcessSteps");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessStepType", b =>
-                {
-                    b.Navigation("ProcessSteps");
-                });
-
-            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ProcessType", b =>
-                {
-                    b.Navigation("Processes");
-                });
-
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.ServiceType", b =>
                 {
                     b.Navigation("ServiceDetails");
                 });
 
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUser", b =>
+                {
+                    b.Navigation("AppInstanceAssignedTechnicalUsers");
+
+                    b.Navigation("CompaniesLinkedTechnicalUser");
+
+                    b.Navigation("Connector");
+
+                    b.Navigation("ExternalTechnicalUser");
+
+                    b.Navigation("ExternalTechnicalUserCreationData");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserKind", b =>
+                {
+                    b.Navigation("TechnicalUsers");
+                });
+
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserProfile", b =>
                 {
                     b.Navigation("TechnicalUserProfileAssignedUserRoles");
+                });
+
+            modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.TechnicalUserType", b =>
+                {
+                    b.Navigation("TechnicalUsers");
                 });
 
             modelBuilder.Entity("Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities.UniqueIdentifier", b =>

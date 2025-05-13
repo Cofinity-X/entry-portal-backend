@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -24,14 +23,10 @@ using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Library;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Factory;
 
-public class KeycloakFactory : IKeycloakFactory
+public class KeycloakFactory(IOptions<KeycloakSettingsMap> options)
+    : IKeycloakFactory
 {
-    private readonly KeycloakSettingsMap _settings;
-
-    public KeycloakFactory(IOptions<KeycloakSettingsMap> settings)
-    {
-        _settings = settings.Value;
-    }
+    private readonly KeycloakSettingsMap _settings = options.Value;
 
     public KeycloakClient CreateKeycloakClient(string instance)
     {
@@ -41,9 +36,12 @@ public class KeycloakFactory : IKeycloakFactory
         }
 
         var settings = _settings.Single(x => x.Key.Equals(instance, StringComparison.InvariantCultureIgnoreCase)).Value;
-        return settings.ClientSecret == null
+
+        var keycloakClient = settings.ClientSecret == null
             ? new KeycloakClient(settings.ConnectionString, settings.User, settings.Password, settings.AuthRealm, settings.UseAuthTrail)
             : KeycloakClient.CreateWithClientId(settings.ConnectionString, settings.ClientId, settings.ClientSecret, settings.UseAuthTrail, settings.AuthRealm);
+
+        return keycloakClient;
     }
 
     public KeycloakClient CreateKeycloakClient(string instance, string clientId, string secret)
@@ -54,6 +52,8 @@ public class KeycloakFactory : IKeycloakFactory
         }
 
         var settings = _settings.Single(x => x.Key.Equals(instance, StringComparison.InvariantCultureIgnoreCase)).Value;
-        return KeycloakClient.CreateWithClientId(settings.ConnectionString, clientId, secret, settings.UseAuthTrail, settings.AuthRealm);
+        var keycloakClient = KeycloakClient.CreateWithClientId(settings.ConnectionString, clientId, secret, settings.UseAuthTrail, settings.AuthRealm);
+
+        return keycloakClient;
     }
 }

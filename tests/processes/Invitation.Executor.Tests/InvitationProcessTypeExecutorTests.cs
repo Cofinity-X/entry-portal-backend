@@ -18,6 +18,7 @@
  ********************************************************************************/
 
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Tests.Shared;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
@@ -298,7 +299,7 @@ public class InvitationProcessTypeExecutorTests
     public void IsExecutableProcessStep_ReturnsExpected(bool checklistHandlerReturnValue)
     {
         // Arrange
-        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.INVITATION_CREATE_CENTRAL_IDP : ProcessStepTypeId.START_AUTOSETUP;
+        var processStepTypeId = checklistHandlerReturnValue ? ProcessStepTypeId.INVITATION_CREATE_CENTRAL_IDP : ProcessStepTypeId.AWAIT_START_AUTOSETUP;
 
         // Act
         var result = _executor.IsExecutableStepTypeId(processStepTypeId);

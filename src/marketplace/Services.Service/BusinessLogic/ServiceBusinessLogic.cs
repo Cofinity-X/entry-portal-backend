@@ -19,6 +19,7 @@
 
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -27,7 +28,7 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
+using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Services.Service.ViewModels;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Services.Service.BusinessLogic;
@@ -82,12 +83,16 @@ public class ServiceBusinessLogic : IServiceBusinessLogic
         _offerSubscriptionService.AddOfferSubscriptionAsync(serviceId, offerAgreementConsentData, OfferTypeId.SERVICE, _settings.BasePortalAddress, _settings.SubscriptionManagerRoles, _settings.ServiceManagerRoles);
 
     /// <inheritdoc />
+    public Task DeclineServiceSubscriptionAsync(Guid subscriptionId) =>
+        _offerSubscriptionService.RemoveOfferSubscriptionAsync(subscriptionId, OfferTypeId.SERVICE, _settings.BasePortalAddress);
+
+    /// <inheritdoc />
     public async Task<ServiceDetailResponse> GetServiceDetailsAsync(Guid serviceId, string lang)
     {
         var result = await _portalRepositories.GetInstance<IOfferRepository>().GetServiceDetailByIdUntrackedAsync(serviceId, lang, _identityData.CompanyId).ConfigureAwait(ConfigureAwaitOptions.None);
         if (result == default)
         {
-            throw new NotFoundException($"Service {serviceId} does not exist");
+            throw NotFoundException.Create(ServicesServiceErrors.SERVICES_NOT_EXIST, new ErrorParameter[] { new("serviceId", serviceId.ToString()) });
         }
 
         return new ServiceDetailResponse(
@@ -114,7 +119,7 @@ public class ServiceBusinessLogic : IServiceBusinessLogic
             .GetSubscriptionDetailDataForOwnUserAsync(subscriptionId, _identityData.CompanyId, OfferTypeId.SERVICE).ConfigureAwait(ConfigureAwaitOptions.None);
         if (subscriptionDetailData is null)
         {
-            throw new NotFoundException($"Subscription {subscriptionId} does not exist");
+            throw NotFoundException.Create(ServicesServiceErrors.SERVICES_SUBSCRIPTION_NOT_EXIST, new ErrorParameter[] { new("subscriptionId", subscriptionId.ToString()) });
         }
 
         return subscriptionDetailData;
@@ -137,7 +142,7 @@ public class ServiceBusinessLogic : IServiceBusinessLogic
     {
         if (companyName != null && !companyName.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", "CompanyName")]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", "CompanyName")]);
         }
         async Task<Pagination.Source<OfferCompanySubscriptionStatusResponse>?> GetCompanyProvidedAppSubscriptionStatusData(int skip, int take)
         {
@@ -211,8 +216,22 @@ public class ServiceBusinessLogic : IServiceBusinessLogic
     }
 
     /// <inheritdoc />
-    public Task<OfferProviderSubscriptionDetailData> GetSubscriptionDetailForProvider(Guid serviceId, Guid subscriptionId) =>
-        _offerService.GetOfferSubscriptionDetailsForProviderAsync(serviceId, subscriptionId, OfferTypeId.SERVICE, _settings.CompanyAdminRoles, new WalletConfigData(_settings.IssuerDid, _settings.BpnDidResolverUrl, _settings.DecentralIdentityManagementAuthUrl));
+    public async Task<ProviderSubscriptionDetailData> GetSubscriptionDetailForProvider(Guid serviceId, Guid subscriptionId)
+    {
+        var offerSubscriptionDetails = await _offerService.GetOfferSubscriptionDetailsForProviderAsync(serviceId, subscriptionId, OfferTypeId.SERVICE, _settings.CompanyAdminRoles, new WalletConfigData(_settings.IssuerDid, _settings.BpnDidResolverUrl, _settings.DecentralIdentityManagementAuthUrl)).ConfigureAwait(ConfigureAwaitOptions.None);
+        return new(
+            offerSubscriptionDetails.Id,
+            offerSubscriptionDetails.OfferSubscriptionStatus,
+            offerSubscriptionDetails.Name,
+            offerSubscriptionDetails.Customer,
+            offerSubscriptionDetails.Bpn,
+            offerSubscriptionDetails.Contact,
+            offerSubscriptionDetails.TechnicalUserData,
+            offerSubscriptionDetails.ConnectorData,
+            offerSubscriptionDetails.ProcessStepTypeId,
+            offerSubscriptionDetails.ExternalService
+        );
+    }
 
     /// <inheritdoc />
     public Task<SubscriberSubscriptionDetailData> GetSubscriptionDetailForSubscriber(Guid serviceId, Guid subscriptionId) =>

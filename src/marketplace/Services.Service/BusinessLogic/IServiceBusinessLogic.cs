@@ -45,6 +45,12 @@ public interface IServiceBusinessLogic
     Task<Guid> AddServiceSubscription(Guid serviceId, IEnumerable<OfferAgreementConsentData> offerAgreementConsentData);
 
     /// <summary>
+    /// Declines a pending service subscription of a service, provided by the current user's company.
+    /// </summary>
+    /// <param name="subscriptionId">ID of the pending service to be declined.</param>
+    Task DeclineServiceSubscriptionAsync(Guid subscriptionId);
+
+    /// <summary>
     /// Gets the service detail data for the given service
     /// </summary>
     /// <param name="serviceId">Id of the service the details should be retrieved for.</param>
@@ -117,7 +123,7 @@ public interface IServiceBusinessLogic
     /// <param name="serviceId">Id of the app</param>
     /// <param name="subscriptionId">Id of the subscription</param>
     /// <returns>Returns the details of the subscription</returns>
-    Task<OfferProviderSubscriptionDetailData> GetSubscriptionDetailForProvider(Guid serviceId, Guid subscriptionId);
+    Task<ProviderSubscriptionDetailData> GetSubscriptionDetailForProvider(Guid serviceId, Guid subscriptionId);
 
     /// <summary>
     /// Gets the information for the subscription
@@ -130,9 +136,10 @@ public interface IServiceBusinessLogic
     /// <summary>
     /// Retrieves subscription statuses of subscribed Service of the provided user's company.
     /// </summary>
-    /// <param name ="page">page</param>
-    /// <param name ="size">size</param>
-    /// <param name="statusId"></param>
+    /// <param name="page">page</param>
+    /// <param name="size">size</param>
+    /// <param name="statusId">optional status to filter by</param>
+    /// <param name="name">optional name to filter by</param>
     /// <returns>Returns the details of the subscription status for Service user</returns>
     Task<Pagination.Response<OfferSubscriptionStatusDetailData>> GetCompanySubscribedServiceSubscriptionStatusesForUserAsync(int page, int size, OfferSubscriptionStatusId? statusId, string? name);
 
@@ -147,12 +154,11 @@ public interface IServiceBusinessLogic
     /// Unsubscribes an Service for the current users company.
     /// </summary>
     /// <param name="subscriptionId">ID of the subscription to unsubscribe from.</param>
-    public Task UnsubscribeOwnCompanyServiceSubscriptionAsync(Guid subscriptionId);
+    Task UnsubscribeOwnCompanyServiceSubscriptionAsync(Guid subscriptionId);
 
     /// <summary>
     /// Activates a pending service subscription for an service provided by the current user's company.
     /// </summary>
     /// <param name="subscriptionId">ID of the pending service to be activated.</param>
-    public Task TriggerActivateOfferSubscription(Guid subscriptionId);
-
+    Task TriggerActivateOfferSubscription(Guid subscriptionId);
 }

@@ -19,6 +19,8 @@
 
 using Microsoft.EntityFrameworkCore;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
@@ -49,11 +51,11 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                 con.HostId,
                 con.Host!.Name,
                 con.SelfDescriptionDocumentId,
-                con.CompanyServiceAccountId == null ? null : new TechnicalUserData(
-                    con.CompanyServiceAccount!.Id,
-                    con.CompanyServiceAccount.Name,
-                    con.CompanyServiceAccount.ClientClientId,
-                    con.CompanyServiceAccount.Description),
+                con.TechnicalUserId == null ? null : new TechnicalUserData(
+                    con.TechnicalUser!.Id,
+                    con.TechnicalUser.Name,
+                    con.TechnicalUser.ClientClientId,
+                    con.TechnicalUser.Description),
                 con.ConnectorUrl)
         ).SingleOrDefaultAsync();
     /// <inheritdoc/>
@@ -76,11 +78,11 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                 con.HostId,
                 con.Host!.Name,
                 con.SelfDescriptionDocumentId,
-                con.CompanyServiceAccountId == null ? null : new TechnicalUserData(
-                    con.CompanyServiceAccount!.Id,
-                    con.CompanyServiceAccount.Name,
-                    con.CompanyServiceAccount.ClientClientId,
-                    con.CompanyServiceAccount.Description),
+                con.TechnicalUserId == null ? null : new TechnicalUserData(
+                    con.TechnicalUser!.Id,
+                    con.TechnicalUser.Name,
+                    con.TechnicalUser.ClientClientId,
+                    con.TechnicalUser.Description),
                 con.ConnectorUrl)
         ).SingleOrDefaultAsync();
 
@@ -103,11 +105,11 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                     c.StatusId,
                     c.Provider!.Name,
                     c.SelfDescriptionDocumentId,
-                    c.CompanyServiceAccountId == default ? null : new TechnicalUserData(
-                        c.CompanyServiceAccount!.Id,
-                        c.CompanyServiceAccount.Name,
-                        c.CompanyServiceAccount.ClientClientId,
-                        c.CompanyServiceAccount.Description),
+                    c.TechnicalUserId == default ? null : new TechnicalUserData(
+                        c.TechnicalUser!.Id,
+                        c.TechnicalUser.Name,
+                        c.TechnicalUser.ClientClientId,
+                        c.TechnicalUser.Description),
                     c.ConnectorUrl)
         ).SingleOrDefaultAsync();
 
@@ -125,11 +127,11 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                     connector.HostId,
                     connector.Host!.Name,
                     connector.SelfDescriptionDocumentId,
-                    connector.CompanyServiceAccountId == default ? null : new TechnicalUserData(
-                        connector.CompanyServiceAccount!.Id,
-                        connector.CompanyServiceAccount.Name,
-                        connector.CompanyServiceAccount.ClientClientId,
-                        connector.CompanyServiceAccount.Description),
+                    connector.TechnicalUserId == default ? null : new TechnicalUserData(
+                        connector.TechnicalUser!.Id,
+                        connector.TechnicalUser.Name,
+                        connector.TechnicalUser.ClientClientId,
+                        connector.TechnicalUser.Description),
                     connector.ConnectorUrl),
                 connector.ProviderId == companyId || connector.HostId == companyId
             ))
@@ -197,17 +199,17 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                     x.OfferSubscriptionId,
                     x.OfferSubscription!.OfferSubscriptionStatusId
                 )),
-                connector.CompanyServiceAccount!.Identity!.UserStatusId,
-                connector.CompanyServiceAccountId,
+                connector.TechnicalUser!.Identity!.UserStatusId,
+                connector.TechnicalUserId,
                 new DeleteServiceAccountData(
-                    connector.CompanyServiceAccount!.Identity!.IdentityAssignedRoles.Select(r => r.UserRoleId),
-                    connector.CompanyServiceAccount.ClientClientId,
-                    connector.CompanyServiceAccount.CompanyServiceAccountKindId == CompanyServiceAccountKindId.EXTERNAL,
-                    connector.CompanyServiceAccount.DimUserCreationData!.Process!.ProcessSteps
+                    connector.TechnicalUser!.Identity!.IdentityAssignedRoles.Select(r => r.UserRoleId),
+                    connector.TechnicalUser.ClientClientId,
+                    connector.TechnicalUser.TechnicalUserKindId == TechnicalUserKindId.EXTERNAL,
+                    connector.TechnicalUser.ExternalTechnicalUserCreationData!.Process!.ProcessSteps
                         .Any(ps =>
                             ps.ProcessStepStatusId == ProcessStepStatusId.TODO &&
                             processStepsToFilter.Contains(ps.ProcessStepTypeId)),
-                    connector.CompanyServiceAccount.DimUserCreationData == null ? null : connector.CompanyServiceAccount.DimUserCreationData!.ProcessId)
+                    connector.TechnicalUser.ExternalTechnicalUserCreationData == null ? null : connector.TechnicalUser.ExternalTechnicalUserCreationData!.ProcessId)
             )).SingleOrDefaultAsync();
 
     /// <inheritdoc />
@@ -219,8 +221,9 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
                 c.TypeId,
                 c.ProviderId == companyId,
                 c.ConnectorUrl,
-                c.Provider!.BusinessPartnerNumber
-            ))
+                c.Provider!.BusinessPartnerNumber,
+                c.SelfDescriptionDocumentId,
+                c.Host!.SelfDescriptionDocumentId))
             .SingleOrDefaultAsync();
 
     public void DeleteConnector(Guid connectorId) =>
@@ -244,9 +247,11 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
             connector => connector.OrderByDescending(c => c.Name),
             con => new ConnectorMissingSdDocumentData(
                 con.Id,
+                con.TypeId,
                 con.Name,
                 con.HostId ?? con.ProviderId,
-                con.HostId != null ? con.Host!.Name : con.Provider!.Name)
+                con.HostId != null ? con.Host!.Name : con.Provider!.Name,
+                con.SdSkippedDate)
         ).SingleOrDefaultAsync();
 
     public IAsyncEnumerable<Guid> GetConnectorIdsWithMissingSelfDescription() =>
@@ -259,5 +264,18 @@ public class ConnectorsRepository(PortalDbContext dbContext) : IConnectorsReposi
         dbContext.Connectors
             .Where(c => c.SdCreationProcessId == processId)
             .Select(c => new ValueTuple<Guid, string?, Guid>(c.Id, c.Provider!.BusinessPartnerNumber, c.Provider.SelfDescriptionDocumentId!.Value))
+            .SingleOrDefaultAsync();
+
+    public Task<bool> CheckConnectorExists(string name, string connectorUrl) =>
+        dbContext.Connectors.AnyAsync(x =>
+            x.Name == name &&
+            x.ConnectorUrl == connectorUrl);
+
+    public Task<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>?> GetProcessDataForConnectorId(Guid connectorId) =>
+        dbContext.Connectors
+            .Where(c => c.Id == connectorId && c.SdCreationProcess!.ProcessTypeId == ProcessTypeId.SELF_DESCRIPTION_CREATION)
+            .Select(c => new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(
+                c.SdCreationProcess,
+                c.SdCreationProcess!.ProcessSteps.Where(step => step.ProcessStepStatusId == ProcessStepStatusId.TODO)))
             .SingleOrDefaultAsync();
 }

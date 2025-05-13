@@ -38,7 +38,7 @@ public partial class KeycloakClient
         .AppendPathSegment("/admin/realms/")
         .AppendPathSegment(realm, true)
         .AppendPathSegment("/users")
-        .PostJsonAsync(user, cancellationToken)
+        .PostJsonAsync(user, cancellationToken: cancellationToken)
         .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task<string?> CreateAndRetrieveUserIdAsync(string realm, User user, CancellationToken cancellationToken = default)
@@ -68,7 +68,7 @@ public partial class KeycloakClient
             .AppendPathSegment(realm, true)
             .AppendPathSegment("/users")
             .SetQueryParams(queryParams)
-            .GetJsonAsync<IEnumerable<User>>(cancellationToken)
+            .GetJsonAsync<IEnumerable<User>>(cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
@@ -95,7 +95,7 @@ public partial class KeycloakClient
             .AppendPathSegment(realm, true)
             .AppendPathSegment("/users/")
             .AppendPathSegment(userId, true)
-            .PutJsonAsync(user, cancellationToken)
+            .PutJsonAsync(user, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task DeleteUserAsync(string realm, string userId) =>
@@ -107,26 +107,25 @@ public partial class KeycloakClient
             .DeleteAsync()
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
-    [Obsolete("Not working yet")]
-    public async Task<string> GetUserConsentsAsync(string realm, string userId) =>
-        await (await GetBaseUrlAsync(realm).ConfigureAwait(ConfigureAwaitOptions.None))
+    public async Task<IEnumerable<UserConsent>> GetUserConsentsAsync(string realm, string userId, CancellationToken cancellationToken = default) =>
+        await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms/")
             .AppendPathSegment(realm, true)
             .AppendPathSegment("/users/")
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/consents")
-            .GetStringAsync()
+            .GetJsonAsync<IEnumerable<UserConsent>>(cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
-    public async Task RevokeUserConsentAndOfflineTokensAsync(string realm, string userId, string clientId) =>
-        await (await GetBaseUrlAsync(realm).ConfigureAwait(ConfigureAwaitOptions.None))
+    public async Task RevokeUserConsentAndOfflineTokensAsync(string realm, string userId, string clientId, CancellationToken cancellationToken = default) =>
+        await (await GetBaseUrlAsync(realm, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
             .AppendPathSegment("/admin/realms/")
             .AppendPathSegment(realm, true)
             .AppendPathSegment("/users/")
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/consents/")
             .AppendPathSegment(clientId, true)
-            .DeleteAsync()
+            .DeleteAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task DisableUserCredentialsAsync(string realm, string userId, IEnumerable<string> credentialTypes) =>
@@ -176,7 +175,7 @@ public partial class KeycloakClient
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/federated-identity/")
             .AppendPathSegment(provider, true)
-            .PostJsonAsync(federatedIdentity, cancellationToken)
+            .PostJsonAsync(federatedIdentity, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task RemoveUserSocialLoginProviderAsync(string realm, string userId, string provider, CancellationToken cancellationToken = default) =>
@@ -187,7 +186,7 @@ public partial class KeycloakClient
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/federated-identity/")
             .AppendPathSegment(provider, true)
-            .DeleteAsync(cancellationToken)
+            .DeleteAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task<IEnumerable<Group>> GetUserGroupsAsync(string realm, string userId) =>
@@ -198,16 +197,6 @@ public partial class KeycloakClient
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/groups")
             .GetJsonAsync<IEnumerable<Group>>()
-            .ConfigureAwait(ConfigureAwaitOptions.None);
-
-    public async Task<int> GetUserGroupsCountAsync(string realm, string userId) =>
-        await (await GetBaseUrlAsync(realm).ConfigureAwait(ConfigureAwaitOptions.None))
-            .AppendPathSegment("/admin/realms/")
-            .AppendPathSegment(realm, true)
-            .AppendPathSegment("/users/")
-            .AppendPathSegment(userId, true)
-            .AppendPathSegment("/groups/count")
-            .GetJsonAsync()
             .ConfigureAwait(ConfigureAwaitOptions.None);
 
     public async Task UpdateUserGroupAsync(string realm, string userId, string groupId, Group group) =>
@@ -365,5 +354,21 @@ public partial class KeycloakClient
             .AppendPathSegment(userId, true)
             .AppendPathSegment("/sessions")
             .GetJsonAsync<IEnumerable<UserSession>>()
+            .ConfigureAwait(ConfigureAwaitOptions.None);
+
+    public async Task<UserProfileConfig> GetUsersProfile(string realm, CancellationToken cancellationToken) =>
+        await (await GetBaseUrlAsync(realm, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
+            .AppendPathSegment("/admin/realms/")
+            .AppendPathSegment(realm, true)
+            .AppendPathSegment("/users/profile")
+            .GetJsonAsync<UserProfileConfig>(cancellationToken: cancellationToken)
+            .ConfigureAwait(ConfigureAwaitOptions.None);
+
+    public async Task UpdateUsersProfile(string realm, UserProfileConfig config, CancellationToken cancellationToken) =>
+        await (await GetBaseUrlAsync(realm, cancellationToken: cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None))
+            .AppendPathSegment("/admin/realms/")
+            .AppendPathSegment(realm, true)
+            .AppendPathSegment("/users/profile")
+            .PutJsonAsync(config, cancellationToken: cancellationToken)
             .ConfigureAwait(ConfigureAwaitOptions.None);
 }

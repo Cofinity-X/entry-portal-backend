@@ -24,6 +24,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Bpdm.Library.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling.Service;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.IssuerComponent.Library.DependencyInjection;
 using Org.Eclipse.TractusX.Portal.Backend.Notifications.Library;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
@@ -35,13 +36,14 @@ using Org.Eclipse.TractusX.Portal.Backend.Provisioning.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Provisioning.Library.Service;
+using Org.Eclipse.TractusX.Portal.Backend.Registration.Common.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Web.Initialization;
 using Org.Eclipse.TractusX.Portal.Backend.Web.PublicInfos.DependencyInjection;
 
-var VERSION = "v2";
+var version = AssemblyExtension.GetApplicationVersion();
 
 await WebAppHelper
-    .BuildAndRunWebApplicationAsync<Program>(args, "administration", VERSION, builder =>
+    .BuildAndRunWebApplicationAsync<Program>(args, "administration", version, builder =>
     {
         builder.Services
             .AddPublicInfos();
@@ -55,6 +57,7 @@ await WebAppHelper
         builder.Services.AddTransient<IInvitationBusinessLogic, InvitationBusinessLogic>();
 
         builder.Services.AddTransient<IUserBusinessLogic, UserBusinessLogic>()
+            .AddTransient<IIdentityProviderProvisioningService, IdentityProviderProvisioningService>()
             .AddTransient<IUserUploadBusinessLogic, UserUploadBusinessLogic>()
             .AddTransient<IUserRolesBusinessLogic, UserRolesBusinessLogic>()
             .ConfigureUserSettings(builder.Configuration.GetSection("UserManagement"));
@@ -62,7 +65,7 @@ await WebAppHelper
         builder.Services.AddTransient<IRegistrationBusinessLogic, RegistrationBusinessLogic>()
             .ConfigureRegistrationSettings(builder.Configuration.GetSection("Registration"));
 
-        builder.Services.AddTransient<IServiceAccountBusinessLogic, ServiceAccountBusinessLogic>()
+        builder.Services.AddTransient<ITechnicalUserBusinessLogic, TechnicalUserBusinessLogic>()
             .ConfigureServiceAccountSettings(builder.Configuration.GetSection("ServiceAccount"));
 
         builder.Services.AddTransient<IDocumentsBusinessLogic, DocumentsBusinessLogic>()
@@ -80,7 +83,7 @@ await WebAppHelper
         builder.Services.AddApplicationChecklist(builder.Configuration.GetSection("ApplicationChecklist"))
                         .AddOfferSubscriptionProcess();
 
-        builder.Services.AddBpnAccess(builder.Configuration.GetValue<string>("BPN_Address") ?? throw new ConfigurationException("BPN_Address is not configured"));
+        builder.Services.AddBpnAccess(builder.Configuration.GetSection("BpnAccess"));
 
         builder.Services.AddTransient<IConnectorsBusinessLogic, ConnectorsBusinessLogic>()
             .ConfigureConnectorsSettings(builder.Configuration.GetSection("Connectors"));
@@ -96,12 +99,19 @@ await WebAppHelper
 
         builder.Services
             .AddSingleton<IErrorMessageService, ErrorMessageService>()
+            .AddSingleton<IErrorMessageContainer, AdministrationCompanyDataErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, AdministrationConnectorErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, AdministrationDocumentErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, AdministrationIdentityProviderErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, AdministrationNetworkErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, AdministrationMailErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, AdministrationRegistrationErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, AdministrationServiceAccountErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, AdministrationSubscriptionConfigurationErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, ProvisioningServiceErrorMessageContainer>()
+            .AddSingleton<IErrorMessageContainer, RegistrationValidationErrorMessageContainer>()
             .AddSingleton<IErrorMessageContainer, ValidationExpressionErrorMessageContainer>();
 
         builder.Services.AddProvisioningDBAccess(builder.Configuration);
+        builder.Services.AddBpnAccess(builder.Configuration.GetSection("BpnAccess"));
     }).ConfigureAwait(ConfigureAwaitOptions.None);

@@ -36,6 +36,10 @@ public class SdFactoryServiceTests
 {
     #region Initialization
 
+    private const string CountryCode = "DE";
+    private const string Region = "NW";
+    private const string LegalName = "Legal Participant Company Name";
+    private const string Bpn = "BPNL000000000009";
     private static readonly IEnumerable<(UniqueIdentifierId Id, string Value)> UniqueIdentifiers = new List<(UniqueIdentifierId Id, string Value)>
     {
         new(UniqueIdentifierId.VAT_ID, "JUSTATEST")
@@ -60,8 +64,7 @@ public class SdFactoryServiceTests
         _portalRepositories = A.Fake<IPortalRepositories>();
         _options = Options.Create(new SdFactorySettings
         {
-            SdFactoryUrl = "https://www.api.sdfactory.com",
-            SdFactoryIssuerBpn = "BPNL00000003CRHK"
+            SdFactoryUrl = "https://www.api.sdfactory.com"
         });
         _tokenService = A.Fake<ITokenService>();
         SetupRepositoryMethods();
@@ -76,13 +79,12 @@ public class SdFactoryServiceTests
     public async Task RegisterConnectorAsync_WithValidData_CreatesDocumentInDatabase()
     {
         // Arrange
-        const string bpn = "BPNL000000000009";
         var id = Guid.NewGuid();
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.OK);
         using var httpClient = CreateHttpClient(httpMessageHandlerMock);
 
         // Act
-        await _service.RegisterConnectorAsync(id, "https://connect-tor.com", bpn, CancellationToken.None);
+        await _service.RegisterConnectorAsync(id, "https://connect-tor.com", Bpn, CancellationToken.None);
 
         // Assert
         _documents.Should().BeEmpty();
@@ -93,12 +95,11 @@ public class SdFactoryServiceTests
     {
         // Arrange
         var id = Guid.NewGuid();
-        const string bpn = "BPNL000000000009";
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.BadRequest);
         using var httpClient = CreateHttpClient(httpMessageHandlerMock);
 
         // Act
-        async Task Action() => await _service.RegisterConnectorAsync(id, "https://connect-tor.com", bpn, CancellationToken.None);
+        async Task Action() => await _service.RegisterConnectorAsync(id, "https://connect-tor.com", Bpn, CancellationToken.None);
 
         // Assert
         var exception = await Assert.ThrowsAsync<ServiceException>(Action);
@@ -114,13 +115,12 @@ public class SdFactoryServiceTests
     public async Task RegisterSelfDescriptionAsync_WithValidData_CreatesDocumentInDatabase()
     {
         // Arrange
-        const string bpn = "BPNL000000000009";
         var applicationId = Guid.NewGuid();
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.OK);
         using var httpClient = CreateHttpClient(httpMessageHandlerMock);
 
         // Act
-        await _service.RegisterSelfDescriptionAsync(applicationId, UniqueIdentifiers, "de", bpn, CancellationToken.None);
+        await _service.RegisterSelfDescriptionAsync(applicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, CancellationToken.None);
 
         // Assert
         _documents.Should().BeEmpty();
@@ -134,26 +134,24 @@ public class SdFactoryServiceTests
     {
         // Arrange
         var applicationId = Guid.NewGuid();
-        const string bpn = "BPNL000000000009";
-        const string countryCode = "DE";
         var uniqueIdentifiers = new List<(UniqueIdentifierId Id, string Value)>
         {
             new(uniqueIdentifierId, vatId)
         };
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.OK);
         using var httpClient = CreateHttpClient(httpMessageHandlerMock);
+        var countrySubdivisionCode = string.Format("{0}-{1}", CountryCode, Region);
         var requestModel = new SdFactoryRequestModel(
             applicationId.ToString(),
-            uniqueIdentifiers.Select(x => new RegistrationNumber(x.Id.GetSdUniqueIdentifierValue(), x.Value.GetUniqueIdentifierValue(x.Id, countryCode))),
-            countryCode,
-            countryCode,
+            LegalName,
+            uniqueIdentifiers.Select(x => new RegistrationNumber(x.Id.GetSdUniqueIdentifierValue(), x.Value.GetUniqueIdentifierValue(x.Id, CountryCode))),
+            countrySubdivisionCode,
+            countrySubdivisionCode,
             SdFactoryRequestModelSdType.LegalParticipant,
-            bpn,
-            bpn,
-            bpn);
+            Bpn);
 
         // Act
-        await _service.RegisterSelfDescriptionAsync(applicationId, UniqueIdentifiers, "de", bpn, CancellationToken.None);
+        await _service.RegisterSelfDescriptionAsync(applicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, CancellationToken.None);
 
         // Assert
         _documents.Should().BeEmpty();
@@ -174,12 +172,11 @@ public class SdFactoryServiceTests
     {
         // Arrange
         var applicationId = Guid.NewGuid();
-        const string bpn = "BPNL000000000009";
         var httpMessageHandlerMock = new HttpMessageHandlerMock(HttpStatusCode.BadRequest);
         using var httpClient = CreateHttpClient(httpMessageHandlerMock);
 
         // Act
-        async Task Action() => await _service.RegisterSelfDescriptionAsync(applicationId, UniqueIdentifiers, "de", bpn, CancellationToken.None);
+        async Task Action() => await _service.RegisterSelfDescriptionAsync(applicationId, LegalName, UniqueIdentifiers, CountryCode, Region, Bpn, CancellationToken.None);
 
         // Assert
         var exception = await Assert.ThrowsAsync<ServiceException>(Action);
@@ -201,10 +198,10 @@ public class SdFactoryServiceTests
 
     private void SetupRepositoryMethods()
     {
-        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<Action<Document>?>._))
-            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, Action<Document>? action) =>
+        A.CallTo(() => _documentRepository.CreateDocument(A<string>._, A<byte[]>._, A<byte[]>._, A<MediaTypeId>._, A<DocumentTypeId>._, A<long>._, A<Action<Document>?>._))
+            .Invokes((string documentName, byte[] documentContent, byte[] hash, MediaTypeId mediaTypeId, DocumentTypeId documentTypeId, long documentSize, Action<Document>? action) =>
             {
-                var document = new Document(Guid.NewGuid(), documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId);
+                var document = new Document(Guid.NewGuid(), documentContent, hash, documentName, mediaTypeId, DateTimeOffset.UtcNow, DocumentStatusId.PENDING, documentTypeId, documentSize);
                 action?.Invoke(document);
                 _documents.Add(document);
             });

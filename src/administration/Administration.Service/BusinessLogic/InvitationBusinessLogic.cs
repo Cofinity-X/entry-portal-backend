@@ -20,10 +20,12 @@
 using Org.Eclipse.TractusX.Portal.Backend.Administration.Service.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.Processes.Library;
+using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Extensions;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Administration.Service.BusinessLogic;
 
@@ -50,7 +52,7 @@ public class InvitationBusinessLogic : IInvitationBusinessLogic
 
         if (!invitationData.OrganisationName.IsValidCompanyName())
         {
-            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new("name", nameof(invitationData.OrganisationName))]);
+            throw ControllerArgumentException.Create(ValidationExpressionErrors.INCORRECT_COMPANY_NAME, [new ErrorParameter("name", nameof(invitationData.OrganisationName))]);
         }
 
         return ExecuteInvitationInternalAsync(invitationData);
@@ -59,7 +61,7 @@ public class InvitationBusinessLogic : IInvitationBusinessLogic
     private async Task<CompanyInvitationResponse> ExecuteInvitationInternalAsync(CompanyInvitationData invitationData)
     {
         var (userName, firstName, lastName, email, organisationName) = invitationData;
-        var processStepRepository = _portalRepositories.GetInstance<IProcessStepRepository>();
+        var processStepRepository = _portalRepositories.GetInstance<IPortalProcessStepRepository>();
         var processId = processStepRepository.CreateProcess(ProcessTypeId.INVITATION).Id;
         processStepRepository.CreateProcessStep(ProcessStepTypeId.INVITATION_CREATE_CENTRAL_IDP, ProcessStepStatusId.TODO, processId);
 
@@ -79,40 +81,16 @@ public class InvitationBusinessLogic : IInvitationBusinessLogic
         return new CompanyInvitationResponse(applicationId, company.Id);
     }
 
-    public Task RetriggerCreateCentralIdp(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP);
-    public Task RetriggerCreateSharedIdpServiceAccount(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT);
-    public Task RetriggerUpdateCentralIdpUrls(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_UPDATE_CENTRAL_IDP_URLS);
-    public Task RetriggerCreateCentralIdpOrgMapper(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER);
-    public Task RetriggerCreateSharedRealmIdpClient(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_REALM);
-    public Task RetriggerEnableCentralIdp(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_ENABLE_CENTRAL_IDP);
-    public Task RetriggerCreateDatabaseIdp(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_DATABASE_IDP);
-    public Task RetriggerInvitationCreateUser(Guid processId) => TriggerProcessStepInternal(processId, ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_USER);
+    public Task RetriggerCreateCentralIdp(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerCreateSharedIdpServiceAccount(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerAddRealmRole(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_ADD_REALM_ROLE.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
 
-    private async Task TriggerProcessStepInternal(Guid processId, ProcessStepTypeId stepToTrigger)
-    {
-        var nextStep = stepToTrigger switch
-        {
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP => ProcessStepTypeId.INVITATION_CREATE_CENTRAL_IDP,
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT => ProcessStepTypeId.INVITATION_CREATE_SHARED_IDP_SERVICE_ACCOUNT,
-            ProcessStepTypeId.RETRIGGER_INVITATION_UPDATE_CENTRAL_IDP_URLS => ProcessStepTypeId.INVITATION_UPDATE_CENTRAL_IDP_URLS,
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER => ProcessStepTypeId.INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER,
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_REALM => ProcessStepTypeId.INVITATION_CREATE_SHARED_REALM,
-            ProcessStepTypeId.RETRIGGER_INVITATION_ENABLE_CENTRAL_IDP => ProcessStepTypeId.INVITATION_ENABLE_CENTRAL_IDP,
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_USER => ProcessStepTypeId.INVITATION_CREATE_USER,
-            ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_DATABASE_IDP => ProcessStepTypeId.INVITATION_CREATE_DATABASE_IDP,
-            _ => throw new UnexpectedConditionException($"Step {stepToTrigger} is not retriggerable")
-        };
+    public Task RetriggerInviteSharedClient(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_CLIENT.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
 
-        var (validProcessId, processData) = await _portalRepositories.GetInstance<IProcessStepRepository>().IsValidProcess(processId, ProcessTypeId.INVITATION, Enumerable.Repeat(stepToTrigger, 1)).ConfigureAwait(ConfigureAwaitOptions.None);
-        if (!validProcessId)
-        {
-            throw new NotFoundException($"process {processId} does not exist");
-        }
-
-        var context = processData.CreateManualProcessData(stepToTrigger, _portalRepositories, () => $"processId {processId}");
-
-        context.ScheduleProcessSteps(Enumerable.Repeat(nextStep, 1));
-        context.FinalizeProcessStep();
-        await _portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
-    }
+    public Task RetriggerUpdateCentralIdpUrls(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_UPDATE_CENTRAL_IDP_URLS.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerCreateCentralIdpOrgMapper(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_CENTRAL_IDP_ORG_MAPPER.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerCreateSharedRealmIdpClient(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_SHARED_REALM.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerEnableCentralIdp(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_ENABLE_CENTRAL_IDP.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerCreateDatabaseIdp(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_DATABASE_IDP.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
+    public Task RetriggerInvitationCreateUser(Guid processId) => ProcessStepTypeId.RETRIGGER_INVITATION_CREATE_USER.TriggerProcessStep(processId, _portalRepositories, ProcessTypeExtensions.GetProcessStepForRetrigger);
 }

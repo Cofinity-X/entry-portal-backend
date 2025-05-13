@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2023 BMW Group AG
  * Copyright (c) 2023 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -26,22 +25,14 @@ using Org.Eclipse.TractusX.Portal.Backend.Keycloak.Seeding.Models;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Keycloak.Seeding.BusinessLogic;
 
-public class RealmUpdater : IRealmUpdater
+public class RealmUpdater(IKeycloakFactory keycloakFactory, ISeedDataHandler seedDataHandler)
+    : IRealmUpdater
 {
-    private readonly IKeycloakFactory _keycloakFactory;
-    private readonly ISeedDataHandler _seedData;
-
-    public RealmUpdater(IKeycloakFactory keycloakFactory, ISeedDataHandler seedDataHandler)
-    {
-        _keycloakFactory = keycloakFactory;
-        _seedData = seedDataHandler;
-    }
-
     public async Task UpdateRealm(string keycloakInstanceName, CancellationToken cancellationToken)
     {
-        var keycloak = _keycloakFactory.CreateKeycloakClient(keycloakInstanceName);
-        var realm = _seedData.Realm;
-        var seedRealm = _seedData.KeycloakRealm;
+        var keycloak = keycloakFactory.CreateKeycloakClient(keycloakInstanceName);
+        var realm = seedDataHandler.Realm;
+        var seedRealm = seedDataHandler.KeycloakRealm;
 
         Realm keycloakRealm;
         try
@@ -119,6 +110,7 @@ public class RealmUpdater : IRealmUpdater
             keycloakRealm.AdminEventsEnabled = seedRealm.AdminEventsEnabled;
             keycloakRealm.AdminEventsDetailsEnabled = seedRealm.AdminEventsDetailsEnabled;
             keycloakRealm.InternationalizationEnabled = seedRealm.InternationalizationEnabled;
+            keycloakRealm.DefaultLocale = seedRealm.DefaultLocale;
             keycloakRealm.SupportedLocales = seedRealm.SupportedLocales;
             keycloakRealm.BrowserFlow = seedRealm.BrowserFlow;
             keycloakRealm.RegistrationFlow = seedRealm.RegistrationFlow;
@@ -126,7 +118,7 @@ public class RealmUpdater : IRealmUpdater
             keycloakRealm.ResetCredentialsFlow = seedRealm.ResetCredentialsFlow;
             keycloakRealm.ClientAuthenticationFlow = seedRealm.ClientAuthenticationFlow;
             keycloakRealm.DockerAuthenticationFlow = seedRealm.DockerAuthenticationFlow;
-            keycloakRealm.Attributes = seedRealm.Attributes?.ToDictionary(x => x.Key, x => x.Value);
+            keycloakRealm.Attributes = seedRealm.Attributes?.FilterNotNullValues().ToDictionary();
             keycloakRealm.UserManagedAccessAllowed = seedRealm.UserManagedAccessAllowed;
             keycloakRealm.PasswordPolicy = seedRealm.PasswordPolicy;
 
@@ -137,6 +129,7 @@ public class RealmUpdater : IRealmUpdater
     private static bool CompareRealm(Realm keycloakRealm, KeycloakRealm seedRealm) =>
         keycloakRealm._Realm == seedRealm.Realm &&
         keycloakRealm.DisplayName == seedRealm.DisplayName &&
+        keycloakRealm.DefaultLocale == seedRealm.DefaultLocale &&
         keycloakRealm.NotBefore == seedRealm.NotBefore &&
         keycloakRealm.DefaultSignatureAlgorithm == seedRealm.DefaultSignatureAlgorithm &&
         keycloakRealm.RevokeRefreshToken == seedRealm.RevokeRefreshToken &&
@@ -205,10 +198,8 @@ public class RealmUpdater : IRealmUpdater
         keycloakRealm.UserManagedAccessAllowed == seedRealm.UserManagedAccessAllowed &&
         keycloakRealm.PasswordPolicy == seedRealm.PasswordPolicy;
 
-    private static bool CompareRealmAttributes(IDictionary<string, string>? attributes, IReadOnlyDictionary<string, string>? updateAttributes) =>
-        attributes == null && updateAttributes == null ||
-        attributes != null && updateAttributes != null &&
-        attributes.OrderBy(x => x.Key).SequenceEqual(updateAttributes.OrderBy(x => x.Key));
+    private static bool CompareRealmAttributes(IEnumerable<KeyValuePair<string, string>>? attributes, IEnumerable<KeyValuePair<string, string?>>? updateAttributes) =>
+        attributes.NullOrContentEqual(updateAttributes?.FilterNotNullValues());
 
     private static bool CompareBrowserSecurityHeaders(BrowserSecurityHeaders? securityHeaders, BrowserSecurityHeadersModel? updateSecurityHeaders) =>
         securityHeaders == null && updateSecurityHeaders == null ||

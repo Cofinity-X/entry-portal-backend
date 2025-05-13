@@ -1,5 +1,4 @@
 /********************************************************************************
- * Copyright (c) 2022 BMW Group AG
  * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -234,6 +233,14 @@ public class AppsSettings
 
     [Required(AllowEmptyStrings = true)]
     public string BpnDidResolverUrl { get; set; } = null!;
+
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> DimUserRoles { get; set; } = null!;
+
+    [Required]
+    [DistinctValues("x => x.ClientId")]
+    public IEnumerable<UserRoleConfig> UserRolesAccessibleByProviderOnly { get; set; } = null!;
 }
 
 /// <summary>
@@ -250,10 +257,7 @@ public static class AppsSettingsExtension
     {
         services.AddOptions<AppsSettings>()
             .Bind(section)
-            .ValidateDataAnnotations()
-            .ValidateEnumEnumeration(section)
-            .ValidateDistinctValues(section)
-            .ValidateOnStart();
+            .EnvironmentalValidation(section);
         return services;
     }
 }

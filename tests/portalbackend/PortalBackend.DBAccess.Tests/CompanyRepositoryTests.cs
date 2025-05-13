@@ -121,7 +121,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         var (sut, context) = await CreateSut();
 
         // Act
-        var results = sut.CreateAddress("Munich", "Street", "DE", a =>
+        var results = sut.CreateAddress("Munich", "Street", "BY", "DE", a =>
         {
             a.Streetnumber = "5";
         });
@@ -136,6 +136,9 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
             .Which.Entity.Should().BeOfType<Address>()
             .Which.Should().Match<Address>(x =>
                 x.City == "Munich" &&
+                x.Streetname == "Street" &&
+                x.Region == "BY" &&
+                x.CountryAlpha2Code == "DE" &&
                 x.Streetnumber == "5"
             );
     }
@@ -266,7 +269,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         changedEntries.Single().Entity.Should().BeOfType<ProviderCompanyDetail>().Which.AutoSetupUrl.Should().Be(url);
         var entry = changedEntries.Single();
         entry.Entity.Should().BeOfType<ProviderCompanyDetail>().Which.AutoSetupUrl.Should().Be(url);
-        entry.State.Should().Be(Microsoft.EntityFrameworkCore.EntityState.Modified);
+        entry.State.Should().Be(EntityState.Modified);
     }
 
     [Fact]
@@ -289,7 +292,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         changedEntries.Should().HaveCount(1);
         var entry = changedEntries.Single();
         entry.Entity.Should().BeOfType<ProviderCompanyDetail>().Which.AutoSetupUrl.Should().Be(url);
-        entry.State.Should().Be(Microsoft.EntityFrameworkCore.EntityState.Unchanged);
+        entry.State.Should().Be(EntityState.Unchanged);
     }
 
     #endregion
@@ -317,7 +320,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         changedEntries.Single().Entity.Should().BeOfType<Address>().Which.City.Should().Be(city);
         var entry = changedEntries.Single();
         entry.Entity.Should().BeOfType<Address>().Which.City.Should().Be(city);
-        entry.State.Should().Be(Microsoft.EntityFrameworkCore.EntityState.Modified);
+        entry.State.Should().Be(EntityState.Modified);
     }
 
     [Fact]
@@ -340,7 +343,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         changedEntries.Should().HaveCount(1);
         var entry = changedEntries.Single();
         entry.Entity.Should().BeOfType<Address>().Which.City.Should().Be(city);
-        entry.State.Should().Be(Microsoft.EntityFrameworkCore.EntityState.Unchanged);
+        entry.State.Should().Be(EntityState.Unchanged);
     }
 
     #endregion
@@ -450,14 +453,14 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         result.Should().NotBeNull();
 
         result!.CompanyId.Should().Be(new Guid("2dc4249f-b5ca-4d42-bef1-7a7a950a4f87"));
-        result.Name.Should().Be("Catena-X");
-        result.ShortName.Should().Be("Catena-X");
+        result.Name.Should().Be("CX-Operator");
+        result.ShortName.Should().Be("CX-Operator");
         result.BusinessPartnerNumber.Should().Be("BPNL00000003CRHK");
         result.CountryAlpha2Code.Should().Be("DE");
-        result.City.Should().Be("Munich");
-        result.StreetName.Should().Be("Street");
-        result.StreetNumber.Should().Be("1");
-        result.ZipCode.Should().Be("00001");
+        result.City.Should().Be("tbd");
+        result.StreetName.Should().Be("tbd");
+        result.StreetNumber.Should().Be("");
+        result.ZipCode.Should().Be("");
         result.CompanyRole.Should().Contain(CompanyRoleId.ACTIVE_PARTICIPANT);
     }
 
@@ -688,7 +691,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         // Assert
         result.Should().NotBe(default);
         result.Bpn.Should().Be("BPNL00000003CRHK");
-        result.TechnicalUserRoleIds.Should().HaveCount(14).And.OnlyHaveUniqueItems();
+        result.TechnicalUserRoleIds.Should().HaveCount(19).And.OnlyHaveUniqueItems();
     }
 
     #endregion
@@ -706,7 +709,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
 
         // Assert
         result.Should().NotBeNull();
-        result!.OrganizationName.Should().Be("Catena-X");
+        result!.OrganizationName.Should().Be("CX-Operator");
         result.CompanyUserEmail.Should().Be("inactive-user@mail.com");
     }
 
@@ -739,7 +742,7 @@ public class CompanyRepositoryTests : IAssemblyFixture<TestDbFixture>
         // Assert
         result.Should().ContainSingle()
             .Which.Should().BeOfType<OperatorBpnData>()
-            .And.Match<OperatorBpnData>(x => x.Bpn == "BPNL00000003CRHK" && x.OperatorName == "Catena-X");
+            .And.Match<OperatorBpnData>(x => x.Bpn == "BPNL00000003CRHK" && x.OperatorName == "CX-Operator");
     }
 
     #endregion

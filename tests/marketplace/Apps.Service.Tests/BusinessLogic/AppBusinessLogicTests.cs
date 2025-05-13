@@ -23,6 +23,7 @@ using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Apps.Service.ViewModels;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Models.Configuration;
 using Org.Eclipse.TractusX.Portal.Backend.Offers.Library.Models;
@@ -32,7 +33,6 @@ using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entities;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Enums;
-using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Identities;
 using System.Collections.Immutable;
 using Xunit;
 
@@ -195,6 +195,31 @@ public class AppBusinessLogicTests
                 A<string>._,
                 A<IEnumerable<UserRoleConfig>>._,
                 A<IEnumerable<UserRoleConfig>>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    #endregion
+
+    #region Decline App Subscription
+
+    [Fact]
+    public async Task DeclineAppSubscription_ReturnsExpected()
+    {
+        // Arrange
+        var offerSubscriptionId = Guid.NewGuid();
+        var offerSubscriptionService = A.Fake<IOfferSubscriptionService>();
+        A.CallTo(() => offerSubscriptionService.RemoveOfferSubscriptionAsync(A<Guid>._, OfferTypeId.APP, A<string>._))
+            .Returns(offerSubscriptionId);
+        var sut = new AppsBusinessLogic(null!, offerSubscriptionService, null!, null!, Options.Create(new AppsSettings()), _identityService);
+
+        // Act
+        await sut.DeclineAppSubscriptionAsync(offerSubscriptionId);
+
+        // Assert
+        A.CallTo(() => offerSubscriptionService.RemoveOfferSubscriptionAsync(
+                A<Guid>.That.IsEqualTo(offerSubscriptionId),
+                A<OfferTypeId>.That.Matches(x => x == OfferTypeId.APP),
+                A<string>._))
             .MustHaveHappenedOnceExactly();
     }
 
