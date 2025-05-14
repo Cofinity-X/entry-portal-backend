@@ -214,5 +214,11 @@
     "user_role": "BPDM Orchestrator Processor PoolSync",
     "offer_id": "0ffcb416-1101-4ba6-8d4a-a9dfa31745a4",
     "last_editor_id": null
+  },
+  {
+    "id": "021b855e-89c5-480f-8f97-1db4670e6984",
+    "user_role": "BPDM Value Added Services",
+    "offer_id": "0ffcb416-1101-4ba6-8d4a-a9dfa31745a4",
+    "last_editor_id": null
   }
 ]

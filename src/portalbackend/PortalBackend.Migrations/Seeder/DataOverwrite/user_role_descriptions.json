@@ -348,5 +348,15 @@
     "user_role_id": "a53a95be-ea7b-4033-926c-26275dc16e0f",
     "language_short_name": "en",
     "description": "Reserviere und bearbeitete Golden Record Tasks im Schritt 'Pool'."
+  },
+  {
+    "user_role_id": "021b855e-89c5-480f-8f97-1db4670e6984",
+    "language_short_name": "de",
+    "description": "Dieser technische Benutzer ermöglicht es Ihnen, Ihr Golden Record Gate mit den Value Added Service Applikationen zu verbinden."
+  },
+  {
+    "user_role_id": "021b855e-89c5-480f-8f97-1db4670e6984",
+    "language_short_name": "en",
+    "description": "This technical user allows you to connect your Golden Record Gate with the Value Added Service Applications."
   }
 ]
