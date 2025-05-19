@@ -462,7 +462,7 @@ public class ConnectorsBusinessLogic(
             });
         }
 
-        if (connector.SelfDescriptionCompanyDocumentId is null)
+        if (connector.SelfDescriptionCompanyDocumentId is null && !_settings.ClearinghouseConnectDisabled)
         {
             throw ConflictException.Create(AdministrationConnectorErrors.CONNECTOR_CONFLICT_NO_DESCRIPTION, [new("connectorId", connectorId.ToString())]);
         }
