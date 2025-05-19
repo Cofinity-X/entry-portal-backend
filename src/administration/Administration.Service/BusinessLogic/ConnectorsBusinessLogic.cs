@@ -467,10 +467,13 @@ public class ConnectorsBusinessLogic(
             throw ConflictException.Create(AdministrationConnectorErrors.CONNECTOR_CONFLICT_NO_DESCRIPTION, [new("connectorId", connectorId.ToString())]);
         }
 
-        var selfDescriptionDocumentUrl = $"{_settings.SelfDescriptionDocumentUrl}/{connector.SelfDescriptionCompanyDocumentId}";
-        await sdFactoryBusinessLogic
-            .RegisterConnectorAsync(connectorId, selfDescriptionDocumentUrl, bpn, cancellationToken)
-            .ConfigureAwait(ConfigureAwaitOptions.None);
+        if (!_settings.ClearinghouseConnectDisabled)
+        {
+            var selfDescriptionDocumentUrl = $"{_settings.SelfDescriptionDocumentUrl}/{connector.SelfDescriptionCompanyDocumentId}";
+            await sdFactoryBusinessLogic
+                .RegisterConnectorAsync(connectorId, selfDescriptionDocumentUrl, bpn, cancellationToken)
+                .ConfigureAwait(ConfigureAwaitOptions.None);
+        }
 
         await portalRepositories.SaveAsync().ConfigureAwait(ConfigureAwaitOptions.None);
     }
