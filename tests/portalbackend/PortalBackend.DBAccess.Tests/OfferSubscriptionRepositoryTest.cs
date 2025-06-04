@@ -20,6 +20,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Enums;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.Processes.Library.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Models;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Repositories;
 using Org.Eclipse.TractusX.Portal.Backend.PortalBackend.DBAccess.Tests.Setup;
@@ -1126,6 +1127,7 @@ public class OfferSubscriptionRepositoryTest : IAssemblyFixture<TestDbFixture>
     }
 
     #endregion
+
     #region Create OfferSubscription
 
     [Fact]
@@ -1186,6 +1188,28 @@ public class OfferSubscriptionRepositoryTest : IAssemblyFixture<TestDbFixture>
         changedEntries.Single().Entity.Should().BeOfType<OfferSubscription>().Which.CompanyId.Should().Be(new Guid("2dc4249f-b5ca-4d42-bef1-7a7a950a4f87"));
         changedEntries.Single().Entity.Should().BeOfType<OfferSubscription>().Which.OfferSubscriptionStatusId.Should().Be(OfferSubscriptionStatusId.PENDING);
         changedEntries.Single().Entity.Should().BeOfType<OfferSubscription>().Which.RequesterId.Should().Be(new Guid("0dcd8209-85e2-4073-b130-ac094fb47106"));
+    }
+
+    #endregion
+
+    #region GetProcessDataForTechnicalUserCallback
+
+    [Fact]
+    public async Task GetProcessDataForTechnicalUserCallback_ReturnsExpected()
+    {
+        // Arrange
+        var processId = new Guid("d91ac968-ffe8-466f-b34a-ae2517b7c6ab");
+        var (sut, _) = await CreateSut();
+
+        var result = await sut.GetProcessDataForTechnicalUserCallback(processId, [ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE]).ToListAsync();
+
+        result.Should().ContainSingle()
+            .Which.Should()
+            .Match<(ProcessTypeId ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId> ProcessData, Guid?
+                TechnicalUserId, Guid? TechnicalUserVersion)>(x =>
+                x.ProcessTypeId == ProcessTypeId.OFFER_SUBSCRIPTION &&
+                x.ProcessData.ProcessSteps!.Count() == 1 &&
+                x.TechnicalUserId == new Guid("4ce1b774-3d00-4e07-9a53-ae1f64193392"));
     }
 
     #endregion
