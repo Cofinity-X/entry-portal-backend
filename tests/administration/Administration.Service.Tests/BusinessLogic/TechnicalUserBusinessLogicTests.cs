@@ -54,6 +54,7 @@ public class TechnicalUserBusinessLogicTests
     private static readonly Guid ValidServiceAccountId = Guid.NewGuid();
     private static readonly Guid ValidServiceAccountVersion = Guid.NewGuid();
     private static readonly Guid ValidServiceAccountWithDimDataId = Guid.NewGuid();
+    private static readonly Guid ValidServiceAccountWithDimDataIdWithPendingUserStatus = Guid.NewGuid();
     private static readonly Guid InactiveServiceAccount = Guid.NewGuid();
     private static readonly Guid ExternalServiceAccount = Guid.NewGuid();
     private readonly IIdentityData _identity;
@@ -65,6 +66,7 @@ public class TechnicalUserBusinessLogicTests
     private readonly IPortalProcessStepRepository _processStepRepository;
     private readonly ITechnicalUserRepository _technicalUserRepository;
     private readonly IConnectorsRepository _connectorsRepository;
+    private readonly IOfferSubscriptionsRepository _offerSubscriptionsRepository;
     private readonly IProvisioningManager _provisioningManager;
     private readonly IServiceAccountManagement _serviceAccountManagement;
     private readonly IPortalRepositories _portalRepositories;
@@ -86,12 +88,15 @@ public class TechnicalUserBusinessLogicTests
         _userRolesRepository = A.Fake<IUserRolesRepository>();
         _technicalUserRepository = A.Fake<ITechnicalUserRepository>();
         _connectorsRepository = A.Fake<IConnectorsRepository>();
+        _offerSubscriptionsRepository = A.Fake<IOfferSubscriptionsRepository>();
         _processStepRepository = A.Fake<IPortalProcessStepRepository>();
         _provisioningManager = A.Fake<IProvisioningManager>();
         _portalRepositories = A.Fake<IPortalRepositories>();
         A.CallTo(() => _portalRepositories.GetInstance<IPortalProcessStepRepository>()).Returns(_processStepRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IUserRepository>()).Returns(_userRepository);
         A.CallTo(() => _portalRepositories.GetInstance<ITechnicalUserRepository>()).Returns(_technicalUserRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IUserRolesRepository>()).Returns(_userRolesRepository);
+        A.CallTo(() => _portalRepositories.GetInstance<IOfferSubscriptionsRepository>()).Returns(_offerSubscriptionsRepository);
 
         _identity = A.Fake<IIdentityData>();
         _identityService = A.Fake<IIdentityService>();
@@ -705,8 +710,10 @@ public class TechnicalUserBusinessLogicTests
         const ProcessStepTypeId stepToTrigger = ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE;
         var process = new Process(Guid.NewGuid(), ProcessTypeId.OFFER_SUBSCRIPTION, Guid.NewGuid());
         var context = new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, [new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), stepToTrigger, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow)]);
+        var technicalUserId = Guid.NewGuid();
+        var technicalUserVersionId = Guid.NewGuid();
         A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
-            .Returns((ProcessTypeId.OFFER_SUBSCRIPTION, context, Guid.NewGuid(), Guid.NewGuid()));
+            .Returns((ProcessTypeId.OFFER_SUBSCRIPTION, context, technicalUserId, technicalUserVersionId));
 
         var sut = new TechnicalUserBusinessLogic(_provisioningManager, _portalRepositories, _options, _technicalUserCreation, _identityService, _serviceAccountManagement);
 
@@ -716,7 +723,72 @@ public class TechnicalUserBusinessLogicTests
         // Assert
         A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(process.Id, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count() == 1 && x.Single() == stepToTrigger)))
             .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _userRepository.AttachAndModifyIdentity(technicalUserId, A<Action<Identity>>._, A<Action<Identity>>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _technicalUserRepository.AttachAndModifyTechnicalUser(technicalUserId, technicalUserVersionId, A<Action<TechnicalUser>>._, A<Action<TechnicalUser>>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _technicalUserRepository.CreateExternalTechnicalUser(technicalUserId, A<string>._, A<byte[]>._, A<byte[]>._, A<int>._))
+            .MustHaveHappenedOnceExactly();
         A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task HandleServiceAccountCreationCallback_WithLinkedUser_ExecutesExpected()
+    {
+        // Arrange
+        const ProcessStepTypeId stepToTrigger = ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE;
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.OFFER_SUBSCRIPTION, Guid.NewGuid());
+        var context = new VerifyProcessData<ProcessTypeId, ProcessStepTypeId>(process, [new ProcessStep<Process, ProcessTypeId, ProcessStepTypeId>(Guid.NewGuid(), stepToTrigger, ProcessStepStatusId.TODO, process.Id, DateTimeOffset.UtcNow)]);
+        A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns<(ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?)>(default);
+        var technicalUserId = Guid.NewGuid();
+        var technicalUserVersionId = Guid.NewGuid();
+        A.CallTo(() => _offerSubscriptionsRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns(Enumerable.Repeat(new ValueTuple<ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?>(ProcessTypeId.OFFER_SUBSCRIPTION, context, technicalUserId, technicalUserVersionId), 1).ToAsyncEnumerable());
+
+        var sut = new TechnicalUserBusinessLogic(_provisioningManager, _portalRepositories, _options, _technicalUserCreation, _identityService, _serviceAccountManagement);
+
+        // Act
+        await sut.HandleServiceAccountCreationCallback(process.Id, _fixture.Create<AuthenticationDetail>());
+
+        // Assert
+        A.CallTo(() => _userRepository.AttachAndModifyIdentity(technicalUserId, A<Action<Identity>>._, A<Action<Identity>>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _technicalUserRepository.AttachAndModifyTechnicalUser(technicalUserId, technicalUserVersionId, A<Action<TechnicalUser>>._, A<Action<TechnicalUser>>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _technicalUserRepository.CreateExternalTechnicalUser(technicalUserId, A<string>._, A<byte[]>._, A<byte[]>._, A<int>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(process.Id, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count() == 1 && x.Single() == stepToTrigger)))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _offerSubscriptionsRepository.GetProcessDataForTechnicalUserCallback(process.Id, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count() == 1 && x.Single() == stepToTrigger)))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task HandleServiceAccountCreationCallback_WithMoreThanOneTechnicalUserLinked_ThrowsException()
+    {
+        // Arrange
+        var stepToTrigger = ProcessStepTypeId.AWAIT_CREATE_DIM_TECHNICAL_USER_RESPONSE;
+        var process = new Process(Guid.NewGuid(), ProcessTypeId.OFFER_SUBSCRIPTION, Guid.NewGuid());
+        A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns<(ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?)>(default);
+        A.CallTo(() => _offerSubscriptionsRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns(Enumerable.Repeat(new ValueTuple<ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?>(ProcessTypeId.OFFER_SUBSCRIPTION, _fixture.Create<VerifyProcessData<ProcessTypeId, ProcessStepTypeId>>(), Guid.NewGuid(), Guid.NewGuid()), 2).ToAsyncEnumerable());
+
+        var sut = new TechnicalUserBusinessLogic(_provisioningManager, _portalRepositories, _options, _technicalUserCreation, _identityService, _serviceAccountManagement);
+
+        async Task Act() => await sut.HandleServiceAccountCreationCallback(process.Id, _fixture.Create<AuthenticationDetail>());
+
+        // Act
+        var ex = await Assert.ThrowsAsync<ConflictException>(Act);
+
+        // Assert
+        A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(process.Id, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count() == 1 && x.Single() == stepToTrigger)))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _offerSubscriptionsRepository.GetProcessDataForTechnicalUserCallback(process.Id, A<IEnumerable<ProcessStepTypeId>>.That.Matches(x => x.Count() == 1 && x.Single() == stepToTrigger)))
+            .MustHaveHappenedOnceExactly();
+        ex.Message.Should().Be("there should only be one external technical user for the subscription");
     }
 
     [Theory]
@@ -729,6 +801,8 @@ public class TechnicalUserBusinessLogicTests
         var process = new Process(Guid.NewGuid(), processTypeId, Guid.NewGuid());
         A.CallTo(() => _technicalUserRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
             .Returns<(ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?)>(default);
+        A.CallTo(() => _offerSubscriptionsRepository.GetProcessDataForTechnicalUserCallback(A<Guid>._, A<IEnumerable<ProcessStepTypeId>>._))
+            .Returns(Enumerable.Empty<(ProcessTypeId, VerifyProcessData<ProcessTypeId, ProcessStepTypeId>, Guid?, Guid?)>().ToAsyncEnumerable());
 
         var sut = new TechnicalUserBusinessLogic(_provisioningManager, _portalRepositories, _options, _technicalUserCreation, _identityService, _serviceAccountManagement);
 
@@ -830,10 +904,10 @@ public class TechnicalUserBusinessLogicTests
     private void SetupGetOwnCompanyServiceAccount()
     {
         var data = _fixture.Build<TechnicalUserDetailedData>()
-            .With(x => x.Status, UserStatusId.ACTIVE)
-            .With(x => x.DimServiceAccountData, default(ExternalTechnicalUserData?))
-            .With(x => x.TechnicalUserKindId, TechnicalUserKindId.INTERNAL)
-            .Create();
+          .With(x => x.Status, UserStatusId.ACTIVE)
+          .With(x => x.DimServiceAccountData, default(ExternalTechnicalUserData?))
+          .With(x => x.TechnicalUserKindId, TechnicalUserKindId.INTERNAL)
+          .Create();
 
         var cryptoHelper = _options.Value.EncryptionConfigs.GetCryptoHelper(_options.Value.EncryptionConfigIndex);
         var (secret, initializationVector) = cryptoHelper.Encrypt("test");
@@ -844,12 +918,20 @@ public class TechnicalUserBusinessLogicTests
             .With(x => x.TechnicalUserKindId, TechnicalUserKindId.EXTERNAL)
             .Create();
 
+        var dataWithPendingUserStatus = _fixture.Build<TechnicalUserDetailedData>()
+            .With(x => x.DimServiceAccountData, dimServiceAccountData)
+            .With(x => x.Status, UserStatusId.PENDING)
+            .With(x => x.TechnicalUserKindId, TechnicalUserKindId.EXTERNAL)
+            .Create();
+
         A.CallTo(() => _technicalUserRepository.GetOwnTechnicalUserDataUntrackedAsync(ValidServiceAccountId, ValidCompanyId))
             .Returns(data);
         A.CallTo(() => _technicalUserRepository.GetOwnTechnicalUserDataUntrackedAsync(ValidServiceAccountWithDimDataId, ValidCompanyId))
             .Returns(dataWithDim);
+        A.CallTo(() => _technicalUserRepository.GetOwnTechnicalUserDataUntrackedAsync(ValidServiceAccountWithDimDataIdWithPendingUserStatus, ValidCompanyId))
+            .Returns(dataWithPendingUserStatus);
         A.CallTo(() => _technicalUserRepository.GetOwnTechnicalUserDataUntrackedAsync(
-                A<Guid>.That.Not.Matches(x => x == ValidServiceAccountId || x == ValidServiceAccountWithDimDataId), ValidCompanyId))
+                A<Guid>.That.Not.Matches(x => x == ValidServiceAccountId || x == ValidServiceAccountWithDimDataId || x == ValidServiceAccountWithDimDataIdWithPendingUserStatus), ValidCompanyId))
             .Returns<TechnicalUserDetailedData?>(null);
         A.CallTo(() => _technicalUserRepository.GetOwnTechnicalUserDataUntrackedAsync(ValidServiceAccountId, A<Guid>.That.Not.Matches(x => x == ValidCompanyId)))
             .Returns<TechnicalUserDetailedData?>(null);
@@ -883,7 +965,6 @@ public class TechnicalUserBusinessLogicTests
         }
 
         A.CallTo(() => _portalRepositories.GetInstance<IConnectorsRepository>()).Returns(_connectorsRepository);
-        A.CallTo(() => _portalRepositories.GetInstance<IUserRepository>()).Returns(_userRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IUserRolesRepository>()).Returns(_userRolesRepository);
         A.CallTo(() => _portalRepositories.GetInstance<IPortalProcessStepRepository>()).Returns(_processStepRepository);
     }
