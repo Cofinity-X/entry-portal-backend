@@ -31,5 +31,6 @@ public record DimWalletData(
 public record AuthenticationDetail(
     [property: JsonPropertyName("authenticationServiceUrl")] string AuthenticationServiceUrl,
     [property: JsonPropertyName("clientID")] string ClientId,
-    [property: JsonPropertyName("clientSecret")] string ClientSecret
+    [property: JsonPropertyName("clientSecret")] string ClientSecret,
+    [property: JsonPropertyName("IsWalletCustomerProvider")] bool IsWalletCustomerProvider
 );

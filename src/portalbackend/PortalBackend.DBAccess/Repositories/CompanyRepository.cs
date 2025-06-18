@@ -367,8 +367,8 @@ public class CompanyRepository(PortalDbContext context) : ICompanyRepository
         context.Companies
             .AnyAsync(x => x.BusinessPartnerNumber == bpn);
 
-    public void CreateWalletData(Guid companyId, string did, JsonDocument didDocument, string clientId, byte[] clientSecret, byte[]? initializationVector, int encryptionMode, string authenticationServiceUrl) =>
-        context.CompanyWalletDatas.Add(new CompanyWalletData(Guid.NewGuid(), companyId, did, didDocument, clientId, clientSecret, initializationVector, encryptionMode, authenticationServiceUrl));
+    public void CreateWalletData(Guid companyId, string did, JsonDocument didDocument, string clientId, byte[] clientSecret, byte[]? initializationVector, int encryptionMode, string authenticationServiceUrl, bool isWalletCustomerProvider) =>
+        context.CompanyWalletDatas.Add(new CompanyWalletData(Guid.NewGuid(), companyId, did, didDocument, clientId, clientSecret, initializationVector, encryptionMode, authenticationServiceUrl, isWalletCustomerProvider));
 
     public Task<(bool Exists, JsonDocument DidDocument)> GetDidDocumentById(string bpn) =>
         context.CompanyWalletDatas
