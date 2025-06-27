@@ -269,7 +269,7 @@ public class DimBusinessLogicTests
         var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
 
         // Assert
-        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._))
+        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._, A<bool>._))
             .MustNotHaveHappened();
         ex.Message.Should().Be($"No company found for bpn {BPN}");
     }
@@ -287,7 +287,7 @@ public class DimBusinessLogicTests
         var ex = await Assert.ThrowsAsync<ConflictException>(Act);
 
         // Assert
-        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._))
+        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._, A<bool>._))
             .MustNotHaveHappened();
         ex.Message.Should().Be($"There must be exactly one company application in state {CompanyApplicationStatusId.SUBMITTED}");
     }
@@ -315,7 +315,7 @@ public class DimBusinessLogicTests
         await _logic.ProcessDimResponse(BPN, data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._))
+        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._, A<bool>._))
             .MustNotHaveHappened();
         A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(context, null, A<Action<ApplicationChecklistEntry>>._, null))
             .MustHaveHappenedOnceExactly();
@@ -341,7 +341,7 @@ public class DimBusinessLogicTests
         await _logic.ProcessDimResponse(BPN, data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._))
+        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._, A<bool>._))
             .MustNotHaveHappened();
         A.CallTo(() => _checklistService.FinalizeChecklistEntryAndProcessSteps(context, null, A<Action<ApplicationChecklistEntry>>._, null))
             .MustHaveHappenedOnceExactly();
@@ -406,18 +406,18 @@ public class DimBusinessLogicTests
         byte[]? encrypted = null;
         byte[]? iv = null;
 
-        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._))
-            .Invokes((Guid _, string _, JsonDocument _, string _, byte[] clientSecret, byte[]? initializationVector, int _, string _) =>
+        A.CallTo(() => _companyRepository.CreateWalletData(A<Guid>._, A<string>._, A<JsonDocument>._, A<string>._, A<byte[]>._, A<byte[]?>._, A<int>._, A<string>._, A<bool>._))
+            .Invokes(call =>
             {
-                encrypted = clientSecret;
-                iv = initializationVector;
+                encrypted = call.Arguments[4] as byte[];
+                iv = (byte[]?)call.Arguments[5];
             });
 
         // Act
         await _logic.ProcessDimResponse(BPN, data, CancellationToken.None);
 
         // Assert
-        A.CallTo(() => _companyRepository.CreateWalletData(companyId, data.Did, didDocument, data.AuthenticationDetails.ClientId, A<byte[]>._, A<byte[]?>._, 1, data.AuthenticationDetails.AuthenticationServiceUrl))
+        A.CallTo(() => _companyRepository.CreateWalletData(companyId, data.Did, didDocument, data.AuthenticationDetails.ClientId, A<byte[]>._, A<byte[]?>._, 1, data.AuthenticationDetails.AuthenticationServiceUrl, false))
             .MustHaveHappenedOnceExactly();
         encrypted.Should().NotBeNull();
         var decrypted = CryptoHelper.Decrypt(encrypted!, iv, _encryptionKey, System.Security.Cryptography.CipherMode.CBC, System.Security.Cryptography.PaddingMode.PKCS7);

@@ -949,7 +949,7 @@ public class RegistrationBusinessLogicTest
     public async Task ProcessDimResponseAsync_WithValidData_CallsExpected()
     {
         // Arrange
-        var data = new DimWalletData($"did:web:test123:{BusinessPartnerNumber}", _fixture.Create<JsonDocument>(), new AuthenticationDetail("https://example.org", "test123", "test123"));
+        var data = new DimWalletData($"did:web:test123:{BusinessPartnerNumber}", _fixture.Create<JsonDocument>(), new AuthenticationDetail("https://example.org", "test123", "test123", false));
 
         // Act
         await _logic.ProcessDimResponseAsync(BusinessPartnerNumber, data, CancellationToken.None);

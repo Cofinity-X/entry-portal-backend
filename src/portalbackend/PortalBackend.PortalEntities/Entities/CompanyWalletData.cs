@@ -24,7 +24,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.PortalBackend.PortalEntities.Entit
 
 public class CompanyWalletData : IBaseEntity
 {
-    public CompanyWalletData(Guid id, Guid companyId, string did, JsonDocument didDocument, string clientId, byte[] clientSecret, byte[]? initializationVector, int encryptionMode, string authenticationServiceUrl)
+    public CompanyWalletData(Guid id, Guid companyId, string did, JsonDocument didDocument, string clientId, byte[] clientSecret, byte[]? initializationVector, int encryptionMode, string authenticationServiceUrl, bool isWalletCustomerProvider)
     {
         Id = id;
         CompanyId = companyId;
@@ -35,6 +35,7 @@ public class CompanyWalletData : IBaseEntity
         InitializationVector = initializationVector;
         EncryptionMode = encryptionMode;
         AuthenticationServiceUrl = authenticationServiceUrl;
+        IsWalletCustomerProvider = isWalletCustomerProvider;
     }
 
     public Guid Id { get; private set; }
@@ -50,6 +51,8 @@ public class CompanyWalletData : IBaseEntity
     public int EncryptionMode { get; set; }
 
     public string AuthenticationServiceUrl { get; private set; }
+
+    public bool IsWalletCustomerProvider { get; private set; }
 
     public virtual JsonDocument DidDocument { get; private set; }
 
