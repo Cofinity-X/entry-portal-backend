@@ -498,6 +498,7 @@ public class OfferSubscriptionServiceTests
 
         // Act
         await _sut.RemoveOfferSubscriptionAsync(_validSubscriptionId, offerTypeId, BasePortalUrl);
+        var detailUrl = offerTypeId == OfferTypeId.APP ? $"appdetail/{offerSubscriptionDetails.OfferId}" : $"serviceMarketplaceDetail/{offerSubscriptionDetails.OfferId}";
 
         // Assert
         A.CallTo(() => _offerSubscriptionsRepository.GetOfferDetailsAndCheckProviderCompany(_validSubscriptionId, _identity.CompanyId, offerTypeId))
@@ -514,8 +515,7 @@ public class OfferSubscriptionServiceTests
             A<string>.That.IsEqualTo($"{offerTypeId.ToString().ToLower()}-subscription-decline"),
             A<IReadOnlyDictionary<string, string>>.That.Matches(x =>
                 x["offerName"] == offerSubscriptionDetails.OfferName
-                && x["url"] == BasePortalUrl
-                && x["requesterName"] == string.Format("{0} {1}", offerSubscriptionDetails.RequesterFirstname, offerSubscriptionDetails.RequesterLastname))
+                && x["url"] == $"{BasePortalUrl}/{detailUrl}")
                 )).MustHaveHappenedOnceExactly();
         A.CallTo(() => _portalRepositories.SaveAsync()).MustHaveHappenedOnceExactly();
     }

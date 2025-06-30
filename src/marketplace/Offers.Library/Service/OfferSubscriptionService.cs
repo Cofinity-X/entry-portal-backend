@@ -150,12 +150,13 @@ public class OfferSubscriptionService : IOfferSubscriptionService
                 });
 
         if (!string.IsNullOrWhiteSpace(offerSubscriptionDetails.RequesterEmail))
+
         {
+            var detailUrl = offerTypeId == OfferTypeId.APP ? $"appdetail/{offerId}" : $"serviceMarketplaceDetail/{offerId}";
             var mailParameters = ImmutableDictionary.CreateRange(
             [
                 KeyValuePair.Create("offerName", offerSubscriptionDetails.OfferName!),
-                KeyValuePair.Create("url", basePortalAddress),
-                KeyValuePair.Create("requesterName", string.Format("{0} {1}", offerSubscriptionDetails.RequesterFirstname, offerSubscriptionDetails.RequesterLastname))
+                KeyValuePair.Create("url", $"{basePortalAddress}/{detailUrl}"),
             ]);
 
             _mailingProcessCreation.CreateMailProcess(
