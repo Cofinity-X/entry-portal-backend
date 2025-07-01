@@ -3,6 +3,40 @@ info:
   title: Org.Eclipse.TractusX.Portal.Backend.Registration.Service
   version: v2.5.0
 paths:
+  '/api/registration/bringYourOwnWallet/{did}/validateDid':
+    post:
+      tags:
+        - BringYourOwnWallet
+      summary: ' (Authorization required - Roles: submit_registration)'
+      parameters:
+        - name: did
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+        '401':
+          description: The User is unauthorized
   /api/registration/errormessage:
     get:
       tags:
