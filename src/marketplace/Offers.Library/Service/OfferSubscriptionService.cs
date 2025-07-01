@@ -153,10 +153,11 @@ public class OfferSubscriptionService : IOfferSubscriptionService
 
         {
             var detailUrl = offerTypeId == OfferTypeId.APP ? $"appdetail/{offerId}" : $"serviceMarketplaceDetail/{offerId}";
+            var baseUrl = new Uri(basePortalAddress).GetLeftPart(UriPartial.Authority);
             var mailParameters = ImmutableDictionary.CreateRange(
             [
                 KeyValuePair.Create("offerName", offerSubscriptionDetails.OfferName!),
-                KeyValuePair.Create("url", $"{basePortalAddress}/{detailUrl}"),
+                KeyValuePair.Create("url", $"{baseUrl}/{detailUrl}"),
             ]);
 
             _mailingProcessCreation.CreateMailProcess(
