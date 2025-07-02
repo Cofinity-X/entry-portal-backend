@@ -33,10 +33,15 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Controllers
         [HttpPost]
         [Authorize(Roles = "submit_registration")]
         [Route("{did}/validateDid")]
-        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public Task<bool> validateDid([FromRoute] string did, CancellationToken cancellationToken) =>
-        logic.ValidateDid(did, cancellationToken);
+        public Task<NoContentResult> validateDid([FromRoute] string did, CancellationToken cancellationToken)
+        {
+
+            logic.ValidateDid(did, cancellationToken);
+
+            return Task.FromResult(NoContent());
+        }
     }
 }

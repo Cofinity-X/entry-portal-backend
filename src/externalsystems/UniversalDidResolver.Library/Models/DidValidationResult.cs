@@ -17,12 +17,15 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library.Models;
 
 public record DidValidationResult(
-    [property: JsonPropertyName("didResolutionMetadata")] DidResolutionMetadata DidResolutionMetadata
+    [property: JsonPropertyName("didResolutionMetadata")] DidResolutionMetadata DidResolutionMetadata,
+    [property: JsonPropertyName("didDocument")] JsonElement DidDocument
+
 );
 
 public record DidResolutionMetadata(

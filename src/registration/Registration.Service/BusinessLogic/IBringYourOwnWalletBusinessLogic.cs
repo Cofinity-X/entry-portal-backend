@@ -21,6 +21,6 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic
 {
     public interface IBringYourOwnWalletBusinessLogic
     {
-        Task<bool> ValidateDid(string did, CancellationToken cancellationToken);
+        Task ValidateDid(string did, CancellationToken cancellationToken);
     }
 }

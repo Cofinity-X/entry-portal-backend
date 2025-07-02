@@ -19,6 +19,7 @@
 
 using AutoFixture;
 using AutoFixture.AutoFakeItEasy;
+using FakeItEasy;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
@@ -55,7 +56,9 @@ public class UniversalDidResolverServiceTests
         // Arrange
         const string did = "did:web:123";
         HttpRequestMessage? request = null;
-        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null));
+        var didDocumentJson = "{\"id\":\"did:web:123\"}";
+        using var doc = JsonDocument.Parse(didDocumentJson);
+        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null), doc.RootElement.Clone());
         using var responseMessage = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
@@ -63,14 +66,16 @@ public class UniversalDidResolverServiceTests
         };
         _fixture.ConfigureHttpClientFactoryFixture("universalResolver", responseMessage, requestMessage => request = requestMessage, _settings.UniversalResolverAddress);
 
+        // Mock ValidateSchema to return true
+        var universalDidResolverService = _fixture.Freeze<IUniversalDidResolverService>();
+        A.CallTo(() => universalDidResolverService.ValidateSchema(A<JsonElement>._, A<CancellationToken>._)).Returns(true);
+
         // Act
         var result = await _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        result.Should().BeTrue();
         request.Should().NotBeNull();
         request!.RequestUri.Should().NotBeNull();
-        request.RequestUri.Should().NotBeNull();
         request.RequestUri!.AbsoluteUri.Should().Be($"https://dev.uniresolver.io/1.0/identifiers/{Uri.EscapeDataString(did)}");
     }
 
@@ -80,10 +85,15 @@ public class UniversalDidResolverServiceTests
         // Arrange
         const string did = "did:web:123";
         HttpRequestMessage? request = null;
-        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null));
+        var didDocumentJson = "{\"id\":\"did:web:123\"}";
+        using var doc = JsonDocument.Parse(didDocumentJson);
+        var didValidationResult = new DidValidationResult(
+            new DidResolutionMetadata("notFound"),
+            doc.RootElement.Clone()
+        );
         using var responseMessage = new HttpResponseMessage
         {
-            StatusCode = HttpStatusCode.NotFound,
+            StatusCode = HttpStatusCode.OK,
             Content = new StringContent(JsonSerializer.Serialize(didValidationResult))
         };
         _fixture.ConfigureHttpClientFactoryFixture("universalResolver", responseMessage, requestMessage => request = requestMessage, _settings.UniversalResolverAddress);
@@ -93,7 +103,7 @@ public class UniversalDidResolverServiceTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<ServiceException>(Act);
-        ex.Message.Should().Be("call to external system validate-did failed with statuscode 404");
+        ex.Message.Should().Contain("DID validation failed during validation");
     }
 
     [Fact]
@@ -102,13 +112,19 @@ public class UniversalDidResolverServiceTests
         // Arrange
         const string did = "did:web:123";
         HttpRequestMessage? request = null;
-        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null));
+        using var emptyDoc = JsonDocument.Parse("{}");
+        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null), emptyDoc.RootElement.Clone());
         using var responseMessage = new HttpResponseMessage
         {
-            StatusCode = HttpStatusCode.BadRequest,
+            StatusCode = HttpStatusCode.BadRequest, // Simulate HTTP 400 error
             Content = new StringContent(JsonSerializer.Serialize(didValidationResult))
         };
-        _fixture.ConfigureHttpClientFactoryFixture("universalResolver", responseMessage, requestMessage => request = requestMessage, _settings.UniversalResolverAddress);
+        _fixture.ConfigureHttpClientFactoryFixture(
+            "universalResolver",
+            responseMessage,
+            requestMessage => request = requestMessage,
+            _settings.UniversalResolverAddress
+        );
 
         // Act
         async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
@@ -116,6 +132,10 @@ public class UniversalDidResolverServiceTests
         // Assert
         var ex = await Assert.ThrowsAsync<ServiceException>(Act);
         ex.Message.Should().Be("call to external system validate-did failed with statuscode 400");
+        ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        request.Should().NotBeNull();
+        request!.RequestUri.Should().NotBeNull();
+        request.RequestUri!.AbsoluteUri.Should().Be($"https://dev.uniresolver.io/1.0/identifiers/{Uri.EscapeDataString(did)}");
     }
 
     [Fact]
@@ -124,11 +144,10 @@ public class UniversalDidResolverServiceTests
         // Arrange
         const string did = "did:web:123";
         HttpRequestMessage? request = null;
-        var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null));
         using var responseMessage = new HttpResponseMessage
         {
             StatusCode = HttpStatusCode.OK,
-            Content = null
+            Content = null // Simulating an empty response
         };
         _fixture.ConfigureHttpClientFactoryFixture("universalResolver", responseMessage, requestMessage => request = requestMessage, _settings.UniversalResolverAddress);
 
@@ -137,5 +156,38 @@ public class UniversalDidResolverServiceTests
 
         // Assert
         var ex = await Assert.ThrowsAsync<JsonException>(Act);
+        ex.Message.Should().Contain("The input does not contain any JSON tokens");
+        request.Should().NotBeNull();
+        request!.RequestUri.Should().NotBeNull();
+        request.RequestUri!.AbsoluteUri.Should().Be($"https://dev.uniresolver.io/1.0/identifiers/{Uri.EscapeDataString(did)}");
+    }
+
+    [Fact]
+    public async Task ValidateDid_ThrowsException_WhenValidationResultIsNull()
+    {
+        // Arrange
+        const string did = "did:web:123";
+        HttpRequestMessage? request = null;
+        using var responseMessage = new HttpResponseMessage
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StringContent("null", System.Text.Encoding.UTF8, "application/json")
+        };
+        _fixture.ConfigureHttpClientFactoryFixture(
+            "universalResolver",
+            responseMessage,
+            requestMessage => request = requestMessage,
+            _settings.UniversalResolverAddress
+        );
+
+        // Act
+        async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
+
+        // Assert
+        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
+        ex.Message.Should().Contain("DID validation failed: No result returned.");
+        request.Should().NotBeNull();
+        request!.RequestUri.Should().NotBeNull();
+        request.RequestUri!.AbsoluteUri.Should().Be($"https://dev.uniresolver.io/1.0/identifiers/{Uri.EscapeDataString(did)}");
     }
 }

@@ -19,10 +19,12 @@
 
 using FakeItEasy;
 using FluentAssertions;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.Identity;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Controllers;
 using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
+using System.Net;
 using Xunit;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Tests;
@@ -45,61 +47,32 @@ public class BringYourOwnWalletControllerTests
     }
 
     [Fact]
-    public async Task ValidateDid_WhenCalled_ShouldReturnOkResult()
+    public async Task ValidateDid_ShouldBeValid()
     {
         // Arrange
         var did = "did:web:example.com";
-        A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, A<CancellationToken>._)).Returns(true);
+        A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, A<CancellationToken>._)).DoesNothing();
 
         // Act
-        var result = await _controller.validateDid(did, CancellationToken.None);
+        await _controller.validateDid(did, CancellationToken.None);
 
-        //Assert
+        // Assert
         A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, CancellationToken.None)).MustHaveHappenedOnceExactly();
-
     }
 
     [Fact]
-    public async Task ValidateDid_WhenDidIsValid_ShouldReturnOkWithTrue()
+    public async Task ValidateDid_WhenDidIsInvalid_ShouldThrowServiceException()
     {
         // Arrange
-        var did = "did:web:example.com";
-        A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, A<CancellationToken>._)).Returns(true);
-
-        // Act
-        var result = await _controller.validateDid(did, CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ValidateDid_WhenDidIsInvalid_ShouldReturnOkWithFalse()
-    {
-        // Arrange
-        var did = "did:web:example.com";
-        A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, A<CancellationToken>._)).Returns(false);
-
-        // Act
-        var result = await _controller.validateDid(did, CancellationToken.None);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task ValidateDid_WhenBusinessLogicThrowsBadRequest_ShouldThrowHttpRequestException()
-    {
-        // Arrange
-        var did = "did:web:badrequest";
-        var exception = new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+        var did = "did:web:invalid";
+        var exception = new ServiceException("DID validation failed", HttpStatusCode.BadRequest);
         A.CallTo(() => _bringYourOwnWalletBusinessLogicFake.ValidateDid(did, A<CancellationToken>._)).Throws(exception);
 
         // Act
         Func<Task> act = async () => await _controller.validateDid(did, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<HttpRequestException>()
-            .WithMessage("Bad request");
+        await act.Should().ThrowAsync<ServiceException>()
+            .WithMessage("DID validation failed");
     }
 }

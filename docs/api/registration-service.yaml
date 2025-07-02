@@ -15,12 +15,12 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: OK
+        '204':
+          description: No Content
           content:
             application/json:
               schema:
-                type: boolean
+                $ref: '#/components/schemas/NoContentResult'
         '400':
           description: Bad Request
           content:
@@ -1622,6 +1622,13 @@ components:
           type: array
           items:
             type: string
+      additionalProperties: false
+    NoContentResult:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          format: int32
       additionalProperties: false
     OspDeclineReason:
       enum:

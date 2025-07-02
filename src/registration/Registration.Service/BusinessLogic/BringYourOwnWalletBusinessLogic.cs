@@ -16,7 +16,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
+using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library;
+using System.Net;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic
 {
@@ -28,9 +30,18 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic
         {
             _universalResolverService = universalResolverService;
         }
-        public async Task<bool> ValidateDid(string did, CancellationToken cancellationToken)
+        public async Task ValidateDid(string did, CancellationToken cancellationToken)
         {
-            return (await _universalResolverService.ValidateDid(did, cancellationToken));
+            var validationResult = await _universalResolverService.ValidateDid(did, cancellationToken);
+            var isSchemaValid = await _universalResolverService.ValidateSchema(
+                validationResult.DidDocument,
+                cancellationToken
+            ).ConfigureAwait(false);
+
+            if (!isSchemaValid)
+            {
+                throw new ServiceException("DID validation failed. DID Document is not valid.", HttpStatusCode.BadRequest);
+            }
         }
     }
 }

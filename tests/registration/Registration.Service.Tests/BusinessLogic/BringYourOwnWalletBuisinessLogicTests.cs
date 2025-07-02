@@ -17,73 +17,101 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-using AutoFixture;
-using AutoFixture.AutoFakeItEasy;
 using FakeItEasy;
 using FluentAssertions;
+using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic;
-using Org.Eclipse.TractusX.Portal.Backend.Tests.Shared.Extensions;
 using Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library;
+using Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library.Models;
+using System.Text.Json;
 using Xunit;
 
 namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Tests.BusinessLogic;
 
 public class BringYourOwnWalletBuisinessLogicTests
 {
-    private readonly IFixture _fixture;
     private readonly IUniversalDidResolverService _universalDidResolverService;
     private readonly IBringYourOwnWalletBusinessLogic _sut;
 
     public BringYourOwnWalletBuisinessLogicTests()
     {
-        _fixture = new Fixture().Customize(new AutoFakeItEasyCustomization { ConfigureMembers = true });
-        _fixture.ConfigureFixture();
-
         _universalDidResolverService = A.Fake<IUniversalDidResolverService>();
         _sut = new BringYourOwnWalletBusinessLogic(_universalDidResolverService);
     }
 
     [Fact]
-    public async Task ValidateDid_ReturnsTrue_WhenDidIsValid()
+    public async Task ValidateDid_Completes_WhenDidIsValid()
     {
         // Arrange
         const string did = "did:web:123";
-        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._)).Returns(true);
+        var didDocument = JsonDocument.Parse("{\"id\":\"did:web:123\"}").RootElement;
+        var validationResult = new DidValidationResult(new DidResolutionMetadata(null), didDocument);
+        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._))
+            .ReturnsLazily(() => Task.FromResult(validationResult));
+        A.CallTo(() => _universalDidResolverService.ValidateSchema(didDocument, A<CancellationToken>._))
+            .ReturnsLazily(() => true);
 
-        // Act
-        var result = await _sut.ValidateDid(did, CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
+        // Act & Assert
+        await _sut.Invoking(s => s.ValidateDid(did, CancellationToken.None))
+            .Should().NotThrowAsync();
     }
 
     [Fact]
-    public async Task ValidateDid_ReturnsFalse_WhenDidHasError()
+    public async Task ValidateDid_ThrowsSericeException_WhenDidHasError()
     {
         // Arrange
         const string did = "did:web:123";
-        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._)).Returns(false);
+        var didDocument = JsonDocument.Parse("{\"id\":\"did:web:123\"}").RootElement;
+        var validationResult = new DidValidationResult(new DidResolutionMetadata("notFound"), didDocument);
+        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._))
+            .ReturnsLazily(() => Task.FromResult(validationResult));
 
         // Act
-        var result = await _sut.ValidateDid(did, CancellationToken.None);
+        var act = () => _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        result.Should().BeFalse();
+        await act.Should().ThrowAsync<ServiceException>()
+            .WithMessage("DID validation failed. DID Document is not valid.");
     }
 
     [Fact]
-    public async Task ValidateDid_ReturnsFalse_WhenDidThrowsHttp400Exception()
+    public async Task ValidateDid_ThrowsServiceException_WhenSchemaIsInvalid()
     {
         // Arrange
-        const string did = "did:web:404";
-        var exception = new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
-        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._)).Throws(exception);
+        const string did = "did:web:123";
+        var didDocument = JsonDocument.Parse("{\"id\":\"did:web:123\"}").RootElement;
+        var validationResult = new DidValidationResult(new DidResolutionMetadata(null), didDocument);
+        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._))
+            .ReturnsLazily(() => Task.FromResult(validationResult));
+        A.CallTo(() => _universalDidResolverService.ValidateSchema(didDocument, A<CancellationToken>._))
+            .ReturnsLazily(() => false);
 
         // Act
-        async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
+        var act = () => _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(Act);
-        ex.Message.Should().Be("Bad request");
+        await act.Should().ThrowAsync<ServiceException>()
+            .WithMessage("DID validation failed. DID Document is not valid.");
+    }
+
+    [Fact]
+    public async Task ValidateDid_ThrowsServiceException_WhenValidationResultIsNull()
+    {
+        // Arrange
+        const string did = "did:web:empty";
+        var didDocument = JsonDocument.Parse("{}").RootElement;
+        var validationResult = new DidValidationResult(
+                    new DidResolutionMetadata(Error: null),
+                    didDocument
+                );
+        A.CallTo(() => _universalDidResolverService.ValidateDid(did, A<CancellationToken>._))
+            .ReturnsLazily(_ => Task.FromResult<DidValidationResult>(validationResult));
+
+        // Act
+        var act = () => _sut.ValidateDid(did, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<ServiceException>()
+            .WithMessage("DID validation failed. DID Document is not valid.");
     }
 }

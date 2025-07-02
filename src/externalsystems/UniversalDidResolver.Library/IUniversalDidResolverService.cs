@@ -17,6 +17,9 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
+using Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library.Models;
+using System.Text.Json;
+
 namespace Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library;
 
 public interface IUniversalDidResolverService
@@ -27,5 +30,7 @@ public interface IUniversalDidResolverService
     /// <param name="did">The did that should be checked</param>
     /// <param name="cancellationToken">The CancellationToken</param>
     /// <returns><c>true</c> if the did is valid, otherwise <c>false</c></returns>
-    Task<bool> ValidateDid(string did, CancellationToken cancellationToken);
+    Task<DidValidationResult> ValidateDid(string did, CancellationToken cancellationToken);
+
+    Task<bool> ValidateSchema(JsonElement content, CancellationToken cancellationToken);
 }
