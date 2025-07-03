@@ -102,7 +102,7 @@ public class UniversalDidResolverServiceTests
         async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
+        var ex = await Assert.ThrowsAsync<UnsupportedMediaTypeException>(Act);
         ex.Message.Should().Contain("DID validation failed during validation");
     }
 
@@ -184,7 +184,7 @@ public class UniversalDidResolverServiceTests
         async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
+        var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
         ex.Message.Should().Contain("DID validation failed: No result returned.");
         request.Should().NotBeNull();
         request!.RequestUri.Should().NotBeNull();

@@ -70,7 +70,7 @@ public class BringYourOwnWalletBuisinessLogicTests
         var act = () => _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<ServiceException>()
+        await act.Should().ThrowAsync<UnsupportedMediaTypeException>()
             .WithMessage("DID validation failed. DID Document is not valid.");
     }
 
@@ -90,7 +90,7 @@ public class BringYourOwnWalletBuisinessLogicTests
         var act = () => _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<ServiceException>()
+        await act.Should().ThrowAsync<UnsupportedMediaTypeException>()
             .WithMessage("DID validation failed. DID Document is not valid.");
     }
 
@@ -111,7 +111,7 @@ public class BringYourOwnWalletBuisinessLogicTests
         var act = () => _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<ServiceException>()
+        await act.Should().ThrowAsync<UnsupportedMediaTypeException>()
             .WithMessage("DID validation failed. DID Document is not valid.");
     }
 }

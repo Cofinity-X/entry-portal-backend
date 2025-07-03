@@ -26,22 +26,21 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.Controllers
 {
     [ApiController]
     [EnvironmentRoute("MVC_ROUTING_BASEPATH", "bringYourOwnWallet")]
-    [Produces("application/json")]
-    [Consumes("application/json")]
     public class BringYourOwnWalletController(IBringYourOwnWalletBusinessLogic logic) : ControllerBase
     {
         [HttpPost]
         [Authorize(Roles = "submit_registration")]
         [Route("{did}/validateDid")]
         [ProducesResponseType(typeof(NoContentResult), StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status415UnsupportedMediaType)]
         [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        public Task<NoContentResult> validateDid([FromRoute] string did, CancellationToken cancellationToken)
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status502BadGateway)]
+        public async Task<NoContentResult> validateDid([FromRoute] string did, CancellationToken cancellationToken)
         {
 
-            logic.ValidateDid(did, cancellationToken);
+            await logic.ValidateDid(did, cancellationToken);
 
-            return Task.FromResult(NoContent());
+            return NoContent();
         }
     }
 }

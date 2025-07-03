@@ -37,19 +37,18 @@ public class UniversalDidResolverService(IHttpClientFactory httpClientFactory) :
 
         if (!result.IsSuccessStatusCode)
         {
-            throw new ServiceException($"Did validation failed with status code {result.StatusCode} and reason {result.ReasonPhrase}. Did: {did}", result.StatusCode);
+            throw new NotFoundException($"Did validation failed with status code {result.StatusCode} and reason {result.ReasonPhrase}. Did: {did}");
         }
 
         var validationResult = await result.Content.ReadFromJsonAsync<DidValidationResult>(Options, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.None);
-
         if (validationResult == null)
         {
-            throw new ServiceException("DID validation failed: No result returned.", HttpStatusCode.BadRequest);
+            throw new NotFoundException("DID validation failed: No result returned.");
         }
 
         if (!string.IsNullOrWhiteSpace(validationResult.DidResolutionMetadata.Error))
         {
-            throw new ServiceException("DID validation failed during validation", HttpStatusCode.BadRequest);
+            throw new UnsupportedMediaTypeException("DID validation failed during validation");
         }
 
         return validationResult;

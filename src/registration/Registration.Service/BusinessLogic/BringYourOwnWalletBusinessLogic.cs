@@ -40,7 +40,7 @@ namespace Org.Eclipse.TractusX.Portal.Backend.Registration.Service.BusinessLogic
 
             if (!isSchemaValid)
             {
-                throw new ServiceException("DID validation failed. DID Document is not valid.", HttpStatusCode.BadRequest);
+                throw new UnsupportedMediaTypeException("DID validation failed. DID Document is not valid.");
             }
         }
     }
