@@ -22,6 +22,7 @@ using Org.Eclipse.TractusX.Portal.Backend.Framework.ErrorHandling;
 using Org.Eclipse.TractusX.Portal.Backend.Framework.HttpClientExtensions;
 using Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library.Models;
 using System.Net.Http.Json;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text.Json;
 namespace Org.Eclipse.TractusX.Portal.Backend.UniversalDidResolver.Library;
@@ -32,8 +33,21 @@ public class UniversalDidResolverService(IHttpClientFactory httpClientFactory) :
     public async Task<DidValidationResult> ValidateDid(string did, CancellationToken cancellationToken)
     {
         using var httpClient = httpClientFactory.CreateClient("universalResolver");
-        var result = await httpClient.GetAsync($"1.0/identifiers/{Uri.EscapeDataString(did)}", cancellationToken)
-            .CatchingIntoServiceExceptionFor("validate-did", HttpAsyncResponseMessageExtension.RecoverOptions.INFRASTRUCTURE).ConfigureAwait(false);
+        HttpResponseMessage result;
+        try
+        {
+            result = await httpClient.GetAsync($"1.0/identifiers/{Uri.EscapeDataString(did)}", cancellationToken)
+                .CatchingIntoServiceExceptionFor("validate-did", HttpAsyncResponseMessageExtension.RecoverOptions.INFRASTRUCTURE).ConfigureAwait(false);
+
+        }
+        catch (ServiceException ex)
+        {
+            if (ex.InnerException is SocketException)
+            {
+                throw new NotFoundException("Universal resolver is not reachable");
+            }
+            throw new NotFoundException("DID URL could not be reached by the exetenal resolver, 404 error", ex);
+        }
 
         if (!result.IsSuccessStatusCode)
         {

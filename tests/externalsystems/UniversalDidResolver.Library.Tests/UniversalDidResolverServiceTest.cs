@@ -108,7 +108,7 @@ public class UniversalDidResolverServiceTests
     }
 
     [Fact]
-    public async Task ValidateDid_ReturnsFalse_WhenHttpStatusIsNotSuccess()
+    public async Task ValidateDid_ThrowNotFoundException_WhenDidNotResolved()
     {
         // Arrange
         const string did = "did:web:123";
@@ -117,7 +117,7 @@ public class UniversalDidResolverServiceTests
         var didValidationResult = new DidValidationResult(new DidResolutionMetadata(null), emptyDoc.RootElement.Clone());
         using var responseMessage = new HttpResponseMessage
         {
-            StatusCode = HttpStatusCode.BadRequest, // Simulate HTTP 400 error
+            StatusCode = HttpStatusCode.BadRequest,
             Content = new StringContent(JsonSerializer.Serialize(didValidationResult))
         };
         _fixture.ConfigureHttpClientFactoryFixture(
@@ -131,9 +131,8 @@ public class UniversalDidResolverServiceTests
         async Task Act() => await _sut.ValidateDid(did, CancellationToken.None);
 
         // Assert
-        var ex = await Assert.ThrowsAsync<ServiceException>(Act);
-        ex.Message.Should().Be("call to external system validate-did failed with statuscode 400");
-        ex.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var ex = await Assert.ThrowsAsync<NotFoundException>(Act);
+        ex.Message.Should().Be("DID URL could not be reached by the exetenal resolver, 404 error");
         request.Should().NotBeNull();
         request!.RequestUri.Should().NotBeNull();
         request.RequestUri!.AbsoluteUri.Should().Be($"https://dev.uniresolver.io/1.0/identifiers/{Uri.EscapeDataString(did)}");
