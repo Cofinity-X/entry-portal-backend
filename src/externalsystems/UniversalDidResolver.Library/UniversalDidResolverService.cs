@@ -46,7 +46,7 @@ public class UniversalDidResolverService(IHttpClientFactory httpClientFactory) :
             {
                 throw new NotFoundException("Universal resolver is not reachable");
             }
-            throw new NotFoundException("DID URL could not be reached by the exetenal resolver, 404 error", ex);
+            throw new NotFoundException("DID URL could not be reached by the external resolver, 404 error", ex);
         }
 
         if (!result.IsSuccessStatusCode)
